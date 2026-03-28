@@ -2,6 +2,8 @@
 class_name MenuScene
 extends Node2D
 
+const SAVE_PATH = "user://void_td_save.cfg"
+
 var _title: Label
 var _stars: Array = []
 var _time: float = 0.0
@@ -53,6 +55,27 @@ func _ready() -> void:
 	btn.modulate.a = 0.0
 	btn.pressed.connect(_on_start)
 	add_child(btn)
+
+	# High score display
+	var cfg = ConfigFile.new()
+	cfg.load(SAVE_PATH)
+	var hs: int = cfg.get_value("game", "high_score", 0)
+	if hs > 0:
+		var hs_lbl = Label.new()
+		hs_lbl.text = "Best Score: %d" % hs
+		hs_lbl.position = Vector2(0, 510)
+		hs_lbl.size = Vector2(1334, 36)
+		hs_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hs_lbl.add_theme_font_size_override("font_size", 22)
+		hs_lbl.add_theme_color_override("font_color", Color(0.7, 0.5, 1.0))
+		hs_lbl.modulate.a = 0.0
+		add_child(hs_lbl)
+		var tween = create_tween().set_parallel(true)
+		tween.tween_property(_title, "modulate:a", 1.0, 1.2)
+		tween.tween_property(sub,    "modulate:a", 1.0, 0.8).set_delay(0.9)
+		tween.tween_property(btn,    "modulate:a", 1.0, 0.8).set_delay(1.5)
+		tween.tween_property(hs_lbl, "modulate:a", 1.0, 0.8).set_delay(1.8)
+		return
 
 	# Staggered fade-in
 	var tween = create_tween().set_parallel(true)

@@ -1,9 +1,15 @@
-## GameOverScene.gd — Win/loss screen
+## GameOverScene.gd — Win/loss screen with stats and high score
 class_name GameOverScene
 extends Node2D
 
+const SAVE_PATH = "user://void_td_save.cfg"
+
 var won: bool = false
 var final_score: int = 0
+var kills: int = 0
+var towers_built: int = 0
+var upgrades_done: int = 0
+var credits_spent: int = 0
 
 func _ready() -> void:
 	var bg = ColorRect.new()
@@ -11,6 +17,7 @@ func _ready() -> void:
 	bg.size = Vector2(1334, 750)
 	add_child(bg)
 
+	# ── Title ─────────────────────────────────────────────────────────────────
 	var title = Label.new()
 	if won:
 		title.text = "VICTORY!"
@@ -18,25 +25,82 @@ func _ready() -> void:
 	else:
 		title.text = "GAME OVER"
 		title.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
-	title.position = Vector2(0, 220)
+	title.position = Vector2(0, 160)
 	title.size = Vector2(1334, 100)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 72)
 	add_child(title)
 
+	# ── Score ─────────────────────────────────────────────────────────────────
 	var score_lbl = Label.new()
 	score_lbl.text = "Score: %d" % final_score
-	score_lbl.position = Vector2(0, 340)
+	score_lbl.position = Vector2(0, 270)
 	score_lbl.size = Vector2(1334, 50)
 	score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_lbl.add_theme_font_size_override("font_size", 36)
 	score_lbl.add_theme_color_override("font_color", Color.WHITE)
 	add_child(score_lbl)
 
+	# ── High Score ────────────────────────────────────────────────────────────
+	var cfg = ConfigFile.new()
+	cfg.load(SAVE_PATH)  # ignore error if absent
+	var old_high: int = cfg.get_value("game", "high_score", 0)
+	var is_new_high: bool = final_score > old_high
+	if is_new_high:
+		cfg.set_value("game", "high_score", final_score)
+		cfg.save(SAVE_PATH)
+		var new_hs_lbl = Label.new()
+		new_hs_lbl.text = "NEW HIGH SCORE!"
+		new_hs_lbl.position = Vector2(0, 315)
+		new_hs_lbl.size = Vector2(1334, 36)
+		new_hs_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		new_hs_lbl.add_theme_font_size_override("font_size", 24)
+		new_hs_lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.0))
+		add_child(new_hs_lbl)
+	else:
+		var hs_lbl = Label.new()
+		hs_lbl.text = "Best: %d" % old_high
+		hs_lbl.position = Vector2(0, 315)
+		hs_lbl.size = Vector2(1334, 36)
+		hs_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		hs_lbl.add_theme_font_size_override("font_size", 22)
+		hs_lbl.add_theme_color_override("font_color", Color(0.7, 0.7, 0.9))
+		add_child(hs_lbl)
+
+	# ── Stats Grid ────────────────────────────────────────────────────────────
+	var stats = [
+		["Enemies Killed", str(kills)],
+		["Towers Built",   str(towers_built)],
+		["Upgrades",       str(upgrades_done)],
+		["Credits Spent",  "$%d" % credits_spent],
+	]
+	var col_w: float = 240.0
+	var start_x: float = (1334.0 - col_w * stats.size()) / 2.0
+	for i in stats.size():
+		var x := start_x + i * col_w
+		var key_lbl = Label.new()
+		key_lbl.text = stats[i][0]
+		key_lbl.position = Vector2(x, 368)
+		key_lbl.size = Vector2(col_w, 28)
+		key_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		key_lbl.add_theme_font_size_override("font_size", 16)
+		key_lbl.add_theme_color_override("font_color", Color(0.65, 0.65, 0.85))
+		add_child(key_lbl)
+
+		var val_lbl = Label.new()
+		val_lbl.text = stats[i][1]
+		val_lbl.position = Vector2(x, 394)
+		val_lbl.size = Vector2(col_w, 34)
+		val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		val_lbl.add_theme_font_size_override("font_size", 28)
+		val_lbl.add_theme_color_override("font_color", Color.WHITE)
+		add_child(val_lbl)
+
+	# ── Return Button ─────────────────────────────────────────────────────────
 	var btn = Button.new()
 	btn.text = "Return to Menu"
 	btn.size = Vector2(260, 60)
-	btn.position = Vector2((1334 - 260) / 2.0, 440)
+	btn.position = Vector2((1334 - 260) / 2.0, 480)
 	btn.add_theme_font_size_override("font_size", 28)
 	btn.pressed.connect(_on_return)
 	add_child(btn)

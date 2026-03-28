@@ -42,6 +42,7 @@ func _process(delta: float) -> void:
 
 func _on_hit() -> void:
 	if splash_radius > 0.0:
+		_spawn_splash_ring()
 		for enemy in _enemies_ref:
 			if is_instance_valid(enemy) and not enemy.is_dead:
 				if position.distance_to(enemy.position) <= splash_radius:
@@ -52,3 +53,31 @@ func _on_hit() -> void:
 
 	hit_target.emit()
 	queue_free()
+
+func _spawn_splash_ring() -> void:
+	var ring = _SplashRing.new()
+	ring.radius = splash_radius
+	ring.position = position
+	if get_parent() != null:
+		get_parent().add_child(ring)
+
+
+## Expanding AoE impact ring
+class _SplashRing extends Node2D:
+	var radius: float = 60.0
+	var _t: float = 0.0
+	const DURATION: float = 0.35
+
+	func _process(delta: float) -> void:
+		_t += delta
+		if _t >= DURATION:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var progress := _t / DURATION
+		var alpha := (1.0 - progress) * 0.75
+		var r := radius * (0.4 + progress * 0.6)
+		draw_arc(Vector2.ZERO, r, 0, TAU, 32, Color(1.0, 0.55, 0.1, alpha), 3.0)
+		draw_arc(Vector2.ZERO, r * 0.7, 0, TAU, 32, Color(1.0, 0.8, 0.2, alpha * 0.5), 1.5)

@@ -161,6 +161,24 @@ func _init() -> void:
 	_assert(scaled.speed > 200.0, "Scout at scale 2.0 is faster than base")
 	scaled.queue_free()
 
+	# --- New Enemy Types (Speeder + Shielded) ---
+	print("\n[ New Enemy Types ]")
+	var speeder = EnemyNode.new()
+	speeder.setup(EnemyDefinition.EnemyType.SPEEDER)
+	_assert(speeder.speed == 400.0, "Speeder speed = 400")
+	_assert(speeder.max_hp == 30.0, "Speeder hp = 30")
+	_assert(speeder.reward == 10, "Speeder reward = 10")
+	_assert(speeder.lives_damage == 1, "Speeder lives_damage = 1")
+	speeder.queue_free()
+
+	var shielded_e = EnemyNode.new()
+	shielded_e.setup(EnemyDefinition.EnemyType.SHIELDED)
+	_assert(shielded_e.max_hp == 350.0, "Shielded hp = 350")
+	_assert(not shielded_e._is_shielded, "Shielded starts vulnerable")
+	shielded_e.take_damage(50.0)
+	_assert(shielded_e.current_hp == 300.0, "Shielded takes damage when vulnerable")
+	shielded_e.queue_free()
+
 	# --- TowerNode stun ---
 	print("\n[ TowerNode stun ]")
 	var tower = TowerNode.new()

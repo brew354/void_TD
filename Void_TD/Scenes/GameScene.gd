@@ -54,6 +54,21 @@ var _tower_counts: Dictionary = {}  # TowerType int key → placed count
 var _path_tile_nodes: Array = []
 var _chevron_tween: Tween = null
 
+# ── Screen shake ──────────────────────────────────────────────────────────────
+var _camera: Camera2D = null
+var _shake_timer: float = 0.0
+var _shake_strength: float = 0.0
+
+# ── Wave streak ───────────────────────────────────────────────────────────────
+var _streak: int = 0
+var _lives_at_wave_start: int = 0
+
+# ── Post-game stats ───────────────────────────────────────────────────────────
+var _total_kills: int = 0
+var _towers_built: int = 0
+var _upgrades_done: int = 0
+var _credits_spent: int = 0
+
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	_build_layers()
@@ -88,6 +103,11 @@ func _build_layers() -> void:
 	projectile_layer = Node2D.new()
 	projectile_layer.name = "ProjectileLayer"
 	add_child(projectile_layer)
+
+	# Camera for screen shake
+	_camera = Camera2D.new()
+	_camera.position = Vector2(GameConfig.SCENE_WIDTH / 2.0, GameConfig.SCENE_HEIGHT / 2.0)
+	add_child(_camera)
 
 func _draw_background() -> void:
 	var grad = _HorizGradient.new()
@@ -202,7 +222,7 @@ func _wave_preview_text() -> String:
 	var waves = WaveDefinition.all_waves()
 	var next_idx = wave_manager.current_wave_number() - 1
 	if next_idx >= waves.size():
-		return ""
+		return "Next: Endless Wave"
 	var parts = []
 	for g in waves[next_idx].groups:
 		parts.append("%d %s" % [g.count, EnemyDefinition.stats(g.type)["label"]])
@@ -217,6 +237,13 @@ func _process(delta: float) -> void:
 	tower_manager.update(delta, enemies)
 	for k in _fire_sfx_cooldowns.keys():
 		_fire_sfx_cooldowns[k] = max(_fire_sfx_cooldowns[k] - delta, 0.0)
+	# Screen shake decay
+	if _shake_timer > 0.0:
+		_shake_timer -= delta
+		_camera.offset = Vector2(randf_range(-1.0, 1.0), randf_range(-1.0, 1.0)) * _shake_strength
+		if _shake_timer <= 0.0:
+			_shake_strength = 0.0
+			_camera.offset = Vector2.ZERO
 
 # ── Input ─────────────────────────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
@@ -289,6 +316,8 @@ func _on_tile_clicked(col: int, row: int) -> void:
 func _place_tower(col: int, row: int, type: TowerDefinition.TowerType) -> void:
 	var cost = TowerDefinition.stats(type)["cost"]
 	currency -= cost
+	_credits_spent += cost
+	_towers_built += 1
 	grid_manager.place(col, row)
 	tile_nodes[row][col].set_state(GridManager.TileState.OCCUPIED)
 
@@ -351,6 +380,8 @@ func _on_upgrade_pressed() -> void:
 			if currency < up_cost:
 				return
 			currency -= up_cost
+			_credits_spent += up_cost
+			_upgrades_done += 1
 			tower.upgrade()
 			_play_chime([440.0, 554.0, 659.0], 0.09)
 			hud.update_credits(currency)
@@ -364,6 +395,8 @@ func _upgrade_base() -> void:
 	if currency < up_cost:
 		return
 	currency -= up_cost
+	_credits_spent += up_cost
+	_upgrades_done += 1
 	_base.upgrade()
 	_play_chime([440.0, 554.0, 659.0], 0.09)
 	hud.update_credits(currency)
@@ -391,6 +424,7 @@ func _on_hud_start_wave() -> void:
 		return
 	_close_upgrade_panel()
 	_start_chevron_fade()
+	_lives_at_wave_start = lives
 	_play_sfx(440.0, 0.18, -6.0)
 	state_machine.transition_to(GameStateMachine.State.WAVE_IN_PROGRESS)
 	wave_manager.start_wave()
@@ -430,11 +464,13 @@ func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
 		TowerDefinition.TowerType.CANNON:
 			_play_noise(0.05, -5.0)
 			_play_sfx(70.0, 0.15, -7.0)
+			_screen_shake(3.0, 0.18)
 		TowerDefinition.TowerType.MISSILE:
 			_play_sweep(180.0, 700.0, 0.09, -9.0)
 		TowerDefinition.TowerType.MECHA_SOLDIER:
 			_play_noise(0.08, -3.0)
 			_play_sweep(400.0, 80.0, 0.10, -5.0)
+			_screen_shake(5.0, 0.25)
 	_fire_sfx_cooldowns[key] = 0.15
 
 func _spawn_reward_label(pos: Vector2, amount: int) -> void:
@@ -454,6 +490,7 @@ func _spawn_reward_label(pos: Vector2, amount: int) -> void:
 	tween.tween_callback(lbl.queue_free)
 
 func _on_enemy_died(enemy: EnemyNode) -> void:
+	_total_kills += 1
 	_spawn_reward_label(enemy.position, enemy.reward)
 	match enemy.enemy_type:
 		EnemyDefinition.EnemyType.SCOUT:
@@ -464,6 +501,12 @@ func _on_enemy_died(enemy: EnemyNode) -> void:
 		EnemyDefinition.EnemyType.BOSS:
 			_play_noise(0.12, -3.0)
 			_play_chime([300.0, 200.0, 120.0], 0.1)
+			_screen_shake(8.0, 0.45)
+		EnemyDefinition.EnemyType.SPEEDER:
+			_play_sweep(1200.0, 100.0, 0.03, -6.0)
+		EnemyDefinition.EnemyType.SHIELDED:
+			_play_noise(0.08, -3.0)
+			_play_sfx(110.0, 0.15, -5.0)
 	currency += enemy.reward
 	score += enemy.reward
 	hud.update_credits(currency)
@@ -495,11 +538,28 @@ func _on_wave_complete() -> void:
 	if lives <= 0:
 		return
 	currency += GameConfig.WAVE_COMPLETE_BONUS
-	_play_chime([523.0, 659.0, 784.0, 1047.0], 0.12)
 	hud.update_credits(currency)
+
+	# Streak bonus: +$25 per consecutive clean wave
+	if lives >= _lives_at_wave_start:
+		_streak += 1
+		if _streak > 1:
+			var streak_bonus: int = _streak * 25
+			currency += streak_bonus
+			score += streak_bonus
+			hud.update_credits(currency)
+			hud.update_score(score)
+			_spawn_streak_label(streak_bonus)
+	else:
+		_streak = 0
+
+	_play_chime([523.0, 659.0, 784.0, 1047.0], 0.12)
+
 	if not wave_manager.has_more_waves():
-		_trigger_game_over(true)
-		return
+		# All 10 waves complete — switch to endless mode
+		wave_manager.enable_endless()
+		_spawn_endless_banner()
+
 	state_machine.transition_to(GameStateMachine.State.WAVE_CLEAR)
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
 	hud.update_next_wave(_wave_preview_text())
@@ -595,6 +655,45 @@ func _play_noise(duration: float, volume_db: float = 0.0) -> void:
 	player.play()
 	player.finished.connect(player.queue_free)
 
+func _screen_shake(strength: float, duration: float = 0.25) -> void:
+	_shake_strength = max(_shake_strength, strength)
+	_shake_timer = max(_shake_timer, duration)
+
+func _spawn_streak_label(bonus: int) -> void:
+	var lbl := Label.new()
+	lbl.text = "STREAK x%d!  +$%d" % [_streak, bonus]
+	lbl.position = Vector2(547, 340)
+	lbl.size = Vector2(240, 40)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 26)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.1))
+	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0))
+	lbl.add_theme_constant_override("outline_size", 3)
+	lbl.z_index = 25
+	hud.add_child(lbl)
+	var tween := create_tween()
+	tween.tween_property(lbl, "position:y", 270.0, 0.8)
+	tween.parallel().tween_property(lbl, "modulate:a", 1.0, 0.0)
+	tween.tween_property(lbl, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(lbl.queue_free)
+
+func _spawn_endless_banner() -> void:
+	var lbl := Label.new()
+	lbl.text = "ENDLESS MODE!"
+	lbl.position = Vector2(507, 330)
+	lbl.size = Vector2(320, 70)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 48)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.0))
+	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0))
+	lbl.add_theme_constant_override("outline_size", 4)
+	lbl.z_index = 25
+	hud.add_child(lbl)
+	var tween := create_tween()
+	tween.tween_interval(2.5)
+	tween.tween_property(lbl, "modulate:a", 0.0, 1.0)
+	tween.tween_callback(lbl.queue_free)
+
 ## Left-to-right gradient: black → dark purple
 class _HorizGradient extends Node2D:
 	func _draw() -> void:
@@ -615,6 +714,10 @@ func _trigger_game_over(victory: bool) -> void:
 	var scene = GameOverScene.new()
 	scene.won = victory
 	scene.final_score = score
+	scene.kills = _total_kills
+	scene.towers_built = _towers_built
+	scene.upgrades_done = _upgrades_done
+	scene.credits_spent = _credits_spent
 	get_tree().root.add_child(scene)
 	get_tree().current_scene.queue_free()
 	get_tree().current_scene = scene

@@ -25,6 +25,13 @@ var _stun_interval: float = 0.0
 var _stun_duration: float = 0.0
 var _stun_pulse_timer: float = 0.0
 
+# Shield (Shielded enemy type)
+var _is_shielded: bool = false
+var _shield_phase_timer: float = 0.0
+var _shield_interval_val: float = 0.0
+var _shield_duration_val: float = 0.0
+var _shield_ring_node: Node2D = null
+
 var _waypoints: Array
 var _current_waypoint: int = 1
 var _total_path_length: float = 0.0
@@ -50,6 +57,11 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 		_stun_duration = float(s["stun_duration"])
 		_stun_pulse_timer = _stun_interval
 
+	if s.has("shield_interval"):
+		_shield_interval_val = float(s["shield_interval"])
+		_shield_duration_val = float(s["shield_duration"])
+		_shield_phase_timer = _shield_interval_val  # start vulnerable
+
 	_waypoints = GameConfig.PATH_WAYPOINTS
 	position = _waypoints[0]
 	_current_waypoint = 1
@@ -65,6 +77,7 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 	_body_rect.color = s["color"]
 	_body_rect.size = sz
 	_body_rect.position = -sz / 2.0
+	_body_rect.pivot_offset = sz / 2.0  # rotate around center
 	add_child(_body_rect)
 
 	# HP bar background
@@ -81,6 +94,15 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 	_hp_bar_fg.position = _hp_bar_bg.position
 	add_child(_hp_bar_fg)
 
+	# Shield ring (only for SHIELDED type)
+	if _shield_interval_val > 0.0:
+		_shield_ring_node = Node2D.new()
+		_shield_ring_node.visible = false
+		add_child(_shield_ring_node)
+		var ring = _ShieldRing.new()
+		ring.ring_radius = sz.x / 2.0 + 7.0
+		_shield_ring_node.add_child(ring)
+
 func _process(delta: float) -> void:
 	if is_dead:
 		return
@@ -92,6 +114,9 @@ func _process(delta: float) -> void:
 	var dir = (target - position).normalized()
 	var dist_to_target = position.distance_to(target)
 	var move_dist = speed * delta
+
+	# Rotate body to face movement direction
+	_body_rect.rotation = dir.angle()
 
 	if move_dist >= dist_to_target:
 		position = target
@@ -110,8 +135,24 @@ func _process(delta: float) -> void:
 			stun_pulse.emit(position, _stun_range, _stun_duration)
 			_stun_pulse_timer = _stun_interval
 
+	# Shield phase cycling
+	if _shield_interval_val > 0.0:
+		_shield_phase_timer -= delta
+		if _shield_phase_timer <= 0.0:
+			_is_shielded = not _is_shielded
+			_shield_phase_timer = _shield_duration_val if _is_shielded else _shield_interval_val
+			if _shield_ring_node != null:
+				_shield_ring_node.visible = _is_shielded
+
 func take_damage(amount: float) -> void:
 	if is_dead:
+		return
+	if _is_shielded:
+		# Flash shield ring to indicate blocked damage
+		if _shield_ring_node != null:
+			for child in _shield_ring_node.get_children():
+				if child is _ShieldRing:
+					child.flash()
 		return
 	current_hp -= amount
 	_update_hp_bar()
@@ -148,3 +189,27 @@ func _on_exit() -> void:
 	is_dead = true
 	exited.emit(self)
 	queue_free()
+
+
+## Pulsing blue shield ring for Shielded enemy
+class _ShieldRing extends Node2D:
+	var ring_radius: float = 20.0
+	var _t: float = 0.0
+	var _flash_t: float = 0.0
+
+	func flash() -> void:
+		_flash_t = 0.2
+
+	func _process(delta: float) -> void:
+		_t += delta
+		if _flash_t > 0.0:
+			_flash_t -= delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var pulse := 0.5 + 0.5 * sin(_t * 4.0)
+		var base_alpha := 0.55 + pulse * 0.25
+		var extra := (_flash_t / 0.2) * 0.45 if _flash_t > 0.0 else 0.0
+		var a := base_alpha + extra
+		draw_arc(Vector2.ZERO, ring_radius, 0, TAU, 32, Color(0.3, 0.6, 1.0, a), 2.5, true)
+		draw_arc(Vector2.ZERO, ring_radius - 4.0, 0, TAU, 32, Color(0.7, 0.9, 1.0, a * 0.4), 1.0, true)

@@ -229,7 +229,10 @@ func update_lives(lives: int) -> void:
 			_lives_pulse_tween = null
 
 func update_wave(current: int, total: int) -> void:
-	_wave_label.text = "Wave: %d/%d" % [current, total]
+	if current > total:
+		_wave_label.text = "Wave: %d (∞)" % current
+	else:
+		_wave_label.text = "Wave: %d/%d" % [current, total]
 
 func update_score(score: int) -> void:
 	_score_label.text = "Score: %d" % score
@@ -252,10 +255,16 @@ func _refresh_tower_buttons() -> void:
 	]
 	for i in min(_tower_btns.size(), types.size()):
 		var t = types[i]
-		var cost: int = TowerDefinition.stats(t)["cost"]
+		var s: Dictionary = TowerDefinition.stats(t)
+		var cost: int = s["cost"]
 		var max_c: int = TowerDefinition.max_count(t)
 		var at_limit: bool = max_c > 0 and _tower_counts.get(int(t), 0) >= max_c
 		_tower_btns[i].disabled = _last_credits < cost or at_limit
+		if max_c > 0:
+			var cnt: int = _tower_counts.get(int(t), 0)
+			_tower_btns[i].text = "%s $%d %d/%d" % [s["label"], cost, cnt, max_c]
+		else:
+			_tower_btns[i].text = "%s $%d" % [s["label"], cost]
 
 func flash_damage() -> void:
 	_damage_flash.color.a = 0.35

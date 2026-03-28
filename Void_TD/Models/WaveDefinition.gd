@@ -47,42 +47,66 @@ static func all_waves() -> Array:
 			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  2, 2.5),
 			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,  1, 3.0),
 		], 0.5, _scale(2)),
-		# Wave 4 — proper tank introduction, pressure building
+		# Wave 4 — tanks introduced + first speeders
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.8),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   4, 1.8),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT,   10, 0.8),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,     4, 1.8),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SPEEDER,  4, 0.6),
 		], 0.5, _scale(3)),
-		# Wave 5 — heavier mix, Mecha Soldier becomes very useful
+		# Wave 5 — heavier mix with more speeders
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.75),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   6, 1.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT,   10, 0.75),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,     6, 1.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SPEEDER,  5, 0.5),
 		], 0.5, _scale(4)),
-		# Wave 6 — boss with full escort, real challenge begins
+		# Wave 6 — boss with full escort, first heavy speeder push
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 8, 0.7),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  8, 1.4),
-			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,  1, 3.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT,   8, 0.7),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,    8, 1.4),
+			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,    1, 3.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SPEEDER, 4, 0.45),
 		], 0.5, _scale(5)),
-		# Wave 7 — attrition: scale hits 2.0, requires upgraded towers
+		# Wave 7 — attrition wave + shielded debut
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 13, 0.65),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  10, 1.3),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT,    13, 0.65),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,     10, 1.3),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SPEEDER,   5, 0.4),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SHIELDED,  2, 3.0),
 		], 0.5, _scale(6)),
-		# Wave 8 — tank wall: splash and Mecha essential
+		# Wave 8 — tank wall + shielded pressure
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 12, 0.6),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  12, 1.15),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT,    12, 0.6),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,     12, 1.15),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SHIELDED,  3, 2.5),
 		], 0.5, _scale(7)),
-		# Wave 9 — two bosses plus brutal escort
+		# Wave 9 — two bosses plus brutal escort + shielded
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.55),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  13, 1.1),
-			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,   2, 4.0),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT,    10, 0.55),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,     13, 1.1),
+			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,      2, 4.0),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SHIELDED,  3, 2.5),
 		], 0.5, _scale(8)),
 		# Wave 10 — finale: maximum everything
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 14, 0.5),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  15, 1.0),
-			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,   3, 4.0),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT,    14, 0.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,     15, 1.0),
+			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,      3, 4.0),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SPEEDER,   6, 0.35),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SHIELDED,  3, 2.0),
 		], 0.5, _scale(9)),
 	]
+
+## Generate a procedurally scaling endless wave (n=0 is first endless wave)
+static func generate_endless_wave(n: int) -> WaveData:
+	var scale := 3.0 + n * 0.35
+	var scouts := 14 + n * 2
+	var tanks := 15 + n * 2
+	var bosses := 3 + n / 2
+	var speeders := 6 + n
+	return WaveData.new([
+		SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT,    scouts,  0.45),
+		SpawnGroup.new(EnemyDefinition.EnemyType.TANK,     tanks,   0.9),
+		SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,     bosses,  3.5),
+		SpawnGroup.new(EnemyDefinition.EnemyType.SPEEDER,  speeders, 0.3),
+		SpawnGroup.new(EnemyDefinition.EnemyType.SHIELDED, 2 + n / 3, 2.0),
+	], 0.5, scale)
