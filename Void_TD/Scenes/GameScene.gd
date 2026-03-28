@@ -86,13 +86,21 @@ func _build_layers() -> void:
 func _draw_background() -> void:
 	var grad = _HorizGradient.new()
 	background_layer.add_child(grad)
-	# Simple star dots
-	for i in range(120):
+	# Regular stars
+	for i in range(180):
 		var star = ColorRect.new()
-		star.color = Color(1, 1, 1, randf_range(0.2, 0.8))
-		var sz = randf_range(1, 3)
+		var sz := randf_range(1.0, 3.0)
 		star.size = Vector2(sz, sz)
 		star.position = Vector2(randf_range(0, 1334), randf_range(0, 750))
+		star.color = Color(1.0, randf_range(0.85, 1.0), 1.0, randf_range(0.6, 1.0))
+		background_layer.add_child(star)
+	# Bright accent stars
+	for i in range(25):
+		var star = ColorRect.new()
+		var sz := randf_range(3.0, 5.0)
+		star.size = Vector2(sz, sz)
+		star.position = Vector2(randf_range(0, 1334), randf_range(0, 750))
+		star.color = Color(1.0, 1.0, 1.0, 1.0)
 		background_layer.add_child(star)
 
 # ── Systems Init ──────────────────────────────────────────────────────────────
