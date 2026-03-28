@@ -241,10 +241,10 @@ func _on_hud_pause() -> void:
 		get_tree().paused = true
 
 # ── Enemy Spawning ────────────────────────────────────────────────────────────
-func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType) -> void:
+func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float) -> void:
 	var enemy = EnemyNode.new()
 	enemy_layer.add_child(enemy)
-	enemy.setup(enemy_type)
+	enemy.setup(enemy_type, wave_scale)
 	enemy.died.connect(_on_enemy_died)
 	enemy.exited.connect(_on_enemy_exited)
 	if enemy.is_boss:

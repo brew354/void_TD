@@ -66,7 +66,7 @@ func _init() -> void:
 	# --- WaveDefinition ---
 	print("\n[ WaveDefinition ]")
 	var waves = WaveDefinition.all_waves()
-	_assert(waves.size() == 3, "3 waves defined")
+	_assert(waves.size() == 10, "10 waves defined")
 	var w1_count = 0
 	for g in waves[0].groups: w1_count += g.count
 	_assert(w1_count == 8, "Wave 1: 8 enemies")
@@ -79,6 +79,11 @@ func _init() -> void:
 	_assert(waves[2].groups.size() == 3, "Wave 3 has 3 spawn groups")
 	_assert(waves[2].groups[2].type == EnemyDefinition.EnemyType.BOSS, "Wave 3 third group is BOSS")
 	_assert(waves[2].groups[2].count == 1, "Wave 3 boss group count = 1")
+	_assert(waves[5].groups[2].type == EnemyDefinition.EnemyType.BOSS, "Wave 6 has boss")
+	_assert(waves[8].groups[2].type == EnemyDefinition.EnemyType.BOSS, "Wave 9 has boss")
+	_assert(waves[9].groups[2].count == 2, "Wave 10 has 2 bosses")
+	_assert(waves[1].difficulty_scale > waves[0].difficulty_scale, "Scale increases each wave")
+	_assert(waves[9].difficulty_scale > waves[4].difficulty_scale, "Wave 10 harder than wave 5")
 
 	# --- GridManager ---
 	print("\n[ GridManager ]")
@@ -138,6 +143,12 @@ func _init() -> void:
 	_assert(boss.lives_damage == 0, "Boss lives_damage = 0")
 	_assert(boss.stun_pulse.get_connections().size() >= 0, "Boss has stun_pulse signal")
 	boss.queue_free()
+
+	var scaled = EnemyNode.new()
+	scaled.setup(EnemyDefinition.EnemyType.SCOUT, 2.0)
+	_assert(scaled.max_hp == 100.0, "Scout at scale 2.0 has 100 hp")
+	_assert(scaled.speed > 200.0, "Scout at scale 2.0 is faster than base")
+	scaled.queue_free()
 
 	# --- TowerNode stun ---
 	print("\n[ TowerNode stun ]")

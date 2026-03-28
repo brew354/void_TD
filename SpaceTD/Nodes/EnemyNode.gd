@@ -34,12 +34,12 @@ var _body_rect: ColorRect
 var _hp_bar_bg: ColorRect
 var _hp_bar_fg: ColorRect
 
-func setup(type: EnemyDefinition.EnemyType) -> void:
+func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 	enemy_type = type
 	var s = EnemyDefinition.stats(type)
-	max_hp = float(s["hp"])
+	max_hp = float(s["hp"]) * wave_scale
 	current_hp = max_hp
-	speed = float(s["speed"])
+	speed = float(s["speed"]) * (1.0 + (wave_scale - 1.0) * 0.3)
 	reward = int(s["reward"])
 	lives_damage = int(s["lives_damage"])
 

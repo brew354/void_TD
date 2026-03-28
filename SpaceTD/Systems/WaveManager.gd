@@ -5,13 +5,14 @@ const WaveDefinition  = preload("res://Models/WaveDefinition.gd")
 const EnemyDefinition = preload("res://Models/EnemyDefinition.gd")
 
 signal wave_complete
-signal enemy_spawned(enemy_type)
+signal enemy_spawned(enemy_type, wave_scale: float)
 
 var _scene: Node  # GameScene reference for running timers
 var _waves: Array
 var _current_wave_index: int = 0
 var _active_enemy_count: int = 0
 var _spawning: bool = false
+var _current_wave_scale: float = 1.0
 
 func _init(scene: Node) -> void:
 	_scene = scene
@@ -31,6 +32,7 @@ func start_wave() -> void:
 		return
 	_spawning = true
 	var wave_data = _waves[_current_wave_index]
+	_current_wave_scale = wave_data.difficulty_scale
 	_current_wave_index += 1
 	_schedule_wave(wave_data)
 
@@ -48,7 +50,7 @@ func _schedule_wave(wave_data) -> void:
 	end_timer.timeout.connect(_check_wave_end, CONNECT_ONE_SHOT)
 
 func _do_spawn(enemy_type: EnemyDefinition.EnemyType) -> void:
-	enemy_spawned.emit(enemy_type)
+	enemy_spawned.emit(enemy_type, _current_wave_scale)
 
 func on_enemy_resolved() -> void:
 	# Called by GameScene when an enemy dies or exits
