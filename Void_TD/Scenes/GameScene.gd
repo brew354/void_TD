@@ -50,6 +50,8 @@ var _panel_row: int = -1
 var _panel_target: String = ""  # "tower" or "base"
 var _base: Node2D
 var _fire_sfx_cooldowns: Dictionary = {}
+var _path_tile_nodes: Array = []
+var _chevron_tween: Tween = null
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -132,6 +134,7 @@ func _build_grid() -> void:
 	_assign_path_directions()
 
 func _assign_path_directions() -> void:
+	_path_tile_nodes = []
 	var waypoints := GameConfig.PATH_WAYPOINTS
 	var total_len := 0.0
 	for i in range(waypoints.size() - 1):
@@ -149,9 +152,23 @@ func _assign_path_directions() -> void:
 			var coord: Variant = GameConfig.grid_coord(seg_start.lerp(seg_end, t))
 			if coord == null:
 				continue
+			var tile = tile_nodes[coord.y][coord.x]
 			var phase := (cum + seg_len * t) / total_len
-			tile_nodes[coord.y][coord.x].set_path_direction(dir, phase)
+			tile.set_path_direction(dir, phase)
+			if not tile in _path_tile_nodes:
+				_path_tile_nodes.append(tile)
 		cum += seg_len
+
+func _set_all_chevron_alpha(a: float) -> void:
+	for tile in _path_tile_nodes:
+		tile.set_chevron_alpha(a)
+
+func _start_chevron_fade() -> void:
+	if _chevron_tween != null:
+		_chevron_tween.kill()
+	_set_all_chevron_alpha(1.0)
+	_chevron_tween = create_tween()
+	_chevron_tween.tween_method(_set_all_chevron_alpha, 1.0, 0.0, 9.0)
 
 func _spawn_base() -> void:
 	_base = BaseNode.new()
@@ -364,6 +381,7 @@ func _on_hud_start_wave() -> void:
 	if not wave_manager.has_more_waves():
 		return
 	_close_upgrade_panel()
+	_start_chevron_fade()
 	_play_sfx(440.0, 0.18, -6.0)
 	state_machine.transition_to(GameStateMachine.State.WAVE_IN_PROGRESS)
 	wave_manager.start_wave()

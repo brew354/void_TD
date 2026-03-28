@@ -12,7 +12,7 @@ var row: int = 0
 var tile_state: GridManager.TileState = GridManager.TileState.EMPTY
 
 const COLOR_EMPTY    = Color(0.04, 0.0, 0.06, 0.35)
-const COLOR_PATH     = Color(0.12, 0.06, 0.18, 0.92)
+const COLOR_PATH     = Color(1.0, 1.0, 1.0, 0.8)
 const COLOR_OCCUPIED = Color(0.10, 0.30, 0.10, 0.8)
 const COLOR_HOVER    = Color(0.20, 0.50, 0.80, 0.7)
 const COLOR_INVALID  = Color(0.80, 0.10, 0.10, 0.7)
@@ -64,8 +64,13 @@ func set_path_direction(dir: Vector2, phase_offset: float) -> void:
 	var chev = _PathChevron.new()
 	chev.direction = dir
 	chev.base_phase = phase_offset
+	chev.modulate.a = 0.0
 	add_child(chev)
 	_path_chevron = chev
+
+func set_chevron_alpha(a: float) -> void:
+	if _path_chevron != null:
+		_path_chevron.modulate.a = a
 
 
 class _PathChevron extends Node2D:
@@ -75,7 +80,8 @@ class _PathChevron extends Node2D:
 
 	func _process(delta: float) -> void:
 		_time += delta
-		queue_redraw()
+		if modulate.a > 0.01:
+			queue_redraw()
 
 	func _draw() -> void:
 		var wave := fmod(_time * 1.4 - base_phase, 1.0)
