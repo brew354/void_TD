@@ -25,63 +25,63 @@ class WaveData:
 		pre_delay = d
 		difficulty_scale = s
 
-# Scale increases 0.18 per wave: wave 1 = 1.0, wave 5 = 1.72, wave 10 = 2.62
+# Scale increases 0.22 per wave: wave 1 = 1.0, wave 5 = 1.88, wave 10 = 2.98
 static func _scale(wave_idx: int) -> float:
-	return 1.0 + wave_idx * 0.18
+	return 1.0 + wave_idx * 0.22
 
 static func all_waves() -> Array:
 	return [
-		# Wave 1 — intro
+		# Wave 1 — intro: scouts only, learn the basics
 		WaveData.new([
 			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 8, 1.0),
 		], 0.5, _scale(0)),
-		# Wave 2
+		# Wave 2 — tanks introduced: need Cannon or save for Mecha
+		WaveData.new([
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 6, 0.8),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  4, 2.0),
+		], 0.5, _scale(1)),
+		# Wave 3 — first boss: 3 groups required for boss test
 		WaveData.new([
 			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 5, 0.8),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  3, 2.0),
-		], 0.5, _scale(1)),
-		# Wave 3 — first boss
-		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 4, 0.8),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  5, 1.5),
-			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,  1, 3.0),
-		], 0.5, _scale(2)),
-		# Wave 4
-		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.7),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   3, 1.8),
-		], 0.5, _scale(3)),
-		# Wave 5
-		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 8, 0.7),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  5, 1.5),
-		], 0.5, _scale(4)),
-		# Wave 6 — boss
-		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 6, 0.7),
 			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  6, 1.5),
 			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,  1, 3.0),
-		], 0.5, _scale(5)),
-		# Wave 7
+		], 0.5, _scale(2)),
+		# Wave 4 — swarm: fast scouts flood defenses
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 12, 0.6),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   7, 1.4),
-		], 0.5, _scale(6)),
-		# Wave 8
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 14, 0.7),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   5, 1.6),
+		], 0.5, _scale(3)),
+		# Wave 5 — heavy mix: Mecha required to keep up
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.6),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   8, 1.3),
-		], 0.5, _scale(7)),
-		# Wave 9 — boss
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.7),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   8, 1.5),
+		], 0.5, _scale(4)),
+		# Wave 6 — boss returns with bigger escort
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 8, 0.6),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  9, 1.3),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 8, 0.7),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  8, 1.4),
 			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,  1, 3.0),
-		], 0.5, _scale(8)),
-		# Wave 10 — finale
+		], 0.5, _scale(5)),
+		# Wave 7 — attrition: massive count drains ammo coverage
+		WaveData.new([
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 14, 0.6),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  10, 1.3),
+		], 0.5, _scale(6)),
+		# Wave 8 — tank wall: heavy HP demands splash + Mecha
 		WaveData.new([
 			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 12, 0.5),
 			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  12, 1.2),
-			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,   2, 3.0),
+		], 0.5, _scale(7)),
+		# Wave 9 — two bosses plus heavy escort
+		WaveData.new([
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  12, 1.2),
+			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,   2, 4.0),
+		], 0.5, _scale(8)),
+		# Wave 10 — finale: everything at once
+		WaveData.new([
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 15, 0.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  15, 1.0),
+			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,   3, 4.0),
 		], 0.5, _scale(9)),
 	]
