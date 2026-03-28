@@ -76,9 +76,10 @@ func _build_hud() -> void:
 
 	# Bottom: Tower buttons
 	var tower_defs = [
-		[TowerDefinition.TowerType.LASER,   "Laser $50",    Vector2(180, 713)],
-		[TowerDefinition.TowerType.CANNON,  "Cannon $100",  Vector2(330, 713)],
-		[TowerDefinition.TowerType.MISSILE, "Missile $150", Vector2(480, 713)],
+		[TowerDefinition.TowerType.LASER,         "Laser $50",    Vector2(180, 713)],
+		[TowerDefinition.TowerType.CANNON,        "Cannon $100",  Vector2(330, 713)],
+		[TowerDefinition.TowerType.MISSILE,       "Missile $150", Vector2(480, 713)],
+		[TowerDefinition.TowerType.MECHA_SOLDIER, "Mecha $300",   Vector2(630, 713)],
 	]
 	for td in tower_defs:
 		var btn = _make_button(td[1], td[2], Vector2(140, 28))
@@ -91,7 +92,7 @@ func _build_hud() -> void:
 		_tower_btns.append(btn)
 
 	# Bottom: Next wave preview
-	_next_wave_label = _make_label("", Vector2(700, 715))
+	_next_wave_label = _make_label("", Vector2(800, 715))
 	add_child(_next_wave_label)
 
 	# Bottom: Start Wave button

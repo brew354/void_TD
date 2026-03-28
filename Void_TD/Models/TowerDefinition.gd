@@ -1,7 +1,7 @@
 ## TowerDefinition.gd — Tower types and stats
 class_name TowerDefinition
 
-enum TowerType { LASER, CANNON, MISSILE }
+enum TowerType { LASER, CANNON, MISSILE, MECHA_SOLDIER }
 
 # Returns a dict with: cost, damage, range, fire_rate (seconds), splash_radius, projectile_speed
 static func stats(type: TowerType) -> Dictionary:
@@ -15,6 +15,9 @@ static func stats(type: TowerType) -> Dictionary:
 		TowerType.MISSILE:
 			return { "cost": 150, "damage": 80, "range": 300.0, "fire_rate": 2.0,
 					 "splash_radius": 0.0, "projectile_speed": 350.0, "label": "Missile" }
+		TowerType.MECHA_SOLDIER:
+			return { "cost": 300, "damage": 150, "range": 220.0, "fire_rate": 1.0,
+					 "splash_radius": 45.0, "projectile_speed": 500.0, "label": "Mecha" }
 	return {}
 
 static func upgrade_cost(type: TowerType, to_level: int) -> int:

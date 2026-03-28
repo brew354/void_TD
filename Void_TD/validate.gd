@@ -44,12 +44,18 @@ func _init() -> void:
 
 	# --- TowerDefinition ---
 	print("\n[ TowerDefinition ]")
-	for t in [TowerDefinition.TowerType.LASER, TowerDefinition.TowerType.CANNON, TowerDefinition.TowerType.MISSILE]:
+	for t in [TowerDefinition.TowerType.LASER, TowerDefinition.TowerType.CANNON,
+			TowerDefinition.TowerType.MISSILE, TowerDefinition.TowerType.MECHA_SOLDIER]:
 		var s = TowerDefinition.stats(t)
 		_assert(s["cost"] > 0, "%s cost > 0" % s["label"])
 		_assert(s["damage"] > 0, "%s damage > 0" % s["label"])
 		_assert(s["range"] > 0, "%s range > 0" % s["label"])
 		_assert(s["fire_rate"] > 0, "%s fire_rate > 0" % s["label"])
+	var mecha = TowerDefinition.stats(TowerDefinition.TowerType.MECHA_SOLDIER)
+	_assert(mecha["cost"] == 300, "Mecha cost = 300")
+	_assert(mecha["damage"] > TowerDefinition.stats(TowerDefinition.TowerType.MISSILE)["damage"], "Mecha damage > Missile damage")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.MECHA_SOLDIER, 2) == 150, "Mecha L2 cost = 150")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.MECHA_SOLDIER, 3) == 300, "Mecha L3 cost = 300")
 
 	# --- EnemyDefinition ---
 	print("\n[ EnemyDefinition ]")

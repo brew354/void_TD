@@ -48,9 +48,10 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 
 	# Body: colored square
 	var colors = {
-		TowerDefinition.TowerType.LASER:   Color(0.2, 0.6, 1.0),
-		TowerDefinition.TowerType.CANNON:  Color(0.9, 0.5, 0.1),
-		TowerDefinition.TowerType.MISSILE: Color(0.8, 0.2, 0.8),
+		TowerDefinition.TowerType.LASER:         Color(0.2, 0.6, 1.0),
+		TowerDefinition.TowerType.CANNON:        Color(0.9, 0.5, 0.1),
+		TowerDefinition.TowerType.MISSILE:       Color(0.8, 0.2, 0.8),
+		TowerDefinition.TowerType.MECHA_SOLDIER: Color(1.0, 0.15, 0.0),
 	}
 	_body = ColorRect.new()
 	_body.color = colors[type]

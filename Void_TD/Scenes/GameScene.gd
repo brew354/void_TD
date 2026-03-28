@@ -224,6 +224,7 @@ func _input(event: InputEvent) -> void:
 			KEY_1: _select_tower_type(TowerDefinition.TowerType.LASER)
 			KEY_2: _select_tower_type(TowerDefinition.TowerType.CANNON)
 			KEY_3: _select_tower_type(TowerDefinition.TowerType.MISSILE)
+			KEY_4: _select_tower_type(TowerDefinition.TowerType.MECHA_SOLDIER)
 			KEY_SPACE: _on_hud_start_wave()
 		return
 	if not (event is InputEventMouseButton) or not event.pressed:
@@ -423,6 +424,9 @@ func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
 			_play_sfx(70.0, 0.15, -7.0)
 		TowerDefinition.TowerType.MISSILE:
 			_play_sweep(180.0, 700.0, 0.09, -9.0)
+		TowerDefinition.TowerType.MECHA_SOLDIER:
+			_play_noise(0.08, -3.0)
+			_play_sweep(400.0, 80.0, 0.10, -5.0)
 	_fire_sfx_cooldowns[key] = 0.15
 
 func _spawn_reward_label(pos: Vector2, amount: int) -> void:
