@@ -8,6 +8,9 @@ signal tower_selected(tower_type)
 signal start_wave_pressed
 signal pause_pressed
 signal speed_toggled(fast: bool)
+signal upgrade_pressed
+signal sell_pressed
+signal upgrade_panel_closed
 
 var _lives_label: Label
 var _wave_label: Label
@@ -19,6 +22,11 @@ var _pause_btn: Button
 var _speed_btn: Button
 var _tower_btns: Array = []
 var _fast_mode: bool = false
+var _upgrade_panel: ColorRect
+var _panel_title: Label
+var _panel_stats: Label
+var _panel_upgrade_btn: Button
+var _panel_sell_btn: Button
 
 func _ready() -> void:
 	_build_hud()
@@ -88,6 +96,48 @@ func _build_hud() -> void:
 	_start_wave_btn = _make_button("START WAVE", Vector2(1170, 713), Vector2(150, 28))
 	_start_wave_btn.pressed.connect(func(): start_wave_pressed.emit())
 	add_child(_start_wave_btn)
+
+	_build_upgrade_panel()
+
+func _build_upgrade_panel() -> void:
+	_upgrade_panel = ColorRect.new()
+	_upgrade_panel.color = Color(0, 0, 0, 0.75)
+	_upgrade_panel.size = Vector2(260, 170)
+	_upgrade_panel.position = Vector2(1060, 50)
+	_upgrade_panel.visible = false
+	add_child(_upgrade_panel)
+
+	_panel_title = _make_label("Tower", Vector2(10, 8))
+	_upgrade_panel.add_child(_panel_title)
+
+	_panel_stats = _make_label("", Vector2(10, 40))
+	_panel_stats.add_theme_font_size_override("font_size", 14)
+	_upgrade_panel.add_child(_panel_stats)
+
+	_panel_upgrade_btn = _make_button("Upgrade", Vector2(10, 110), Vector2(110, 28))
+	_panel_upgrade_btn.pressed.connect(func(): upgrade_pressed.emit())
+	_upgrade_panel.add_child(_panel_upgrade_btn)
+
+	_panel_sell_btn = _make_button("Sell", Vector2(140, 110), Vector2(110, 28))
+	_panel_sell_btn.pressed.connect(func(): sell_pressed.emit())
+	_upgrade_panel.add_child(_panel_sell_btn)
+
+	var close_btn = _make_button("X", Vector2(225, 5), Vector2(28, 28))
+	close_btn.pressed.connect(func(): upgrade_panel_closed.emit())
+	_upgrade_panel.add_child(close_btn)
+
+func show_upgrade_panel(tower_label: String, level: int, dmg: float,
+		rng: float, upgrade_cost: int, can_upgrade: bool,
+		sell_value: int) -> void:
+	_panel_title.text = "%s  (L%d)" % [tower_label, level]
+	var cost_line = ("$%d" % upgrade_cost) if upgrade_cost > 0 else "Max Level"
+	_panel_stats.text = "DMG: %.0f   RNG: %.0f\n\nUpgrade: %s\nSell: +$%d" % [dmg, rng, cost_line, sell_value]
+	_panel_upgrade_btn.disabled = not can_upgrade
+	_panel_upgrade_btn.text = "Upgrade $%d" % upgrade_cost if can_upgrade else "Max Level"
+	_upgrade_panel.visible = true
+
+func hide_upgrade_panel() -> void:
+	_upgrade_panel.visible = false
 
 func _make_label(text: String, pos: Vector2) -> Label:
 	var lbl = Label.new()

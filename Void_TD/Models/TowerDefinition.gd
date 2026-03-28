@@ -16,3 +16,15 @@ static func stats(type: TowerType) -> Dictionary:
 			return { "cost": 150, "damage": 80, "range": 300.0, "fire_rate": 2.0,
 					 "splash_radius": 0.0, "projectile_speed": 350.0, "label": "Missile" }
 	return {}
+
+static func upgrade_cost(type: TowerType, to_level: int) -> int:
+	var base = stats(type)["cost"]
+	if to_level == 2: return base / 2
+	if to_level == 3: return base
+	return 0
+
+static func upgrade_multipliers(level: int) -> Dictionary:
+	match level:
+		2: return {"damage": 1.6, "range": 1.3}
+		3: return {"damage": 2.5, "range": 1.6}
+	return {"damage": 1.0, "range": 1.0}

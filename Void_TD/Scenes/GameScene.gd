@@ -45,6 +45,8 @@ var tile_nodes: Array = []       # Array[Array[TileNode]]  [row][col]
 # ── Tower placement ───────────────────────────────────────────────────────────
 var selected_tower_type: TowerDefinition.TowerType = TowerDefinition.TowerType.LASER
 var _selected_type_set: bool = false  # Track if user has picked a type
+var _panel_col: int = -1
+var _panel_row: int = -1
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -132,6 +134,9 @@ func _build_hud() -> void:
 	hud.start_wave_pressed.connect(_on_hud_start_wave)
 	hud.pause_pressed.connect(_on_hud_pause)
 	hud.speed_toggled.connect(_on_speed_toggled)
+	hud.upgrade_pressed.connect(_on_upgrade_pressed)
+	hud.sell_pressed.connect(_on_sell_from_panel)
+	hud.upgrade_panel_closed.connect(_close_upgrade_panel)
 	_refresh_hud()
 
 func _refresh_hud() -> void:
@@ -163,10 +168,18 @@ func _process(delta: float) -> void:
 
 # ── Input ─────────────────────────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
-	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
-		var coord = GameConfig.grid_coord(event.position)
-		if coord != null:
-			_sell_tower(coord.x, coord.y)
+	if not (event is InputEventMouseButton) or not event.pressed:
+		return
+	var coord = GameConfig.grid_coord(event.position)
+	if coord == null:
+		return
+	if event.button_index == MOUSE_BUTTON_RIGHT:
+		_sell_tower(coord.x, coord.y)
+		_close_upgrade_panel()
+	elif event.button_index == MOUSE_BUTTON_LEFT and event.double_click:
+		if state_machine.can_upgrade_tower() \
+				and grid_manager.get_state(coord.x, coord.y) == GridManager.TileState.OCCUPIED:
+			_open_upgrade_panel(coord.x, coord.y)
 
 func _sell_tower(col: int, row: int) -> void:
 	if not state_machine.can_place_tower():
@@ -176,7 +189,7 @@ func _sell_tower(col: int, row: int) -> void:
 	var pos = GameConfig.scene_position(col, row)
 	for tower in tower_manager.towers:
 		if is_instance_valid(tower) and tower.position.distance_to(pos) < 1.0:
-			currency += TowerDefinition.stats(tower.tower_type)["cost"] / 2
+			currency += tower.total_invested / 2
 			grid_manager.remove(col, row)
 			tile_nodes[row][col].set_state(GridManager.TileState.EMPTY)
 			tower_manager.remove_tower(tower)
@@ -186,6 +199,8 @@ func _sell_tower(col: int, row: int) -> void:
 
 func _on_tile_clicked(col: int, row: int) -> void:
 	if not state_machine.can_place_tower():
+		return
+	if grid_manager.get_state(col, row) == GridManager.TileState.OCCUPIED:
 		return
 	if not _selected_type_set:
 		return
@@ -213,6 +228,51 @@ func _place_tower(col: int, row: int, type: TowerDefinition.TowerType) -> void:
 
 	hud.update_credits(currency)
 
+func _open_upgrade_panel(col: int, row: int) -> void:
+	_panel_col = col
+	_panel_row = row
+	var pos = GameConfig.scene_position(col, row)
+	for tower in tower_manager.towers:
+		if is_instance_valid(tower) and tower.position.distance_to(pos) < 1.0:
+			var s = TowerDefinition.stats(tower.tower_type)
+			var can_upgrade = tower.upgrade_level < 3
+			var up_cost = TowerDefinition.upgrade_cost(tower.tower_type, tower.upgrade_level + 1) if can_upgrade else 0
+			hud.show_upgrade_panel(
+				s["label"], tower.upgrade_level,
+				tower.damage, tower.range_radius,
+				up_cost, can_upgrade and currency >= up_cost,
+				tower.total_invested / 2
+			)
+			break
+
+func _close_upgrade_panel() -> void:
+	_panel_col = -1
+	_panel_row = -1
+	hud.hide_upgrade_panel()
+
+func _on_upgrade_pressed() -> void:
+	if _panel_col < 0:
+		return
+	var pos = GameConfig.scene_position(_panel_col, _panel_row)
+	for tower in tower_manager.towers:
+		if is_instance_valid(tower) and tower.position.distance_to(pos) < 1.0:
+			if tower.upgrade_level >= 3:
+				return
+			var up_cost = TowerDefinition.upgrade_cost(tower.tower_type, tower.upgrade_level + 1)
+			if currency < up_cost:
+				return
+			currency -= up_cost
+			tower.upgrade()
+			hud.update_credits(currency)
+			_open_upgrade_panel(_panel_col, _panel_row)
+			break
+
+func _on_sell_from_panel() -> void:
+	if _panel_col < 0:
+		return
+	_sell_tower(_panel_col, _panel_row)
+	_close_upgrade_panel()
+
 # ── HUD Callbacks ─────────────────────────────────────────────────────────────
 func _on_hud_tower_selected(type: TowerDefinition.TowerType) -> void:
 	selected_tower_type = type
@@ -223,6 +283,7 @@ func _on_hud_start_wave() -> void:
 		return
 	if not wave_manager.has_more_waves():
 		return
+	_close_upgrade_panel()
 	state_machine.transition_to(GameStateMachine.State.WAVE_IN_PROGRESS)
 	wave_manager.start_wave()
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())

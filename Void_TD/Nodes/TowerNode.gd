@@ -13,6 +13,12 @@ var fire_rate: float
 var splash_radius: float
 var projectile_speed: float
 
+var upgrade_level: int = 1
+var base_damage: float
+var base_range: float
+var total_invested: int
+var _level_label: Label
+
 var _fire_cooldown: float = 0.0
 var _stun_timer: float = 0.0
 var _projectile_layer: Node2D  # Set by GameScene after placing
@@ -33,6 +39,9 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	fire_rate = float(s["fire_rate"])
 	splash_radius = float(s["splash_radius"])
 	projectile_speed = float(s["projectile_speed"])
+	base_damage = damage
+	base_range = range_radius
+	total_invested = s["cost"]
 
 	# Body: colored square
 	var colors = {
@@ -45,6 +54,7 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_normal_color = colors[type]
 	_body.size = Vector2(40, 40)
 	_body.position = Vector2(-20, -20)
+	_body.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(_body)
 
 	# Range ring — visible on hover only
@@ -56,6 +66,27 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_range_ring.add_child(ring)
 	_body.mouse_entered.connect(func(): _range_ring.visible = true)
 	_body.mouse_exited.connect(func(): _range_ring.visible = false)
+
+	# Level label (bottom-right of body, hidden at L1)
+	_level_label = Label.new()
+	_level_label.add_theme_font_size_override("font_size", 10)
+	_level_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.0))
+	_level_label.position = Vector2(12, 12)
+	_level_label.visible = false
+	add_child(_level_label)
+
+func upgrade() -> void:
+	upgrade_level += 1
+	var m = TowerDefinition.upgrade_multipliers(upgrade_level)
+	damage = base_damage * m["damage"]
+	range_radius = base_range * m["range"]
+	for child in _range_ring.get_children():
+		if child is _RangeRing:
+			child.radius = range_radius
+			child.queue_redraw()
+	total_invested += TowerDefinition.upgrade_cost(tower_type, upgrade_level)
+	_level_label.text = "L%d" % upgrade_level
+	_level_label.visible = true
 
 func apply_stun(duration: float) -> void:
 	_stun_timer = max(_stun_timer, duration)

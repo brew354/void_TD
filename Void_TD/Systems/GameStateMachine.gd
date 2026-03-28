@@ -30,3 +30,6 @@ func can_place_tower() -> bool:
 
 func can_start_wave() -> bool:
 	return current == State.BUILD_PHASE or current == State.WAVE_CLEAR
+
+func can_upgrade_tower() -> bool:
+	return current == State.BUILD_PHASE or current == State.WAVE_CLEAR

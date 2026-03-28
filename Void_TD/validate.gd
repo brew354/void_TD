@@ -23,7 +23,7 @@ func _assert(cond: bool, msg: String) -> void:
 		_fail += 1
 
 func _init() -> void:
-	print("\n=== SpaceTD Full Validation ===\n")
+	print("\n=== Void_TD Full Validation ===\n")
 
 	# --- GameConfig ---
 	print("[ GameConfig ]")
@@ -162,6 +162,38 @@ func _init() -> void:
 	tower.apply_stun(3.0)
 	_assert(tower._stun_timer == 3.0, "apply_stun with longer duration refreshes timer")
 	tower.queue_free()
+
+	# --- Tower Upgrade System ---
+	print("\n[ Tower Upgrade System ]")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.LASER, 2) == 25, "Laser L2 cost = 25")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.CANNON, 2) == 50, "Cannon L2 cost = 50")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.MISSILE, 3) == 150, "Missile L3 cost = 150")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.LASER, 4) == 0, "Invalid level cost = 0")
+
+	var m1 = TowerDefinition.upgrade_multipliers(1)
+	_assert(m1["damage"] == 1.0 and m1["range"] == 1.0, "L1 multipliers = 1.0")
+	var m2 = TowerDefinition.upgrade_multipliers(2)
+	_assert(m2["damage"] == 1.6 and m2["range"] == 1.3, "L2 multipliers correct")
+	var m3 = TowerDefinition.upgrade_multipliers(3)
+	_assert(m3["damage"] == 2.5 and m3["range"] == 1.6, "L3 multipliers correct")
+
+	var utower = TowerNode.new()
+	utower.setup(TowerDefinition.TowerType.CANNON, [], null)
+	_assert(utower.upgrade_level == 1, "Tower starts at L1")
+	_assert(utower.total_invested == 100, "Cannon total_invested = 100 after setup")
+	_assert(utower.base_damage == 40.0, "Cannon base_damage = 40")
+	utower.upgrade()
+	_assert(utower.upgrade_level == 2, "Tower upgraded to L2")
+	_assert(is_equal_approx(utower.damage, 64.0), "L2 damage = 40 * 1.6 = 64")
+	_assert(is_equal_approx(utower.range_radius, 195.0), "L2 range = 150 * 1.3 = 195")
+	_assert(utower.total_invested == 150, "total_invested after L2 = 100 + 50 = 150")
+	utower.upgrade()
+	_assert(utower.upgrade_level == 3, "Tower upgraded to L3")
+	_assert(is_equal_approx(utower.damage, 100.0), "L3 damage = 40 * 2.5 = 100")
+	_assert(is_equal_approx(utower.range_radius, 240.0), "L3 range = 150 * 1.6 = 240")
+	_assert(utower.total_invested == 250, "total_invested after L3 = 100 + 50 + 100 = 250")
+	_assert(utower.total_invested / 2 == 125, "L3 sell refund = 125")
+	utower.queue_free()
 
 	# --- Summary ---
 	print("\n=== Results: %d passed, %d failed ===" % [_pass, _fail])
