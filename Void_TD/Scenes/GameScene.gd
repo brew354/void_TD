@@ -146,7 +146,7 @@ func _assign_path_directions() -> void:
 		var num_steps := int(seg_len / step_size) + 2
 		for s in range(num_steps + 1):
 			var t := float(s) / float(num_steps)
-			var coord := GameConfig.grid_coord(seg_start.lerp(seg_end, t))
+			var coord: Variant = GameConfig.grid_coord(seg_start.lerp(seg_end, t))
 			if coord == null:
 				continue
 			var phase := (cum + seg_len * t) / total_len
