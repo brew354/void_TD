@@ -262,7 +262,7 @@ func _open_upgrade_panel(col: int, row: int) -> void:
 
 func _open_base_panel() -> void:
 	_panel_target = "base"
-	var can_upgrade := _base.upgrade_level < 3
+	var can_upgrade: bool = _base.upgrade_level < 3
 	var up_cost: int = _base.upgrade_cost(_base.upgrade_level + 1) if can_upgrade else 0
 	hud.show_base_panel(
 		_base.upgrade_level, _base.damage_reduction,
