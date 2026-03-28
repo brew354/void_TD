@@ -12,7 +12,7 @@ func _ready() -> void:
 
 	# Title
 	var title = Label.new()
-	title.text = "SPACE TD"
+	title.text = "VOID_TD"
 	title.position = Vector2(0, 220)
 	title.size = Vector2(1334, 100)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -21,7 +21,7 @@ func _ready() -> void:
 	add_child(title)
 
 	var sub = Label.new()
-	sub.text = "Sci-Fi Tower Defense"
+	sub.text = "Void Tower Defense Game"
 	sub.position = Vector2(0, 320)
 	sub.size = Vector2(1334, 40)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
