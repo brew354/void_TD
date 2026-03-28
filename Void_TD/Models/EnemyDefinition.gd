@@ -7,13 +7,13 @@ enum EnemyType { SCOUT, TANK, BOSS }
 static func stats(type: EnemyType) -> Dictionary:
 	match type:
 		EnemyType.SCOUT:
-			return { "hp": 80, "speed": 210.0, "reward": 5, "lives_damage": 1,
+			return { "hp": 65, "speed": 200.0, "reward": 5, "lives_damage": 1,
 					 "color": Color(0.0, 1.0, 0.4), "size": Vector2(20, 20), "label": "Scout" }
 		EnemyType.TANK:
-			return { "hp": 700, "speed": 65.0, "reward": 50, "lives_damage": 3,
+			return { "hp": 600, "speed": 60.0, "reward": 45, "lives_damage": 3,
 					 "color": Color(1.0, 0.4, 0.0), "size": Vector2(36, 36), "label": "Tank" }
 		EnemyType.BOSS:
-			return { "hp": 2500, "speed": 40.0, "reward": 250, "lives_damage": 0,
+			return { "hp": 2000, "speed": 40.0, "reward": 200, "lives_damage": 0,
 					 "color": Color(0.6, 0.0, 0.8), "size": Vector2(52, 52), "label": "Boss",
 					 "is_boss": true,
 					 "stun_range": 200.0, "stun_interval": 3.5, "stun_duration": 2.0 }

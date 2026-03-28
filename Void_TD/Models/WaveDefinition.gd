@@ -25,62 +25,63 @@ class WaveData:
 		pre_delay = d
 		difficulty_scale = s
 
-# Scale increases 0.22 per wave: wave 1 = 1.0, wave 5 = 1.88, wave 10 = 2.98
+# Non-linear curve: gentle early game, steep late game
+# 1.0 → 1.12 → 1.25 → 1.40 → 1.58 → 1.78 → 2.02 → 2.30 → 2.62 → 3.00
 static func _scale(wave_idx: int) -> float:
-	return 1.0 + wave_idx * 0.22
+	var scales: Array = [1.0, 1.12, 1.25, 1.40, 1.58, 1.78, 2.02, 2.30, 2.62, 3.00]
+	return scales[clamp(wave_idx, 0, scales.size() - 1)]
 
 static func all_waves() -> Array:
 	return [
-		# Wave 1 — intro: scouts only, learn the basics
+		# Wave 1 — intro: scouts only, very forgiving
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 8, 1.0),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 6, 1.2),
 		], 0.5, _scale(0)),
-		# Wave 2 — tanks introduced: need Cannon or save for Mecha
+		# Wave 2 — more scouts, still no tanks
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 6, 0.8),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  4, 2.0),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 9, 1.0),
 		], 0.5, _scale(1)),
-		# Wave 3 — first boss: 3 groups required for boss test
+		# Wave 3 — first boss with light escort (boss is the real threat)
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 5, 0.8),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  6, 1.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 5, 0.9),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  2, 2.5),
 			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,  1, 3.0),
 		], 0.5, _scale(2)),
-		# Wave 4 — swarm: fast scouts flood defenses
+		# Wave 4 — proper tank introduction, pressure building
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 14, 0.7),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   5, 1.6),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.8),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   4, 1.8),
 		], 0.5, _scale(3)),
-		# Wave 5 — heavy mix: Mecha required to keep up
+		# Wave 5 — heavier mix, Mecha Soldier becomes very useful
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.7),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   8, 1.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.75),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,   6, 1.5),
 		], 0.5, _scale(4)),
-		# Wave 6 — boss returns with bigger escort
+		# Wave 6 — boss with full escort, real challenge begins
 		WaveData.new([
 			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 8, 0.7),
 			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  8, 1.4),
-			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,  1, 3.0),
+			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,  1, 3.5),
 		], 0.5, _scale(5)),
-		# Wave 7 — attrition: massive count drains ammo coverage
+		# Wave 7 — attrition: scale hits 2.0, requires upgraded towers
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 14, 0.6),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 13, 0.65),
 			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  10, 1.3),
 		], 0.5, _scale(6)),
-		# Wave 8 — tank wall: heavy HP demands splash + Mecha
+		# Wave 8 — tank wall: splash and Mecha essential
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 12, 0.5),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  12, 1.2),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 12, 0.6),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  12, 1.15),
 		], 0.5, _scale(7)),
-		# Wave 9 — two bosses plus heavy escort
+		# Wave 9 — two bosses plus brutal escort
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.5),
-			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  12, 1.2),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 10, 0.55),
+			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  13, 1.1),
 			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,   2, 4.0),
 		], 0.5, _scale(8)),
-		# Wave 10 — finale: everything at once
+		# Wave 10 — finale: maximum everything
 		WaveData.new([
-			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 15, 0.5),
+			SpawnGroup.new(EnemyDefinition.EnemyType.SCOUT, 14, 0.5),
 			SpawnGroup.new(EnemyDefinition.EnemyType.TANK,  15, 1.0),
 			SpawnGroup.new(EnemyDefinition.EnemyType.BOSS,   3, 4.0),
 		], 0.5, _scale(9)),
