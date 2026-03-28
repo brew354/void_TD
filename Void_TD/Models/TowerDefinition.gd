@@ -20,6 +20,14 @@ static func stats(type: TowerType) -> Dictionary:
 					 "splash_radius": 45.0, "projectile_speed": 500.0, "label": "Mecha" }
 	return {}
 
+## Returns the maximum number of this tower that can be placed. 0 = unlimited.
+static func max_count(type: TowerType) -> int:
+	match type:
+		TowerType.CANNON:        return 6
+		TowerType.MISSILE:       return 4
+		TowerType.MECHA_SOLDIER: return 4
+	return 0
+
 static func upgrade_cost(type: TowerType, to_level: int) -> int:
 	var base = stats(type)["cost"]
 	if to_level == 2: return base / 2

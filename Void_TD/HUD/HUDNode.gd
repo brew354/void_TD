@@ -22,6 +22,8 @@ var _pause_btn: Button
 var _speed_btn: Button
 var _tower_btns: Array = []
 var _fast_mode: bool = false
+var _last_credits: int = 0
+var _tower_counts: Dictionary = {}
 var _lives_pulse_tween: Tween = null
 var _damage_flash: ColorRect
 var _upgrade_panel: ColorRect
@@ -233,14 +235,27 @@ func update_score(score: int) -> void:
 	_score_label.text = "Score: %d" % score
 
 func update_credits(credits: int) -> void:
+	_last_credits = credits
 	_credits_label.text = "Credits: %d" % credits
-	var costs = [
-		TowerDefinition.stats(TowerDefinition.TowerType.LASER)["cost"],
-		TowerDefinition.stats(TowerDefinition.TowerType.CANNON)["cost"],
-		TowerDefinition.stats(TowerDefinition.TowerType.MISSILE)["cost"],
+	_refresh_tower_buttons()
+
+func update_tower_limits(counts: Dictionary) -> void:
+	_tower_counts = counts
+	_refresh_tower_buttons()
+
+func _refresh_tower_buttons() -> void:
+	var types = [
+		TowerDefinition.TowerType.LASER,
+		TowerDefinition.TowerType.CANNON,
+		TowerDefinition.TowerType.MISSILE,
+		TowerDefinition.TowerType.MECHA_SOLDIER,
 	]
-	for i in _tower_btns.size():
-		_tower_btns[i].disabled = credits < costs[i]
+	for i in min(_tower_btns.size(), types.size()):
+		var t = types[i]
+		var cost: int = TowerDefinition.stats(t)["cost"]
+		var max_c: int = TowerDefinition.max_count(t)
+		var at_limit: bool = max_c > 0 and _tower_counts.get(int(t), 0) >= max_c
+		_tower_btns[i].disabled = _last_credits < cost or at_limit
 
 func flash_damage() -> void:
 	_damage_flash.color.a = 0.35

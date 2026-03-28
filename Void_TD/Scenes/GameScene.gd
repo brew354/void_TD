@@ -50,6 +50,7 @@ var _panel_row: int = -1
 var _panel_target: String = ""  # "tower" or "base"
 var _base: Node2D
 var _fire_sfx_cooldowns: Dictionary = {}
+var _tower_counts: Dictionary = {}  # TowerType int key → placed count
 var _path_tile_nodes: Array = []
 var _chevron_tween: Tween = null
 
@@ -254,12 +255,15 @@ func _sell_tower(col: int, row: int) -> void:
 	var pos = GameConfig.scene_position(col, row)
 	for tower in tower_manager.towers:
 		if is_instance_valid(tower) and tower.position.distance_to(pos) < 1.0:
+			var tkey := int(tower.tower_type)
 			currency += tower.total_invested / 2
 			grid_manager.remove(col, row)
 			tile_nodes[row][col].set_state(GridManager.TileState.EMPTY)
 			tower_manager.remove_tower(tower)
 			tower.queue_free()
+			_tower_counts[tkey] = max(_tower_counts.get(tkey, 0) - 1, 0)
 			hud.update_credits(currency)
+			hud.update_tower_limits(_tower_counts)
 			break
 
 func _on_tile_clicked(col: int, row: int) -> void:
@@ -271,7 +275,10 @@ func _on_tile_clicked(col: int, row: int) -> void:
 		return
 	var cost = TowerDefinition.stats(selected_tower_type)["cost"]
 	if currency < cost:
-		# Flash the tile red to indicate can't afford
+		tile_nodes[row][col].flash_invalid()
+		return
+	var max_c: int = TowerDefinition.max_count(selected_tower_type)
+	if max_c > 0 and _tower_counts.get(int(selected_tower_type), 0) >= max_c:
 		tile_nodes[row][col].flash_invalid()
 		return
 	if not grid_manager.can_place(col, row):
@@ -291,8 +298,9 @@ func _place_tower(col: int, row: int, type: TowerDefinition.TowerType) -> void:
 	tower.setup(type, enemies, projectile_layer)
 	tower.fired.connect(_on_tower_fired)
 	tower_manager.add_tower(tower)
-
+	_tower_counts[int(type)] = _tower_counts.get(int(type), 0) + 1
 	hud.update_credits(currency)
+	hud.update_tower_limits(_tower_counts)
 
 func _open_upgrade_panel(col: int, row: int) -> void:
 	_panel_col = col
