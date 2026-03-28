@@ -356,7 +356,7 @@ class _HorizGradient extends Node2D:
 		var steps := 80
 		var sw := GameConfig.SCENE_WIDTH
 		var sh := GameConfig.SCENE_HEIGHT
-		var strip_w := ceil(float(sw) / steps) + 1
+		var strip_w: float = ceil(float(sw) / steps) + 1
 		for i in range(steps):
 			var t := float(i) / float(steps - 1)
 			var c := Color(0.0, 0.0, 0.0).lerp(Color(0.15, 0.0, 0.25), t)
