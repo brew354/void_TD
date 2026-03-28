@@ -7,13 +7,18 @@ const TowerDefinition = preload("res://Models/TowerDefinition.gd")
 signal tower_selected(tower_type)
 signal start_wave_pressed
 signal pause_pressed
+signal speed_toggled(fast: bool)
 
 var _lives_label: Label
 var _wave_label: Label
 var _score_label: Label
 var _credits_label: Label
+var _next_wave_label: Label
 var _start_wave_btn: Button
 var _pause_btn: Button
+var _speed_btn: Button
+var _tower_btns: Array = []
+var _fast_mode: bool = false
 
 func _ready() -> void:
 	_build_hud()
@@ -45,6 +50,11 @@ func _build_hud() -> void:
 	_score_label = _make_label("Score: 0", Vector2(400, 5))
 	add_child(_score_label)
 
+	# Top: Speed toggle
+	_speed_btn = _make_button("Speed: 1x", Vector2(600, 2), Vector2(110, 30))
+	_speed_btn.pressed.connect(_on_speed_btn_pressed)
+	add_child(_speed_btn)
+
 	# Top: Pause button
 	_pause_btn = _make_button("Pause", Vector2(1240, 2), Vector2(84, 30))
 	_pause_btn.pressed.connect(func(): pause_pressed.emit())
@@ -63,8 +73,16 @@ func _build_hud() -> void:
 	for td in tower_defs:
 		var btn = _make_button(td[1], td[2], Vector2(140, 28))
 		var t = td[0]
-		btn.pressed.connect(func(): tower_selected.emit(t))
+		btn.pressed.connect(func():
+			tower_selected.emit(t)
+			set_selected_tower(t)
+		)
 		add_child(btn)
+		_tower_btns.append(btn)
+
+	# Bottom: Next wave preview
+	_next_wave_label = _make_label("", Vector2(700, 715))
+	add_child(_next_wave_label)
 
 	# Bottom: Start Wave button
 	_start_wave_btn = _make_button("START WAVE", Vector2(1170, 713), Vector2(150, 28))
@@ -101,3 +119,15 @@ func update_credits(credits: int) -> void:
 
 func set_start_wave_enabled(enabled: bool) -> void:
 	_start_wave_btn.disabled = not enabled
+
+func set_selected_tower(type: TowerDefinition.TowerType) -> void:
+	for i in _tower_btns.size():
+		_tower_btns[i].modulate = Color(0.4, 1.0, 0.4) if i == int(type) else Color(1, 1, 1)
+
+func update_next_wave(text: String) -> void:
+	_next_wave_label.text = text
+
+func _on_speed_btn_pressed() -> void:
+	_fast_mode = not _fast_mode
+	_speed_btn.text = "Speed: 2x" if _fast_mode else "Speed: 1x"
+	speed_toggled.emit(_fast_mode)

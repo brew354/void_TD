@@ -28,6 +28,8 @@ func _init() -> void:
 	# --- GameConfig ---
 	print("[ GameConfig ]")
 	_assert(GameConfig.STARTING_LIVES == 5, "STARTING_LIVES = 5")
+	_assert(GameConfig.STARTING_CREDITS == 200, "STARTING_CREDITS = 200")
+	_assert(GameConfig.WAVE_COMPLETE_BONUS == 50, "WAVE_COMPLETE_BONUS = 50")
 	_assert(GameConfig.TILE_SIZE == 64.0, "TILE_SIZE = 64")
 	_assert(GameConfig.GRID_COLS == 20, "GRID_COLS = 20")
 	_assert(GameConfig.GRID_ROWS == 11, "GRID_ROWS = 11")

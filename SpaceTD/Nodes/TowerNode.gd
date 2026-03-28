@@ -47,13 +47,15 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_body.position = Vector2(-20, -20)
 	add_child(_body)
 
-	# Range ring (debug visual)
+	# Range ring — visible on hover only
 	_range_ring = Node2D.new()
+	_range_ring.visible = false
 	add_child(_range_ring)
-	# We'll draw the ring via _draw on a separate node
 	var ring = _RangeRing.new()
 	ring.radius = range_radius
 	_range_ring.add_child(ring)
+	_body.mouse_entered.connect(func(): _range_ring.visible = true)
+	_body.mouse_exited.connect(func(): _range_ring.visible = false)
 
 func apply_stun(duration: float) -> void:
 	_stun_timer = max(_stun_timer, duration)

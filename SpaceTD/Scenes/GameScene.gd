@@ -15,10 +15,11 @@ const EnemyNode       = preload("res://Nodes/EnemyNode.gd")
 const HUDNode         = preload("res://HUD/HUDNode.gd")
 const GameOverScene   = preload("res://Scenes/GameOverScene.gd")
 const BaseNode        = preload("res://Nodes/BaseNode.gd")
+const WaveDefinition  = preload("res://Models/WaveDefinition.gd")
 
 # ── Game State ──────────────────────────────────────────────────────────────
 var lives: int = GameConfig.STARTING_LIVES
-var currency: int = 150
+var currency: int = GameConfig.STARTING_CREDITS
 var current_wave: int = 0
 var score: int = 0
 
@@ -51,7 +52,6 @@ func _ready() -> void:
 	_init_systems()
 	_build_grid()
 	_spawn_base()
-	_draw_path_debug()
 	_build_hud()
 
 # ── Layer Setup ───────────────────────────────────────────────────────────────
@@ -124,15 +124,6 @@ func _spawn_base() -> void:
 	enemy_layer.add_child(base)
 	base.setup(GameConfig.PATH_WAYPOINTS[-1])
 
-func _draw_path_debug() -> void:
-	# Draw the path as a line for debugging
-	var line = Line2D.new()
-	line.width = 3.0
-	line.default_color = Color(1.0, 0.8, 0.0, 0.4)
-	for wp in GameConfig.PATH_WAYPOINTS:
-		line.add_point(wp)
-	path_layer.add_child(line)
-
 # ── HUD ───────────────────────────────────────────────────────────────────────
 func _build_hud() -> void:
 	hud = HUDNode.new()
@@ -140,6 +131,7 @@ func _build_hud() -> void:
 	hud.tower_selected.connect(_on_hud_tower_selected)
 	hud.start_wave_pressed.connect(_on_hud_start_wave)
 	hud.pause_pressed.connect(_on_hud_pause)
+	hud.speed_toggled.connect(_on_speed_toggled)
 	_refresh_hud()
 
 func _refresh_hud() -> void:
@@ -149,6 +141,17 @@ func _refresh_hud() -> void:
 	hud.update_score(score)
 	hud.update_credits(currency)
 	hud.set_start_wave_enabled(state_machine.can_start_wave())
+	hud.update_next_wave(_wave_preview_text())
+
+func _wave_preview_text() -> String:
+	var waves = WaveDefinition.all_waves()
+	var next_idx = wave_manager.current_wave_number() - 1
+	if next_idx >= waves.size():
+		return ""
+	var parts = []
+	for g in waves[next_idx].groups:
+		parts.append("%d %s" % [g.count, EnemyDefinition.stats(g.type)["label"]])
+	return "Next: " + ", ".join(parts)
 
 # ── Main Update Loop ──────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
@@ -159,6 +162,28 @@ func _process(delta: float) -> void:
 	tower_manager.update(delta, enemies)
 
 # ── Input ─────────────────────────────────────────────────────────────────────
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		var coord = GameConfig.grid_coord(event.position)
+		if coord != null:
+			_sell_tower(coord.x, coord.y)
+
+func _sell_tower(col: int, row: int) -> void:
+	if not state_machine.can_place_tower():
+		return
+	if grid_manager.get_state(col, row) != GridManager.TileState.OCCUPIED:
+		return
+	var pos = GameConfig.scene_position(col, row)
+	for tower in tower_manager.towers:
+		if is_instance_valid(tower) and tower.position.distance_to(pos) < 1.0:
+			currency += TowerDefinition.stats(tower.tower_type)["cost"] / 2
+			grid_manager.remove(col, row)
+			tile_nodes[row][col].set_state(GridManager.TileState.EMPTY)
+			tower_manager.remove_tower(tower)
+			tower.queue_free()
+			hud.update_credits(currency)
+			break
+
 func _on_tile_clicked(col: int, row: int) -> void:
 	if not state_machine.can_place_tower():
 		return
@@ -201,7 +226,11 @@ func _on_hud_start_wave() -> void:
 	state_machine.transition_to(GameStateMachine.State.WAVE_IN_PROGRESS)
 	wave_manager.start_wave()
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
+	hud.update_next_wave(_wave_preview_text())
 	hud.set_start_wave_enabled(false)
+
+func _on_speed_toggled(fast: bool) -> void:
+	Engine.time_scale = 2.0 if fast else 1.0
 
 func _on_hud_pause() -> void:
 	if state_machine.current == GameStateMachine.State.PAUSED:
@@ -252,15 +281,19 @@ func _on_state_changed(new_state: GameStateMachine.State) -> void:
 func _on_wave_complete() -> void:
 	if lives <= 0:
 		return
+	currency += GameConfig.WAVE_COMPLETE_BONUS
+	hud.update_credits(currency)
 	if not wave_manager.has_more_waves():
 		_trigger_game_over(true)
 		return
 	state_machine.transition_to(GameStateMachine.State.WAVE_CLEAR)
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
+	hud.update_next_wave(_wave_preview_text())
 	hud.set_start_wave_enabled(true)
 
 # ── Game Over ─────────────────────────────────────────────────────────────────
 func _trigger_game_over(victory: bool) -> void:
+	Engine.time_scale = 1.0
 	state_machine.transition_to(GameStateMachine.State.GAME_OVER)
 	await get_tree().create_timer(1.5).timeout
 	var scene = GameOverScene.new()
