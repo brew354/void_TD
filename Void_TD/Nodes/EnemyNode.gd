@@ -128,7 +128,14 @@ func _on_die() -> void:
 	if is_dead:
 		return
 	is_dead = true
+	_body_rect.color = Color.WHITE
+	_hp_bar_bg.visible = false
+	_hp_bar_fg.visible = false
 	died.emit(self)
+	var tween = create_tween().set_parallel(true)
+	tween.tween_property(self, "scale", Vector2(1.4, 1.4), 0.12)
+	tween.tween_property(_body_rect, "modulate:a", 0.0, 0.12)
+	await tween.finished
 	queue_free()
 
 func _on_exit() -> void:

@@ -22,6 +22,7 @@ var _pause_btn: Button
 var _speed_btn: Button
 var _tower_btns: Array = []
 var _fast_mode: bool = false
+var _lives_pulse_tween: Tween = null
 var _upgrade_panel: ColorRect
 var _panel_title: Label
 var _panel_stats: Label
@@ -203,6 +204,18 @@ func _make_button(text: String, pos: Vector2, sz: Vector2 = Vector2(120, 28)) ->
 
 func update_lives(lives: int) -> void:
 	_lives_label.text = "Lives: %d" % lives
+	if lives <= 2:
+		_lives_label.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
+		if _lives_pulse_tween == null or not _lives_pulse_tween.is_running():
+			_lives_pulse_tween = create_tween().set_loops()
+			_lives_pulse_tween.tween_property(_lives_label, "modulate:a", 0.35, 0.4)
+			_lives_pulse_tween.tween_property(_lives_label, "modulate:a", 1.0, 0.4)
+	else:
+		_lives_label.add_theme_color_override("font_color", Color.WHITE)
+		_lives_label.modulate.a = 1.0
+		if _lives_pulse_tween != null:
+			_lives_pulse_tween.kill()
+			_lives_pulse_tween = null
 
 func update_wave(current: int, total: int) -> void:
 	_wave_label.text = "Wave: %d/%d" % [current, total]

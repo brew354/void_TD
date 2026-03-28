@@ -49,6 +49,7 @@ var _panel_col: int = -1
 var _panel_row: int = -1
 var _panel_target: String = ""  # "tower" or "base"
 var _base: Node2D
+var _fire_sfx_cooldowns: Dictionary = {}
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -173,6 +174,8 @@ func _process(delta: float) -> void:
 	# Clean dead/exited enemies from list
 	enemies = enemies.filter(func(e): return is_instance_valid(e) and not e.is_dead)
 	tower_manager.update(delta, enemies)
+	for k in _fire_sfx_cooldowns.keys():
+		_fire_sfx_cooldowns[k] = max(_fire_sfx_cooldowns[k] - delta, 0.0)
 
 # ── Input ─────────────────────────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
@@ -238,6 +241,7 @@ func _place_tower(col: int, row: int, type: TowerDefinition.TowerType) -> void:
 	tower.position = GameConfig.scene_position(col, row)
 	tower_layer.add_child(tower)
 	tower.setup(type, enemies, projectile_layer)
+	tower.fired.connect(_on_tower_fired)
 	tower_manager.add_tower(tower)
 
 	hud.update_credits(currency)
@@ -292,6 +296,7 @@ func _on_upgrade_pressed() -> void:
 				return
 			currency -= up_cost
 			tower.upgrade()
+			_play_chime([440.0, 554.0, 659.0], 0.09)
 			hud.update_credits(currency)
 			_open_upgrade_panel(_panel_col, _panel_row)
 			break
@@ -304,6 +309,7 @@ func _upgrade_base() -> void:
 		return
 	currency -= up_cost
 	_base.upgrade()
+	_play_chime([440.0, 554.0, 659.0], 0.09)
 	hud.update_credits(currency)
 	_open_base_panel()
 
@@ -324,6 +330,7 @@ func _on_hud_start_wave() -> void:
 	if not wave_manager.has_more_waves():
 		return
 	_close_upgrade_panel()
+	_play_sfx(440.0, 0.18, -6.0)
 	state_machine.transition_to(GameStateMachine.State.WAVE_IN_PROGRESS)
 	wave_manager.start_wave()
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
@@ -352,7 +359,35 @@ func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float)
 		enemy.stun_pulse.connect(_on_boss_stun_pulse)
 	enemies.append(enemy)
 
+func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
+	var key := int(tower_type)
+	if _fire_sfx_cooldowns.get(key, 0.0) > 0.0:
+		return
+	match tower_type:
+		TowerDefinition.TowerType.LASER:   _play_sfx(880.0, 0.05, -10.0)
+		TowerDefinition.TowerType.CANNON:  _play_sfx(120.0, 0.14, -8.0)
+		TowerDefinition.TowerType.MISSILE: _play_sfx(350.0, 0.10, -9.0)
+	_fire_sfx_cooldowns[key] = 0.15
+
+func _spawn_reward_label(pos: Vector2, amount: int) -> void:
+	var lbl := Label.new()
+	lbl.text = "+$%d" % amount
+	lbl.position = pos + Vector2(-16.0, -24.0)
+	lbl.add_theme_font_size_override("font_size", 16)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
+	lbl.z_index = 10
+	enemy_layer.add_child(lbl)
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(lbl, "position", pos + Vector2(-16.0, -72.0), 0.8)
+	tween.tween_property(lbl, "modulate:a", 0.0, 0.8)
+	tween.chain().tween_callback(lbl.queue_free)
+
 func _on_enemy_died(enemy: EnemyNode) -> void:
+	_spawn_reward_label(enemy.position, enemy.reward)
+	match enemy.enemy_type:
+		EnemyDefinition.EnemyType.SCOUT: _play_sfx(600.0, 0.07, -8.0)
+		EnemyDefinition.EnemyType.TANK:  _play_sfx(200.0, 0.12, -7.0)
+		EnemyDefinition.EnemyType.BOSS:  _play_chime([400.0, 280.0, 180.0], 0.1)
 	currency += enemy.reward
 	score += enemy.reward
 	hud.update_credits(currency)
@@ -383,6 +418,7 @@ func _on_wave_complete() -> void:
 	if lives <= 0:
 		return
 	currency += GameConfig.WAVE_COMPLETE_BONUS
+	_play_chime([523.0, 659.0, 784.0, 1047.0], 0.12)
 	hud.update_credits(currency)
 	if not wave_manager.has_more_waves():
 		_trigger_game_over(true)
@@ -391,6 +427,40 @@ func _on_wave_complete() -> void:
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
 	hud.update_next_wave(_wave_preview_text())
 	hud.set_start_wave_enabled(true)
+
+# ── Audio Helpers ─────────────────────────────────────────────────────────────
+func _make_tone(freq: float, duration: float) -> AudioStreamWAV:
+	var rate := 22050
+	var frames := int(rate * duration)
+	var data := PackedByteArray()
+	data.resize(frames * 2)
+	for i in range(frames):
+		var t := float(i) / float(rate)
+		var env := 1.0 - (t / duration)
+		var s := int(sin(TAU * freq * t) * env * 10000.0)
+		s = clamp(s, -32768, 32767)
+		data[i * 2]     = s & 0xFF
+		data[i * 2 + 1] = (s >> 8) & 0xFF
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = rate
+	wav.stereo = false
+	wav.data = data
+	return wav
+
+func _play_sfx(freq: float, duration: float, volume_db: float = 0.0) -> void:
+	var player := AudioStreamPlayer.new()
+	player.stream = _make_tone(freq, duration)
+	player.volume_db = volume_db
+	add_child(player)
+	player.play()
+	player.finished.connect(player.queue_free)
+
+func _play_chime(freqs: Array, note_dur: float) -> void:
+	for i in freqs.size():
+		var freq: float = freqs[i]
+		get_tree().create_timer(float(i) * note_dur * 0.55).timeout.connect(
+			func(): _play_sfx(freq, note_dur, -6.0), CONNECT_ONE_SHOT)
 
 ## Left-to-right gradient: black → dark purple
 class _HorizGradient extends Node2D:

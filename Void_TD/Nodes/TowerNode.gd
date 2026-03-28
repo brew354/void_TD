@@ -6,6 +6,8 @@ const TowerDefinition  = preload("res://Models/TowerDefinition.gd")
 const EnemyNode        = preload("res://Nodes/EnemyNode.gd")
 const ProjectileNode   = preload("res://Nodes/ProjectileNode.gd")
 
+signal fired(tower_type: TowerDefinition.TowerType)
+
 var tower_type: TowerDefinition.TowerType
 var damage: float
 var range_radius: float
@@ -27,6 +29,7 @@ var _enemies_ref: Array  # Reference to GameScene's live enemies
 var _body: ColorRect
 var _normal_color: Color
 var _range_ring: Node2D
+var _fire_tween: Tween
 
 func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) -> void:
 	tower_type = type
@@ -89,6 +92,8 @@ func upgrade() -> void:
 	_level_label.visible = true
 
 func apply_stun(duration: float) -> void:
+	if _fire_tween:
+		_fire_tween.kill()
 	_stun_timer = max(_stun_timer, duration)
 	_body.color = Color(0.4, 0.4, 0.5)
 
@@ -131,6 +136,13 @@ func _spawn_projectile(target: EnemyNode) -> void:
 	proj.position = position
 	_projectile_layer.add_child(proj)
 	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref)
+	# Fire flash
+	if _fire_tween:
+		_fire_tween.kill()
+	_body.color = _normal_color.lightened(0.7)
+	_fire_tween = create_tween()
+	_fire_tween.tween_property(_body, "color", _normal_color, 0.12)
+	fired.emit(tower_type)
 
 
 ## Inner helper class for drawing the range ring
