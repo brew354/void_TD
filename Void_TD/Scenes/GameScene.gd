@@ -179,6 +179,13 @@ func _process(delta: float) -> void:
 
 # ── Input ─────────────────────────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo:
+		match event.keycode:
+			KEY_1: _select_tower_type(TowerDefinition.TowerType.LASER)
+			KEY_2: _select_tower_type(TowerDefinition.TowerType.CANNON)
+			KEY_3: _select_tower_type(TowerDefinition.TowerType.MISSILE)
+			KEY_SPACE: _on_hud_start_wave()
+		return
 	if not (event is InputEventMouseButton) or not event.pressed:
 		return
 	# Base double-click (base sits outside the tile grid)
@@ -320,9 +327,13 @@ func _on_sell_from_panel() -> void:
 	_close_upgrade_panel()
 
 # ── HUD Callbacks ─────────────────────────────────────────────────────────────
-func _on_hud_tower_selected(type: TowerDefinition.TowerType) -> void:
+func _select_tower_type(type: TowerDefinition.TowerType) -> void:
 	selected_tower_type = type
 	_selected_type_set = true
+	hud.set_selected_tower(type)
+
+func _on_hud_tower_selected(type: TowerDefinition.TowerType) -> void:
+	_select_tower_type(type)
 
 func _on_hud_start_wave() -> void:
 	if not state_machine.can_start_wave():
@@ -418,6 +429,7 @@ func _on_enemy_exited(enemy: EnemyNode) -> void:
 		return
 	lives -= max(enemy.lives_damage - _base.damage_reduction, 1)
 	lives = max(lives, 0)
+	hud.flash_damage()
 	hud.update_lives(lives)
 	if lives <= 0:
 		_trigger_game_over(false)

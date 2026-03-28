@@ -57,6 +57,7 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_normal_color = colors[type]
 	_body.size = Vector2(40, 40)
 	_body.position = Vector2(-20, -20)
+	_body.pivot_offset = Vector2(20, 20)
 	_body.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(_body)
 
@@ -106,11 +107,13 @@ func update_tower(delta: float, enemies: Array) -> void:
 			_body.color = _normal_color
 		return
 
+	var target = _pick_target()
+	if target != null:
+		_body.rotation = (target.position - position).angle()
+
 	_fire_cooldown -= delta
 	if _fire_cooldown > 0.0:
 		return
-
-	var target = _pick_target()
 	if target == null:
 		return
 

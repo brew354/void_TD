@@ -123,6 +123,10 @@ func _update_hp_bar() -> void:
 		var ratio = clamp(current_hp / max_hp, 0.0, 1.0)
 		var full_w = _hp_bar_bg.size.x
 		_hp_bar_fg.size.x = full_w * ratio
+		if ratio > 0.5:
+			_hp_bar_fg.color = Color(0.0, 1.0, 0.2).lerp(Color(1.0, 1.0, 0.0), (1.0 - ratio) * 2.0)
+		else:
+			_hp_bar_fg.color = Color(1.0, 1.0, 0.0).lerp(Color(1.0, 0.0, 0.0), (0.5 - ratio) * 2.0)
 
 func _on_die() -> void:
 	if is_dead:

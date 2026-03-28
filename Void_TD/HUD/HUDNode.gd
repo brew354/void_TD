@@ -23,6 +23,7 @@ var _speed_btn: Button
 var _tower_btns: Array = []
 var _fast_mode: bool = false
 var _lives_pulse_tween: Tween = null
+var _damage_flash: ColorRect
 var _upgrade_panel: ColorRect
 var _panel_title: Label
 var _panel_stats: Label
@@ -99,6 +100,13 @@ func _build_hud() -> void:
 	add_child(_start_wave_btn)
 
 	_build_upgrade_panel()
+
+	# Full-screen damage flash overlay (rendered last = on top)
+	_damage_flash = ColorRect.new()
+	_damage_flash.color = Color(1.0, 0.0, 0.0, 0.0)
+	_damage_flash.size = Vector2(1334, 750)
+	_damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_damage_flash)
 
 func _build_upgrade_panel() -> void:
 	# Outer panel: dark body
@@ -225,6 +233,18 @@ func update_score(score: int) -> void:
 
 func update_credits(credits: int) -> void:
 	_credits_label.text = "Credits: %d" % credits
+	var costs = [
+		TowerDefinition.stats(TowerDefinition.TowerType.LASER)["cost"],
+		TowerDefinition.stats(TowerDefinition.TowerType.CANNON)["cost"],
+		TowerDefinition.stats(TowerDefinition.TowerType.MISSILE)["cost"],
+	]
+	for i in _tower_btns.size():
+		_tower_btns[i].disabled = credits < costs[i]
+
+func flash_damage() -> void:
+	_damage_flash.color.a = 0.35
+	var tween = create_tween()
+	tween.tween_property(_damage_flash, "color:a", 0.0, 0.45)
 
 func set_start_wave_enabled(enabled: bool) -> void:
 	_start_wave_btn.disabled = not enabled
