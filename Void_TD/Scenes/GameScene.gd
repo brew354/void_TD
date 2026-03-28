@@ -47,6 +47,8 @@ var selected_tower_type: TowerDefinition.TowerType = TowerDefinition.TowerType.L
 var _selected_type_set: bool = false  # Track if user has picked a type
 var _panel_col: int = -1
 var _panel_row: int = -1
+var _panel_target: String = ""  # "tower" or "base"
+var _base: Node2D
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -128,9 +130,9 @@ func _build_grid() -> void:
 		tile_nodes.append(row_arr)
 
 func _spawn_base() -> void:
-	var base = BaseNode.new()
-	enemy_layer.add_child(base)
-	base.setup(GameConfig.PATH_WAYPOINTS[-1])
+	_base = BaseNode.new()
+	enemy_layer.add_child(_base)
+	_base.setup(GameConfig.PATH_WAYPOINTS[-1])
 
 # ── HUD ───────────────────────────────────────────────────────────────────────
 func _build_hud() -> void:
@@ -176,6 +178,12 @@ func _process(delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton) or not event.pressed:
 		return
+	# Base double-click (base sits outside the tile grid)
+	if event.button_index == MOUSE_BUTTON_LEFT and event.double_click:
+		if event.position.distance_to(GameConfig.PATH_WAYPOINTS[-1]) <= 35.0:
+			if state_machine.can_upgrade_tower():
+				_open_base_panel()
+			return
 	var coord = GameConfig.grid_coord(event.position)
 	if coord == null:
 		return
@@ -252,12 +260,26 @@ func _open_upgrade_panel(col: int, row: int) -> void:
 			)
 			break
 
+func _open_base_panel() -> void:
+	_panel_target = "base"
+	var can_upgrade := _base.upgrade_level < 3
+	var up_cost: int = _base.upgrade_cost(_base.upgrade_level + 1) if can_upgrade else 0
+	hud.show_base_panel(
+		_base.upgrade_level, _base.damage_reduction,
+		up_cost, can_upgrade and currency >= up_cost,
+		GameConfig.PATH_WAYPOINTS[-1]
+	)
+
 func _close_upgrade_panel() -> void:
 	_panel_col = -1
 	_panel_row = -1
+	_panel_target = ""
 	hud.hide_upgrade_panel()
 
 func _on_upgrade_pressed() -> void:
+	if _panel_target == "base":
+		_upgrade_base()
+		return
 	if _panel_col < 0:
 		return
 	var pos = GameConfig.scene_position(_panel_col, _panel_row)
@@ -273,6 +295,17 @@ func _on_upgrade_pressed() -> void:
 			hud.update_credits(currency)
 			_open_upgrade_panel(_panel_col, _panel_row)
 			break
+
+func _upgrade_base() -> void:
+	if _base.upgrade_level >= 3:
+		return
+	var up_cost: int = _base.upgrade_cost(_base.upgrade_level + 1)
+	if currency < up_cost:
+		return
+	currency -= up_cost
+	_base.upgrade()
+	hud.update_credits(currency)
+	_open_base_panel()
 
 func _on_sell_from_panel() -> void:
 	if _panel_col < 0:
@@ -336,7 +369,7 @@ func _on_enemy_exited(enemy: EnemyNode) -> void:
 	if enemy.is_boss:
 		_trigger_game_over(false)
 		return
-	lives -= enemy.lives_damage
+	lives -= max(enemy.lives_damage - _base.damage_reduction, 1)
 	lives = max(lives, 0)
 	hud.update_lives(lives)
 	if lives <= 0:

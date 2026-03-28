@@ -145,6 +145,7 @@ func _build_upgrade_panel() -> void:
 func show_upgrade_panel(tower_label: String, level: int, dmg: float,
 		rng: float, upgrade_cost: int, can_upgrade: bool,
 		sell_value: int, screen_pos: Vector2) -> void:
+	_panel_sell_btn.visible = true
 	_panel_title.text = "%s   L%d" % [tower_label, level]
 	_panel_stats.text = "DMG: %.0f      RNG: %.0f" % [dmg, rng]
 	_panel_upgrade_btn.disabled = not can_upgrade
@@ -159,7 +160,29 @@ func show_upgrade_panel(tower_label: String, level: int, dmg: float,
 	_upgrade_panel.position = Vector2(px, py)
 	_upgrade_panel.visible = true
 
+func show_base_panel(level: int, reduction: int, up_cost: int,
+		can_upgrade: bool, screen_pos: Vector2) -> void:
+	_panel_sell_btn.visible = false
+	_panel_title.text = "Base   L%d" % level
+	var red_text: String
+	if reduction == 0:
+		red_text = "None yet"
+	elif reduction == 1:
+		red_text = "-%d life per hit" % reduction
+	else:
+		red_text = "-%d lives per hit" % reduction
+	_panel_stats.text = "Dmg reduction:  %s" % red_text
+	_panel_upgrade_btn.disabled = not can_upgrade
+	_panel_upgrade_btn.text = "Upgrade $%d" % up_cost if can_upgrade else "Max Level"
+	var pw: float = _upgrade_panel.size.x
+	var ph: float = _upgrade_panel.size.y
+	var px := clampf(screen_pos.x - pw / 2.0, 4.0, 1334.0 - pw - 4.0)
+	var py := clampf(screen_pos.y - ph - 44.0, 44.0, 706.0 - ph)
+	_upgrade_panel.position = Vector2(px, py)
+	_upgrade_panel.visible = true
+
 func hide_upgrade_panel() -> void:
+	_panel_sell_btn.visible = true
 	_upgrade_panel.visible = false
 
 func _make_label(text: String, pos: Vector2) -> Label:

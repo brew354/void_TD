@@ -10,6 +10,7 @@ const GameStateMachine = preload("res://Systems/GameStateMachine.gd")
 const TowerManager     = preload("res://Systems/TowerManager.gd")
 const EnemyNode        = preload("res://Nodes/EnemyNode.gd")
 const TowerNode        = preload("res://Nodes/TowerNode.gd")
+const BaseNode         = preload("res://Nodes/BaseNode.gd")
 
 var _pass: int = 0
 var _fail: int = 0
@@ -194,6 +195,29 @@ func _init() -> void:
 	_assert(utower.total_invested == 250, "total_invested after L3 = 100 + 50 + 100 = 250")
 	_assert(utower.total_invested / 2 == 125, "L3 sell refund = 125")
 	utower.queue_free()
+
+	# --- BaseNode upgrades ---
+	print("\n[ BaseNode upgrades ]")
+	var bn = BaseNode.new()
+	bn.setup(Vector2(0, 0))
+	_assert(bn.upgrade_level == 1, "Base starts at L1")
+	_assert(bn.damage_reduction == 0, "Base L1 damage_reduction = 0")
+	_assert(bn.upgrade_cost(2) == 100, "Base L2 cost = 100")
+	_assert(bn.upgrade_cost(3) == 200, "Base L3 cost = 200")
+	_assert(bn.upgrade_cost(4) == 0, "Base beyond L3 cost = 0")
+	bn.upgrade()
+	_assert(bn.upgrade_level == 2, "Base upgraded to L2")
+	_assert(bn.damage_reduction == 1, "Base L2 reduction = 1")
+	_assert(bn.total_invested == 100, "Base total_invested after L2 = 100")
+	_assert(max(1 - bn.damage_reduction, 1) == 1, "Scout (1 dmg) at L2 base still costs 1 life")
+	_assert(max(3 - bn.damage_reduction, 1) == 2, "Tank (3 dmg) at L2 base costs 2 lives")
+	bn.upgrade()
+	_assert(bn.upgrade_level == 3, "Base upgraded to L3")
+	_assert(bn.damage_reduction == 2, "Base L3 reduction = 2")
+	_assert(bn.total_invested == 300, "Base total_invested after L3 = 300")
+	_assert(max(1 - bn.damage_reduction, 1) == 1, "Scout (1 dmg) at L3 base still costs 1 life")
+	_assert(max(3 - bn.damage_reduction, 1) == 1, "Tank (3 dmg) at L3 base costs 1 life")
+	bn.queue_free()
 
 	# --- Summary ---
 	print("\n=== Results: %d passed, %d failed ===" % [_pass, _fail])
