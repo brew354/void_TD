@@ -84,18 +84,8 @@ func _build_layers() -> void:
 	add_child(projectile_layer)
 
 func _draw_background() -> void:
-	var gradient = Gradient.new()
-	gradient.set_color(0, Color(0.0, 0.0, 0.0))
-	gradient.set_color(1, Color(0.12, 0.0, 0.22))
-	var grad_tex = GradientTexture2D.new()
-	grad_tex.gradient = gradient
-	grad_tex.fill_from = Vector2(0.5, 0.0)
-	grad_tex.fill_to   = Vector2(0.5, 1.0)
-	var bg = TextureRect.new()
-	bg.texture = grad_tex
-	bg.size = Vector2(GameConfig.SCENE_WIDTH, GameConfig.SCENE_HEIGHT)
-	bg.stretch_mode = TextureRect.STRETCH_SCALE
-	background_layer.add_child(bg)
+	var grad = _HorizGradient.new()
+	background_layer.add_child(grad)
 	# Simple star dots
 	for i in range(120):
 		var star = ColorRect.new()
@@ -359,6 +349,18 @@ func _on_wave_complete() -> void:
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
 	hud.update_next_wave(_wave_preview_text())
 	hud.set_start_wave_enabled(true)
+
+## Left-to-right gradient: black → dark purple
+class _HorizGradient extends Node2D:
+	func _draw() -> void:
+		var steps := 80
+		var sw := GameConfig.SCENE_WIDTH
+		var sh := GameConfig.SCENE_HEIGHT
+		var strip_w := ceil(float(sw) / steps) + 1
+		for i in range(steps):
+			var t := float(i) / float(steps - 1)
+			var c := Color(0.0, 0.0, 0.0).lerp(Color(0.15, 0.0, 0.25), t)
+			draw_rect(Rect2(i * float(sw) / steps, 0, strip_w, sh), c)
 
 # ── Game Over ─────────────────────────────────────────────────────────────────
 func _trigger_game_over(victory: bool) -> void:

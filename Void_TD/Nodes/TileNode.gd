@@ -11,7 +11,7 @@ var col: int = 0
 var row: int = 0
 var tile_state: GridManager.TileState = GridManager.TileState.EMPTY
 
-const COLOR_EMPTY    = Color(0.08, 0.10, 0.18, 0.6)
+const COLOR_EMPTY    = Color(0.04, 0.0, 0.06, 0.35)
 const COLOR_PATH     = Color(1.0, 1.0, 1.0, 0.8)
 const COLOR_OCCUPIED = Color(0.10, 0.30, 0.10, 0.8)
 const COLOR_HOVER    = Color(0.20, 0.50, 0.80, 0.7)
