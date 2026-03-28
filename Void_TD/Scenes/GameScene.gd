@@ -364,30 +364,42 @@ func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
 	if _fire_sfx_cooldowns.get(key, 0.0) > 0.0:
 		return
 	match tower_type:
-		TowerDefinition.TowerType.LASER:   _play_sfx(880.0, 0.05, -10.0)
-		TowerDefinition.TowerType.CANNON:  _play_sfx(120.0, 0.14, -8.0)
-		TowerDefinition.TowerType.MISSILE: _play_sfx(350.0, 0.10, -9.0)
+		TowerDefinition.TowerType.LASER:
+			_play_sweep(1600.0, 300.0, 0.07, -8.0)
+		TowerDefinition.TowerType.CANNON:
+			_play_noise(0.05, -5.0)
+			_play_sfx(70.0, 0.15, -7.0)
+		TowerDefinition.TowerType.MISSILE:
+			_play_sweep(180.0, 700.0, 0.09, -9.0)
 	_fire_sfx_cooldowns[key] = 0.15
 
 func _spawn_reward_label(pos: Vector2, amount: int) -> void:
 	var lbl := Label.new()
 	lbl.text = "+$%d" % amount
-	lbl.position = pos + Vector2(-16.0, -24.0)
-	lbl.add_theme_font_size_override("font_size", 16)
-	lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.2))
-	lbl.z_index = 10
+	lbl.position = pos + Vector2(-20.0, -28.0)
+	lbl.add_theme_font_size_override("font_size", 22)
+	lbl.add_theme_color_override("font_color", Color(1.0, 1.0, 0.0))
+	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0))
+	lbl.add_theme_constant_override("outline_size", 4)
+	lbl.z_index = 20
 	enemy_layer.add_child(lbl)
-	var tween := create_tween().set_parallel(true)
-	tween.tween_property(lbl, "position", pos + Vector2(-16.0, -72.0), 0.8)
-	tween.tween_property(lbl, "modulate:a", 0.0, 0.8)
-	tween.chain().tween_callback(lbl.queue_free)
+	var tween := create_tween()
+	tween.tween_property(lbl, "position", pos + Vector2(-20.0, -80.0), 0.7)
+	tween.parallel().tween_property(lbl, "modulate:a", 1.0, 0.0)
+	tween.tween_property(lbl, "modulate:a", 0.0, 0.35)
+	tween.tween_callback(lbl.queue_free)
 
 func _on_enemy_died(enemy: EnemyNode) -> void:
 	_spawn_reward_label(enemy.position, enemy.reward)
 	match enemy.enemy_type:
-		EnemyDefinition.EnemyType.SCOUT: _play_sfx(600.0, 0.07, -8.0)
-		EnemyDefinition.EnemyType.TANK:  _play_sfx(200.0, 0.12, -7.0)
-		EnemyDefinition.EnemyType.BOSS:  _play_chime([400.0, 280.0, 180.0], 0.1)
+		EnemyDefinition.EnemyType.SCOUT:
+			_play_sweep(900.0, 180.0, 0.05, -8.0)
+		EnemyDefinition.EnemyType.TANK:
+			_play_noise(0.06, -4.0)
+			_play_sfx(55.0, 0.15, -6.0)
+		EnemyDefinition.EnemyType.BOSS:
+			_play_noise(0.12, -3.0)
+			_play_chime([300.0, 200.0, 120.0], 0.1)
 	currency += enemy.reward
 	score += enemy.reward
 	hud.update_credits(currency)
@@ -461,6 +473,62 @@ func _play_chime(freqs: Array, note_dur: float) -> void:
 		var freq: float = freqs[i]
 		get_tree().create_timer(float(i) * note_dur * 0.55).timeout.connect(
 			func(): _play_sfx(freq, note_dur, -6.0), CONNECT_ONE_SHOT)
+
+func _make_sweep(freq_start: float, freq_end: float, duration: float) -> AudioStreamWAV:
+	var rate := 22050
+	var frames := int(rate * duration)
+	var data := PackedByteArray()
+	data.resize(frames * 2)
+	for i in range(frames):
+		var t := float(i) / float(rate)
+		var progress := float(i) / float(max(frames - 1, 1))
+		var freq := freq_start + (freq_end - freq_start) * progress
+		var env := 1.0 - (t / duration)
+		var s := int(sin(TAU * freq * t) * env * 10000.0)
+		s = clamp(s, -32768, 32767)
+		data[i * 2]     = s & 0xFF
+		data[i * 2 + 1] = (s >> 8) & 0xFF
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = rate
+	wav.stereo = false
+	wav.data = data
+	return wav
+
+func _make_noise_burst(duration: float) -> AudioStreamWAV:
+	var rate := 22050
+	var frames := int(rate * duration)
+	var data := PackedByteArray()
+	data.resize(frames * 2)
+	for i in range(frames):
+		var t := float(i) / float(rate)
+		var env := pow(1.0 - (t / duration), 2.0)
+		var s := int((randf() * 2.0 - 1.0) * env * 12000.0)
+		s = clamp(s, -32768, 32767)
+		data[i * 2]     = s & 0xFF
+		data[i * 2 + 1] = (s >> 8) & 0xFF
+	var wav := AudioStreamWAV.new()
+	wav.format = AudioStreamWAV.FORMAT_16_BITS
+	wav.mix_rate = rate
+	wav.stereo = false
+	wav.data = data
+	return wav
+
+func _play_sweep(freq_start: float, freq_end: float, duration: float, volume_db: float = 0.0) -> void:
+	var player := AudioStreamPlayer.new()
+	player.stream = _make_sweep(freq_start, freq_end, duration)
+	player.volume_db = volume_db
+	add_child(player)
+	player.play()
+	player.finished.connect(player.queue_free)
+
+func _play_noise(duration: float, volume_db: float = 0.0) -> void:
+	var player := AudioStreamPlayer.new()
+	player.stream = _make_noise_burst(duration)
+	player.volume_db = volume_db
+	add_child(player)
+	player.play()
+	player.finished.connect(player.queue_free)
 
 ## Left-to-right gradient: black → dark purple
 class _HorizGradient extends Node2D:
