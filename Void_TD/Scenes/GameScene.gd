@@ -129,6 +129,29 @@ func _build_grid() -> void:
 			tile_layer.add_child(tile)
 			row_arr.append(tile)
 		tile_nodes.append(row_arr)
+	_assign_path_directions()
+
+func _assign_path_directions() -> void:
+	var waypoints := GameConfig.PATH_WAYPOINTS
+	var total_len := 0.0
+	for i in range(waypoints.size() - 1):
+		total_len += waypoints[i].distance_to(waypoints[i + 1])
+	var cum := 0.0
+	for i in range(waypoints.size() - 1):
+		var seg_start: Vector2 = waypoints[i]
+		var seg_end: Vector2   = waypoints[i + 1]
+		var seg_len := seg_start.distance_to(seg_end)
+		var dir := (seg_end - seg_start).normalized()
+		var step_size := GameConfig.TILE_SIZE * 0.5
+		var num_steps := int(seg_len / step_size) + 2
+		for s in range(num_steps + 1):
+			var t := float(s) / float(num_steps)
+			var coord := GameConfig.grid_coord(seg_start.lerp(seg_end, t))
+			if coord == null:
+				continue
+			var phase := (cum + seg_len * t) / total_len
+			tile_nodes[coord.y][coord.x].set_path_direction(dir, phase)
+		cum += seg_len
 
 func _spawn_base() -> void:
 	_base = BaseNode.new()
