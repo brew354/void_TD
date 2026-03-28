@@ -84,9 +84,17 @@ func _build_layers() -> void:
 	add_child(projectile_layer)
 
 func _draw_background() -> void:
-	var bg = ColorRect.new()
-	bg.color = Color(0.04, 0.04, 0.12)
+	var gradient = Gradient.new()
+	gradient.set_color(0, Color(0.0, 0.0, 0.0))
+	gradient.set_color(1, Color(0.12, 0.0, 0.22))
+	var grad_tex = GradientTexture2D.new()
+	grad_tex.gradient = gradient
+	grad_tex.fill_from = Vector2(0.5, 0.0)
+	grad_tex.fill_to   = Vector2(0.5, 1.0)
+	var bg = TextureRect.new()
+	bg.texture = grad_tex
 	bg.size = Vector2(GameConfig.SCENE_WIDTH, GameConfig.SCENE_HEIGHT)
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
 	background_layer.add_child(bg)
 	# Simple star dots
 	for i in range(120):
