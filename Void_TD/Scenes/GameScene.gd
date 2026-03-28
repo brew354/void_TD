@@ -239,7 +239,8 @@ func _open_upgrade_panel(col: int, row: int) -> void:
 				s["label"], tower.upgrade_level,
 				tower.damage, tower.range_radius,
 				up_cost, can_upgrade and currency >= up_cost,
-				tower.total_invested / 2
+				tower.total_invested / 2,
+				pos
 			)
 			break
 

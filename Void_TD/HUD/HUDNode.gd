@@ -100,40 +100,63 @@ func _build_hud() -> void:
 	_build_upgrade_panel()
 
 func _build_upgrade_panel() -> void:
+	# Outer panel: dark body
 	_upgrade_panel = ColorRect.new()
-	_upgrade_panel.color = Color(0, 0, 0, 0.75)
-	_upgrade_panel.size = Vector2(260, 170)
-	_upgrade_panel.position = Vector2(1060, 50)
+	_upgrade_panel.color = Color(0.07, 0.0, 0.12, 0.97)
+	_upgrade_panel.size = Vector2(240, 118)
 	_upgrade_panel.visible = false
 	add_child(_upgrade_panel)
 
-	_panel_title = _make_label("Tower", Vector2(10, 8))
+	# Purple header bar
+	var header = ColorRect.new()
+	header.color = Color(0.25, 0.0, 0.42, 1.0)
+	header.size = Vector2(240, 30)
+	_upgrade_panel.add_child(header)
+
+	_panel_title = Label.new()
+	_panel_title.position = Vector2(8, 6)
+	_panel_title.size = Vector2(196, 22)
+	_panel_title.add_theme_font_size_override("font_size", 15)
+	_panel_title.add_theme_color_override("font_color", Color.WHITE)
 	_upgrade_panel.add_child(_panel_title)
 
-	_panel_stats = _make_label("", Vector2(10, 40))
-	_panel_stats.add_theme_font_size_override("font_size", 14)
-	_upgrade_panel.add_child(_panel_stats)
-
-	_panel_upgrade_btn = _make_button("Upgrade", Vector2(10, 110), Vector2(110, 28))
-	_panel_upgrade_btn.pressed.connect(func(): upgrade_pressed.emit())
-	_upgrade_panel.add_child(_panel_upgrade_btn)
-
-	_panel_sell_btn = _make_button("Sell", Vector2(140, 110), Vector2(110, 28))
-	_panel_sell_btn.pressed.connect(func(): sell_pressed.emit())
-	_upgrade_panel.add_child(_panel_sell_btn)
-
-	var close_btn = _make_button("X", Vector2(225, 5), Vector2(28, 28))
+	var close_btn = _make_button("X", Vector2(206, 3), Vector2(28, 24))
 	close_btn.pressed.connect(func(): upgrade_panel_closed.emit())
 	_upgrade_panel.add_child(close_btn)
 
+	# Stats row
+	_panel_stats = Label.new()
+	_panel_stats.position = Vector2(10, 38)
+	_panel_stats.size = Vector2(220, 26)
+	_panel_stats.add_theme_font_size_override("font_size", 14)
+	_panel_stats.add_theme_color_override("font_color", Color(0.85, 0.75, 1.0))
+	_upgrade_panel.add_child(_panel_stats)
+
+	# Buttons row
+	_panel_upgrade_btn = _make_button("Upgrade", Vector2(8, 76), Vector2(110, 34))
+	_panel_upgrade_btn.pressed.connect(func(): upgrade_pressed.emit())
+	_upgrade_panel.add_child(_panel_upgrade_btn)
+
+	_panel_sell_btn = _make_button("Sell", Vector2(122, 76), Vector2(110, 34))
+	_panel_sell_btn.add_theme_color_override("font_color", Color(1.0, 0.55, 0.55))
+	_panel_sell_btn.pressed.connect(func(): sell_pressed.emit())
+	_upgrade_panel.add_child(_panel_sell_btn)
+
 func show_upgrade_panel(tower_label: String, level: int, dmg: float,
 		rng: float, upgrade_cost: int, can_upgrade: bool,
-		sell_value: int) -> void:
-	_panel_title.text = "%s  (L%d)" % [tower_label, level]
-	var cost_line = ("$%d" % upgrade_cost) if upgrade_cost > 0 else "Max Level"
-	_panel_stats.text = "DMG: %.0f   RNG: %.0f\n\nUpgrade: %s\nSell: +$%d" % [dmg, rng, cost_line, sell_value]
+		sell_value: int, screen_pos: Vector2) -> void:
+	_panel_title.text = "%s   L%d" % [tower_label, level]
+	_panel_stats.text = "DMG: %.0f      RNG: %.0f" % [dmg, rng]
 	_panel_upgrade_btn.disabled = not can_upgrade
 	_panel_upgrade_btn.text = "Upgrade $%d" % upgrade_cost if can_upgrade else "Max Level"
+	_panel_sell_btn.text = "Sell +$%d" % sell_value
+
+	# Position centered above the tower, clamped inside the play area
+	var pw: float = _upgrade_panel.size.x
+	var ph: float = _upgrade_panel.size.y
+	var px := clampf(screen_pos.x - pw / 2.0, 4.0, 1334.0 - pw - 4.0)
+	var py := clampf(screen_pos.y - ph - 44.0, 44.0, 706.0 - ph)
+	_upgrade_panel.position = Vector2(px, py)
 	_upgrade_panel.visible = true
 
 func hide_upgrade_panel() -> void:
