@@ -8,6 +8,7 @@ const EnemyDefinition = preload("res://Models/EnemyDefinition.gd")
 signal died(enemy)
 signal exited(enemy)
 signal stun_pulse(pos: Vector2, radius: float, duration: float)
+signal armor_broken
 
 var enemy_type: EnemyDefinition.EnemyType
 var max_hp: float
@@ -31,6 +32,12 @@ var _shield_phase_timer: float = 0.0
 var _shield_interval_val: float = 0.0
 var _shield_duration_val: float = 0.0
 var _shield_ring_node: Node2D = null
+
+# Armor phases (Mega Boss)
+var _is_armored: bool = false
+var _armor_threshold: float = 0.0
+var _armor_phase2_speed: float = 0.0
+var _armor_ring_node: Node2D = null
 
 var _waypoints: Array
 var _current_waypoint: int = 1
@@ -61,6 +68,11 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 		_shield_interval_val = float(s["shield_interval"])
 		_shield_duration_val = float(s["shield_duration"])
 		_shield_phase_timer = _shield_interval_val  # start vulnerable
+
+	if s.has("armor_threshold"):
+		_armor_threshold = float(s["armor_threshold"])
+		_armor_phase2_speed = float(s["speed"]) * 2.0
+		_is_armored = true
 
 	_waypoints = GameConfig.PATH_WAYPOINTS
 	position = _waypoints[0]
@@ -102,6 +114,14 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 		var ring = _ShieldRing.new()
 		ring.ring_radius = sz.x / 2.0 + 7.0
 		_shield_ring_node.add_child(ring)
+
+	# Armor ring (only for MEGA_BOSS)
+	if _is_armored:
+		_armor_ring_node = Node2D.new()
+		add_child(_armor_ring_node)
+		var aring = _ArmorRing.new()
+		aring.ring_radius = sz.x / 2.0 + 10.0
+		_armor_ring_node.add_child(aring)
 
 func _process(delta: float) -> void:
 	if is_dead:
@@ -154,10 +174,25 @@ func take_damage(amount: float) -> void:
 				if child is _ShieldRing:
 					child.flash()
 		return
-	current_hp -= amount
+	# Armored phase: absorb 80% of damage
+	var effective := amount * (0.2 if _is_armored else 1.0)
+	current_hp -= effective
 	_update_hp_bar()
+	if _is_armored and current_hp <= _armor_threshold:
+		_break_armor()
 	if current_hp <= 0:
 		_on_die()
+
+func _break_armor() -> void:
+	_is_armored = false
+	speed = _armor_phase2_speed
+	# Remove armor ring
+	if _armor_ring_node != null:
+		_armor_ring_node.queue_free()
+		_armor_ring_node = null
+	# Shift to exposed color (glowing orange-red)
+	_body_rect.color = Color(0.85, 0.25, 0.05)
+	armor_broken.emit()
 
 func _update_hp_bar() -> void:
 	if _hp_bar_fg:
@@ -189,6 +224,28 @@ func _on_exit() -> void:
 	is_dead = true
 	exited.emit(self)
 	queue_free()
+
+
+## Rotating armor ring for Mega Boss (phase 1)
+class _ArmorRing extends Node2D:
+	var ring_radius: float = 25.0
+	var _t: float = 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var pulse := 0.7 + 0.3 * sin(_t * 2.5)
+		# Outer thick ring — dark steel gray
+		draw_arc(Vector2.ZERO, ring_radius, 0, TAU, 48, Color(0.55, 0.55, 0.6, pulse), 4.0, true)
+		# Inner highlight ring
+		draw_arc(Vector2.ZERO, ring_radius - 6.0, 0, TAU, 48, Color(0.8, 0.8, 0.85, pulse * 0.5), 1.5, true)
+		# Four corner bolts
+		for i in 4:
+			var angle := _t * 0.4 + i * TAU / 4.0
+			var bp := Vector2(cos(angle), sin(angle)) * ring_radius
+			draw_circle(bp, 3.0, Color(0.9, 0.9, 1.0, pulse))
 
 
 ## Pulsing blue shield ring for Shielded enemy

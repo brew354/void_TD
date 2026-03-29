@@ -15,7 +15,7 @@ const EnemyNode       = preload("res://Nodes/EnemyNode.gd")
 const HUDNode         = preload("res://HUD/HUDNode.gd")
 const GameOverScene   = preload("res://Scenes/GameOverScene.gd")
 const BaseNode        = preload("res://Nodes/BaseNode.gd")
-const WaveDefinition  = preload("res://Models/WaveDefinition.gd")
+const GameMode        = preload("res://Models/GameMode.gd")
 
 # ── Game State ──────────────────────────────────────────────────────────────
 var lives: int = GameConfig.STARTING_LIVES
@@ -69,8 +69,12 @@ var _towers_built: int = 0
 var _upgrades_done: int = 0
 var _credits_spent: int = 0
 
+# ── Game mode ─────────────────────────────────────────────────────────────────
+var _endless: bool = false
+
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	_endless = GameMode.endless
 	_build_layers()
 	_init_systems()
 	_build_grid()
@@ -133,7 +137,7 @@ func _draw_background() -> void:
 func _init_systems() -> void:
 	grid_manager = GridManager.new()
 	tower_manager = TowerManager.new()
-	wave_manager = WaveManager.new(self)
+	wave_manager = WaveManager.new(self, _endless)
 	state_machine = GameStateMachine.new()
 
 	wave_manager.enemy_spawned.connect(_on_enemy_spawned)
@@ -219,12 +223,11 @@ func _refresh_hud() -> void:
 	hud.update_next_wave(_wave_preview_text())
 
 func _wave_preview_text() -> String:
-	var waves = WaveDefinition.all_waves()
-	var next_idx = wave_manager.current_wave_number() - 1
-	if next_idx >= waves.size():
-		return "Next: Endless Wave"
+	var groups = wave_manager.get_next_wave_groups()
+	if groups.is_empty():
+		return "Next: Endless Wave" if wave_manager.is_endless else ""
 	var parts = []
-	for g in waves[next_idx].groups:
+	for g in groups:
 		parts.append("%d %s" % [g.count, EnemyDefinition.stats(g.type)["label"]])
 	return "Next: " + ", ".join(parts)
 
@@ -452,6 +455,8 @@ func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float)
 	enemy.exited.connect(_on_enemy_exited)
 	if enemy.is_boss:
 		enemy.stun_pulse.connect(_on_boss_stun_pulse)
+	if enemy.enemy_type == EnemyDefinition.EnemyType.MEGA_BOSS:
+		enemy.armor_broken.connect(_on_mega_boss_armor_broken)
 	enemies.append(enemy)
 
 func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
@@ -507,6 +512,10 @@ func _on_enemy_died(enemy: EnemyNode) -> void:
 		EnemyDefinition.EnemyType.SHIELDED:
 			_play_noise(0.08, -3.0)
 			_play_sfx(110.0, 0.15, -5.0)
+		EnemyDefinition.EnemyType.MEGA_BOSS:
+			_play_noise(0.20, -1.0)
+			_play_chime([200.0, 140.0, 90.0, 55.0], 0.14)
+			_screen_shake(12.0, 0.7)
 	currency += enemy.reward
 	score += enemy.reward
 	hud.update_credits(currency)
@@ -556,9 +565,8 @@ func _on_wave_complete() -> void:
 	_play_chime([523.0, 659.0, 784.0, 1047.0], 0.12)
 
 	if not wave_manager.has_more_waves():
-		# All 10 waves complete — switch to endless mode
-		wave_manager.enable_endless()
-		_spawn_endless_banner()
+		_trigger_game_over(true)
+		return
 
 	state_machine.transition_to(GameStateMachine.State.WAVE_CLEAR)
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
@@ -677,21 +685,24 @@ func _spawn_streak_label(bonus: int) -> void:
 	tween.tween_property(lbl, "modulate:a", 0.0, 0.5)
 	tween.tween_callback(lbl.queue_free)
 
-func _spawn_endless_banner() -> void:
+func _on_mega_boss_armor_broken() -> void:
+	_screen_shake(10.0, 0.6)
+	_play_chime([180.0, 120.0, 75.0], 0.12)
+	# "ARMOR BROKEN!" flash label
 	var lbl := Label.new()
-	lbl.text = "ENDLESS MODE!"
-	lbl.position = Vector2(507, 330)
-	lbl.size = Vector2(320, 70)
+	lbl.text = "ARMOR BROKEN!"
+	lbl.position = Vector2(507, 310)
+	lbl.size = Vector2(320, 60)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lbl.add_theme_font_size_override("font_size", 48)
-	lbl.add_theme_color_override("font_color", Color(1.0, 0.3, 0.0))
+	lbl.add_theme_font_size_override("font_size", 40)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.4, 0.0))
 	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0))
 	lbl.add_theme_constant_override("outline_size", 4)
 	lbl.z_index = 25
 	hud.add_child(lbl)
 	var tween := create_tween()
-	tween.tween_interval(2.5)
-	tween.tween_property(lbl, "modulate:a", 0.0, 1.0)
+	tween.tween_interval(1.8)
+	tween.tween_property(lbl, "modulate:a", 0.0, 0.6)
 	tween.tween_callback(lbl.queue_free)
 
 ## Left-to-right gradient: black → dark purple

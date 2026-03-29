@@ -139,7 +139,7 @@ func _spawn_projectile(target: EnemyNode) -> void:
 	var proj = ProjectileNode.new()
 	proj.position = position
 	_projectile_layer.add_child(proj)
-	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref)
+	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref, int(tower_type))
 	# Fire flash
 	if _fire_tween:
 		_fire_tween.kill()

@@ -14,12 +14,17 @@ var _active_enemy_count: int = 0
 var _spawning: bool = false
 var _current_wave_scale: float = 1.0
 
-var _endless_mode: bool = false
+var is_endless: bool = false
 var _endless_wave_count: int = 0
 
-func _init(scene: Node) -> void:
+func _init(scene: Node, endless: bool = false) -> void:
 	_scene = scene
-	_waves = WaveDefinition.all_waves()
+	is_endless = endless
+	if endless:
+		_waves = []
+	else:
+		_waves = WaveDefinition.all_waves()
+		_waves.append(WaveDefinition.final_boss_wave())
 
 func current_wave_number() -> int:
 	return _current_wave_index + 1
@@ -28,19 +33,22 @@ func total_waves() -> int:
 	return _waves.size()
 
 func has_more_waves() -> bool:
-	if _endless_mode:
+	if is_endless:
 		return true
 	return _current_wave_index < _waves.size()
 
-func enable_endless() -> void:
-	_endless_mode = true
+## Returns the groups array for the next wave (empty if endless or past end)
+func get_next_wave_groups() -> Array:
+	if is_endless or _current_wave_index >= _waves.size():
+		return []
+	return _waves[_current_wave_index].groups
 
 func start_wave() -> void:
 	if not has_more_waves() or _spawning:
 		return
 	_spawning = true
 	var wave_data
-	if _endless_mode and _current_wave_index >= _waves.size():
+	if is_endless:
 		wave_data = WaveDefinition.generate_endless_wave(_endless_wave_count)
 		_endless_wave_count += 1
 	else:

@@ -1,7 +1,7 @@
 ## EnemyDefinition.gd — Enemy types and stats
 class_name EnemyDefinition
 
-enum EnemyType { SCOUT, TANK, BOSS, SPEEDER, SHIELDED }
+enum EnemyType { SCOUT, TANK, BOSS, SPEEDER, SHIELDED, MEGA_BOSS }
 
 # Returns a dict with: hp, speed (px/s), reward (currency), lives_damage, color
 static func stats(type: EnemyType) -> Dictionary:
@@ -24,4 +24,10 @@ static func stats(type: EnemyType) -> Dictionary:
 			return { "hp": 350, "speed": 75.0, "reward": 70, "lives_damage": 2,
 					 "color": Color(0.4, 0.6, 1.0), "size": Vector2(30, 30), "label": "Shielded",
 					 "shield_interval": 5.0, "shield_duration": 2.0 }
+		EnemyType.MEGA_BOSS:
+			return { "hp": 5000, "speed": 30.0, "reward": 300, "lives_damage": 4,
+					 "color": Color(0.22, 0.22, 0.28), "size": Vector2(70, 70), "label": "Mega Boss",
+					 "is_boss": true,
+					 "stun_range": 250.0, "stun_interval": 4.0, "stun_duration": 2.5,
+					 "armor_threshold": 2500.0 }
 	return {}

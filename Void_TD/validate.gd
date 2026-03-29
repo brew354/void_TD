@@ -77,7 +77,7 @@ func _init() -> void:
 	# --- WaveDefinition ---
 	print("\n[ WaveDefinition ]")
 	var waves = WaveDefinition.all_waves()
-	_assert(waves.size() == 10, "10 waves defined")
+	_assert(waves.size() == 19, "19 scripted waves defined (wave 20 is final_boss_wave)")
 	var w1_count = 0
 	for g in waves[0].groups: w1_count += g.count
 	_assert(w1_count == 6, "Wave 1: 6 enemies")
@@ -95,6 +95,29 @@ func _init() -> void:
 	_assert(waves[9].groups[2].count == 3, "Wave 10 has 3 bosses")
 	_assert(waves[1].difficulty_scale > waves[0].difficulty_scale, "Scale increases each wave")
 	_assert(waves[9].difficulty_scale > waves[4].difficulty_scale, "Wave 10 harder than wave 5")
+	_assert(waves[18].difficulty_scale > waves[9].difficulty_scale, "Wave 19 harder than wave 10")
+	# Final boss wave
+	var fbw = WaveDefinition.final_boss_wave()
+	_assert(fbw.groups[0].type == EnemyDefinition.EnemyType.MEGA_BOSS, "Final boss wave has MEGA_BOSS")
+	_assert(fbw.groups[0].count == 1, "Final boss wave: 1 Mega Boss")
+	_assert(fbw.difficulty_scale == 8.0, "Final boss wave scale = 8.0")
+	# Endless wave scaling
+	var ew0 = WaveDefinition.generate_endless_wave(0)
+	var ew10 = WaveDefinition.generate_endless_wave(10)
+	var ew30 = WaveDefinition.generate_endless_wave(30)
+	_assert(is_equal_approx(ew0.difficulty_scale, 1.0), "Endless wave 0 scale = 1.0")
+	_assert(ew10.difficulty_scale > ew0.difficulty_scale, "Endless wave 10 harder than wave 0")
+	_assert(ew30.difficulty_scale > ew10.difficulty_scale, "Endless wave 30 harder than wave 10")
+	var has_mega_boss_at_30 = false
+	for g in ew30.groups:
+		if g.type == EnemyDefinition.EnemyType.MEGA_BOSS:
+			has_mega_boss_at_30 = true
+	_assert(has_mega_boss_at_30, "Endless wave 30 includes MEGA_BOSS")
+	var has_mega_boss_at_0 = false
+	for g in ew0.groups:
+		if g.type == EnemyDefinition.EnemyType.MEGA_BOSS:
+			has_mega_boss_at_0 = true
+	_assert(not has_mega_boss_at_0, "Endless wave 0 does NOT include MEGA_BOSS")
 
 	# --- GridManager ---
 	print("\n[ GridManager ]")
@@ -178,6 +201,23 @@ func _init() -> void:
 	shielded_e.take_damage(50.0)
 	_assert(shielded_e.current_hp == 300.0, "Shielded takes damage when vulnerable")
 	shielded_e.queue_free()
+
+	var mega = EnemyNode.new()
+	mega.setup(EnemyDefinition.EnemyType.MEGA_BOSS)
+	_assert(mega.max_hp == 5000.0, "Mega Boss hp = 5000")
+	_assert(mega.speed == 30.0, "Mega Boss speed = 30")
+	_assert(mega.reward == 300, "Mega Boss reward = 300")
+	_assert(mega.lives_damage == 4, "Mega Boss lives_damage = 4")
+	_assert(mega._is_armored, "Mega Boss starts armored")
+	_assert(mega._armor_threshold == 2500.0, "Mega Boss armor_threshold = 2500")
+	# Phase 1: damage absorbed at 20%
+	mega.take_damage(1000.0)
+	_assert(is_equal_approx(mega.current_hp, 4800.0), "Mega Boss phase 1: 1000 dmg → only 200 absorbed")
+	# Force armor break by dealing past threshold
+	mega.take_damage(100000.0)
+	_assert(not mega._is_armored, "Mega Boss armor broken after threshold crossed")
+	_assert(mega.speed == 60.0, "Mega Boss phase 2 speed = 60")
+	mega.queue_free()
 
 	# --- TowerNode stun ---
 	print("\n[ TowerNode stun ]")
