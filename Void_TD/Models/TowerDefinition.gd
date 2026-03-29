@@ -8,7 +8,7 @@ static func stats(type: TowerType) -> Dictionary:
 	match type:
 		TowerType.LASER:
 			return { "cost": 50, "damage": 10, "range": 180.0, "fire_rate": 0.3,
-					 "splash_radius": 0.0, "projectile_speed": 600.0, "label": "Photon Lance" }
+					 "splash_radius": 0.0, "projectile_speed": 600.0, "label": "Laser Turret" }
 		TowerType.CANNON:
 			return { "cost": 100, "damage": 40, "range": 150.0, "fire_rate": 1.2,
 					 "splash_radius": 60.0, "projectile_speed": 400.0, "label": "Plasma Cannon" }

@@ -220,7 +220,7 @@ func _build_skin_panel() -> void:
 	var rows_total: float = ROW_H * 4.0
 	var row_start_y: float = HEADER_H + (750.0 - HEADER_H - rows_total) / 2.0
 
-	var tower_labels = ["Photon Lance", "Plasma Cannon", "Void-Seeker", "Titan Mech"]
+	var tower_labels = ["Laser Turret", "Plasma Cannon", "Void-Seeker", "Titan Mech"]
 
 	for ti in 4:
 		var row_y: float = row_start_y + ti * ROW_H
