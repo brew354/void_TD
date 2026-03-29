@@ -12,13 +12,14 @@ signal upgrade_pressed
 signal sell_pressed
 signal upgrade_panel_closed
 
-# Bottom bar layout
-# Row 1 (info/controls): y=706, height=22
-# Row 2 (towers + wave):  y=728, height=22
-const _ROW1_Y: float = 706.0
-const _ROW2_Y: float = 728.0
-const _BTN_H:  float = 22.0
-const _BTN_W:  float = 165.0  # tower button width
+# Top bar:    y=0,   h=36  — info labels only
+# Bottom bar: y=714, h=36  — tower buttons + controls
+const _TOP_H:  float = 36.0
+const _BOT_Y:  float = 714.0
+const _BOT_H:  float = 36.0
+const _BTN_H:  float = 32.0   # button height inside bottom bar
+const _BTN_W:  float = 158.0  # tower button width
+const _BTN_GAP: float = 4.0
 
 var _lives_label: Label
 var _wave_label: Label
@@ -51,69 +52,40 @@ func _ready() -> void:
 	_build_hud()
 
 func _build_hud() -> void:
-	# ── Top bar ───────────────────────────────────────────────────────────────
+	# ── Top bar — info only ───────────────────────────────────────────────────
 	var top_bg = ColorRect.new()
-	top_bg.color = Color(0, 0, 0, 0.6)
-	top_bg.size = Vector2(1334, 40)
+	top_bg.color = Color(0, 0, 0, 0.72)
+	top_bg.size = Vector2(1334, _TOP_H)
 	top_bg.position = Vector2.ZERO
 	add_child(top_bg)
 
-	_lives_label = _make_label("Lives: 5", Vector2(10, 5))
+	_lives_label = _make_label("Lives: 5", Vector2(14, 7))
 	add_child(_lives_label)
 
-	_wave_label = _make_label("Assault: 0/20", Vector2(200, 5))
-	add_child(_wave_label)
-
-	_score_label = _make_label("Score: 0", Vector2(430, 5))
-	add_child(_score_label)
-
-	_speed_btn = _make_button("Speed: 1x", Vector2(650, 4), Vector2(110, 30))
-	_speed_btn.pressed.connect(_on_speed_btn_pressed)
-	add_child(_speed_btn)
-
-	_pause_btn = _make_button("Pause", Vector2(1050, 4), Vector2(84, 30))
-	_pause_btn.pressed.connect(func(): pause_pressed.emit())
-	add_child(_pause_btn)
-
-	# ── Bottom bar (2 rows) ───────────────────────────────────────────────────
-	var bot_bg = ColorRect.new()
-	bot_bg.color = Color(0, 0, 0, 0.7)
-	bot_bg.size = Vector2(1334, 44)
-	bot_bg.position = Vector2(0, _ROW1_Y)
-	add_child(bot_bg)
-
-	# Divider between rows
-	var divider = ColorRect.new()
-	divider.color = Color(0.25, 0.0, 0.4, 0.6)
-	divider.size = Vector2(1334, 1)
-	divider.position = Vector2(0, _ROW2_Y - 1)
-	add_child(divider)
-
-	# ── Row 1: info + controls ────────────────────────────────────────────────
-	_credits_label = _make_small_label("Energy: 300", Vector2(10, _ROW1_Y + 2))
+	_credits_label = _make_label("Energy: 300", Vector2(200, 7))
 	add_child(_credits_label)
 
-	_wave_label = _make_small_label("Assault: 0/20", Vector2(230, _ROW1_Y + 2))
+	_wave_label = _make_label("Assault: 0/20", Vector2(440, 7))
 	add_child(_wave_label)
 
-	_score_label = _make_small_label("Score: 0", Vector2(470, _ROW1_Y + 2))
+	_score_label = _make_label("Score: 0", Vector2(720, 7))
 	add_child(_score_label)
 
-	_speed_btn = _make_button("Speed: 1x", Vector2(660, _ROW1_Y), Vector2(100, _BTN_H))
-	_speed_btn.add_theme_font_size_override("font_size", 12)
-	_speed_btn.pressed.connect(_on_speed_btn_pressed)
-	add_child(_speed_btn)
+	# ── Bottom bar — actions only ─────────────────────────────────────────────
+	var bot_bg = ColorRect.new()
+	bot_bg.color = Color(0, 0, 0, 0.72)
+	bot_bg.size = Vector2(1334, _BOT_H)
+	bot_bg.position = Vector2(0, _BOT_Y)
+	add_child(bot_bg)
 
-	_pause_btn = _make_button("Pause", Vector2(768, _ROW1_Y), Vector2(80, _BTN_H))
-	_pause_btn.add_theme_font_size_override("font_size", 12)
-	_pause_btn.pressed.connect(func(): pause_pressed.emit())
-	add_child(_pause_btn)
+	var btn_y: float = _BOT_Y + (_BOT_H - _BTN_H) / 2.0  # vertically centered in bar
 
-	# ── Row 2: tower buttons + incoming + launch ──────────────────────────────
+	# Tower buttons — left-aligned
 	for i in _TOWER_TYPES.size():
 		var t = _TOWER_TYPES[i]
 		var s = TowerDefinition.stats(t)
-		var btn = _make_button(s["label"], Vector2(10 + i * (_BTN_W + 4), _ROW2_Y), Vector2(_BTN_W, _BTN_H))
+		var bx: float = _BTN_GAP + i * (_BTN_W + _BTN_GAP)
+		var btn = _make_button(s["label"], Vector2(bx, btn_y), Vector2(_BTN_W, _BTN_H))
 		btn.add_theme_font_size_override("font_size", 12)
 		var captured = t
 		btn.pressed.connect(func():
@@ -123,14 +95,30 @@ func _build_hud() -> void:
 		add_child(btn)
 		_tower_btns.append(btn)
 
-	_next_wave_label = _make_small_label("", Vector2(700, _ROW2_Y + 2))
-	_next_wave_label.size = Vector2(340, 20)
-	add_child(_next_wave_label)
-
-	_start_wave_btn = _make_button("REPEL ASSAULT", Vector2(1050, _ROW2_Y), Vector2(178, _BTN_H))
-	_start_wave_btn.add_theme_font_size_override("font_size", 12)
+	# Right-side controls — laid out right-to-left so REPEL is flush with edge
+	# REPEL ASSAULT button
+	_start_wave_btn = _make_button("REPEL ASSAULT", Vector2(1160, btn_y), Vector2(170, _BTN_H))
+	_start_wave_btn.add_theme_font_size_override("font_size", 13)
 	_start_wave_btn.pressed.connect(func(): start_wave_pressed.emit())
 	add_child(_start_wave_btn)
+
+	# Pause button
+	_pause_btn = _make_button("Pause", Vector2(1080, btn_y), Vector2(76, _BTN_H))
+	_pause_btn.add_theme_font_size_override("font_size", 12)
+	_pause_btn.pressed.connect(func(): pause_pressed.emit())
+	add_child(_pause_btn)
+
+	# Speed button
+	_speed_btn = _make_button("Speed: 1x", Vector2(988, btn_y), Vector2(88, _BTN_H))
+	_speed_btn.add_theme_font_size_override("font_size", 12)
+	_speed_btn.pressed.connect(_on_speed_btn_pressed)
+	add_child(_speed_btn)
+
+	# Incoming wave label — fills the gap between tower buttons and right controls
+	var tower_section_end: float = _BTN_GAP + _TOWER_TYPES.size() * (_BTN_W + _BTN_GAP)
+	_next_wave_label = _make_small_label("", Vector2(tower_section_end + 8, _BOT_Y + 9))
+	_next_wave_label.size = Vector2(988 - tower_section_end - 12, 20)
+	add_child(_next_wave_label)
 
 	_build_upgrade_panel()
 
@@ -192,7 +180,7 @@ func show_upgrade_panel(tower_label: String, level: int, dmg: float,
 	var pw: float = _upgrade_panel.size.x
 	var ph: float = _upgrade_panel.size.y
 	var px := clampf(screen_pos.x - pw / 2.0, 4.0, 1330.0 - pw)
-	var py := clampf(screen_pos.y - ph - 44.0, 44.0, _ROW1_Y - ph - 4.0)
+	var py := clampf(screen_pos.y - ph - 44.0, _TOP_H + 4.0, _BOT_Y - ph - 4.0)
 	_upgrade_panel.position = Vector2(px, py)
 	_upgrade_panel.visible = true
 
@@ -213,7 +201,7 @@ func show_base_panel(level: int, reduction: int, up_cost: int,
 	var pw: float = _upgrade_panel.size.x
 	var ph: float = _upgrade_panel.size.y
 	var px := clampf(screen_pos.x - pw / 2.0, 4.0, 1330.0 - pw)
-	var py := clampf(screen_pos.y - ph - 44.0, 44.0, _ROW1_Y - ph - 4.0)
+	var py := clampf(screen_pos.y - ph - 44.0, _TOP_H + 4.0, _BOT_Y - ph - 4.0)
 	_upgrade_panel.position = Vector2(px, py)
 	_upgrade_panel.visible = true
 
@@ -226,15 +214,15 @@ func _make_label(text: String, pos: Vector2) -> Label:
 	lbl.text = text
 	lbl.position = pos
 	lbl.add_theme_color_override("font_color", Color.WHITE)
-	lbl.add_theme_font_size_override("font_size", 18)
+	lbl.add_theme_font_size_override("font_size", 16)
 	return lbl
 
 func _make_small_label(text: String, pos: Vector2) -> Label:
 	var lbl = Label.new()
 	lbl.text = text
 	lbl.position = pos
-	lbl.add_theme_color_override("font_color", Color.WHITE)
-	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.add_theme_color_override("font_color", Color(0.75, 0.75, 0.9))
+	lbl.add_theme_font_size_override("font_size", 13)
 	return lbl
 
 func _make_button(text: String, pos: Vector2, sz: Vector2 = Vector2(120, 28)) -> Button:

@@ -11,16 +11,18 @@ const STARTING_LIVES: int = 5
 const STARTING_CREDITS: int = 300
 const WAVE_COMPLETE_BONUS: int = 75
 
-# Path waypoints in scene coordinates
+# Path waypoints in scene coordinates — centered on path tiles
+# Tile center formula: (col*64+32, GRID_ORIGIN.y + row*64+32) = (col*64+32, row*64+78)
+# Horizontal segments use row center y; vertical segments use col center x
 const PATH_WAYPOINTS: Array = [
-	Vector2(32,   384),
-	Vector2(256,  384),
-	Vector2(256,  576),
-	Vector2(640,  576),
-	Vector2(640,  192),
-	Vector2(1024, 192),
-	Vector2(1024, 576),
-	Vector2(1302, 576),
+	Vector2(32,   398),   # col 0,  row 5
+	Vector2(288,  398),   # col 4,  row 5
+	Vector2(288,  590),   # col 4,  row 8
+	Vector2(672,  590),   # col 10, row 8
+	Vector2(672,  206),   # col 10, row 2
+	Vector2(1056, 206),   # col 16, row 2
+	Vector2(1056, 590),   # col 16, row 8
+	Vector2(1302, 590),   # exit,   row 8
 ]
 
 # Grid origin (top-left corner of tile [0,0])
