@@ -40,6 +40,7 @@ const _BASE_PATHS = {
 	1: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon.png",
 	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/missile_launcher_base.png",
 	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/autocannon/autocannon2.png",
+	4: "res://Assets/towers/kenney_sci-fi-rts/PNG/Default size/Environment/scifiEnvironment_13.png",
 }
 const _BARREL_PATHS = {
 	0: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_barrel.png",
@@ -48,7 +49,7 @@ const _BARREL_PATHS = {
 	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/mecha_soldier_base.png",
 }
 # Uniform scale applied to both base and barrel to reach ~48 px display size
-const _BASE_SCALE   = {0: 1.5,  1: 1.5, 2: 0.75, 3: 1.5}
+const _BASE_SCALE   = {0: 1.5,  1: 1.5, 2: 0.75, 3: 1.5, 4: 1.5}
 const _BARREL_SCALE = {0: 0.8,  1: 1.5, 2: 2.0,  3: 0.85}
 # Barrel offset.y (local, pre-scale) so the barrel's bottom aligns with the node origin
 const _BARREL_OFFSET_Y = {0: -16.0, 1: -16.0, 2: -8.0, 3: 0.0}
@@ -70,7 +71,9 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 
 	var ti: int = int(type)
 	# Color.WHITE = show natural sprite; any override = tint the sprite that color
-	_normal_modulate = TowerSkins.overrides.get(ti, Color.WHITE)
+	# Freeze Tower defaults to ice blue unless a skin override is set
+	var freeze_default := Color(0.35, 0.78, 1.0) if type == TowerDefinition.TowerType.FREEZE else Color.WHITE
+	_normal_modulate = TowerSkins.overrides.get(ti, freeze_default)
 
 	# Base sprite (stationary)
 	_base_sprite = Sprite2D.new()
@@ -80,14 +83,15 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_base_sprite.modulate = _normal_modulate
 	add_child(_base_sprite)
 
-	# Barrel sprite (rotates to face target; offset so bottom is at node origin)
+	# Barrel sprite (rotates to face target) — Freeze Tower has no barrel
 	_barrel_sprite = Sprite2D.new()
-	_barrel_sprite.texture = load(_BARREL_PATHS[ti])
-	_barrel_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_barrel_sprite.scale = Vector2(_BARREL_SCALE[ti], _BARREL_SCALE[ti])
-	_barrel_sprite.offset = Vector2(0.0, _BARREL_OFFSET_Y[ti])
-	_barrel_sprite.modulate = _normal_modulate
-	add_child(_barrel_sprite)
+	if type != TowerDefinition.TowerType.FREEZE:
+		_barrel_sprite.texture = load(_BARREL_PATHS[ti])
+		_barrel_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_barrel_sprite.scale = Vector2(_BARREL_SCALE[ti], _BARREL_SCALE[ti])
+		_barrel_sprite.offset = Vector2(0.0, _BARREL_OFFSET_Y[ti])
+		_barrel_sprite.modulate = _normal_modulate
+		add_child(_barrel_sprite)
 
 	# Transparent ColorRect for hover detection (Control nodes have mouse signals)
 	_mouse_rect = ColorRect.new()
@@ -95,8 +99,9 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_mouse_rect.size = Vector2(48, 48)
 	_mouse_rect.position = Vector2(-24, -24)
 	_mouse_rect.mouse_filter = Control.MOUSE_FILTER_PASS
-	_mouse_rect.mouse_entered.connect(func(): _range_ring.visible = true)
-	_mouse_rect.mouse_exited.connect(func(): _range_ring.visible = false)
+	if type != TowerDefinition.TowerType.FREEZE:
+		_mouse_rect.mouse_entered.connect(func(): _range_ring.visible = true)
+		_mouse_rect.mouse_exited.connect(func(): _range_ring.visible = false)
 	add_child(_mouse_rect)
 
 	# Ducky skin accents for Mecha Soldier — face features on the rotating robot body
@@ -122,12 +127,13 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 		bill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_barrel_sprite.add_child(bill)
 
-	# Range ring — visible on hover only
+	# Range ring — always visible for Freeze Tower, hover-only for others
 	_range_ring = Node2D.new()
-	_range_ring.visible = false
+	_range_ring.visible = (type == TowerDefinition.TowerType.FREEZE)
 	add_child(_range_ring)
 	var ring = _RangeRing.new()
 	ring.radius = range_radius
+	ring.is_freeze = (type == TowerDefinition.TowerType.FREEZE)
 	_range_ring.add_child(ring)
 
 	# Level label (bottom-right, hidden at L1)
@@ -177,8 +183,9 @@ func apply_stun(duration: float) -> void:
 		_fire_tween.kill()
 	_stun_timer = max(_stun_timer, duration)
 	var stun_col := Color(0.4, 0.4, 0.5)
-	_base_sprite.modulate   = stun_col
-	_barrel_sprite.modulate = stun_col
+	_base_sprite.modulate = stun_col
+	if tower_type != TowerDefinition.TowerType.FREEZE:
+		_barrel_sprite.modulate = stun_col
 
 func update_tower(delta: float, enemies: Array) -> void:
 	_enemies_ref = enemies
@@ -186,8 +193,17 @@ func update_tower(delta: float, enemies: Array) -> void:
 		_stun_timer -= delta
 		if _stun_timer <= 0.0:
 			_stun_timer = 0.0
-			_base_sprite.modulate   = _normal_modulate
-			_barrel_sprite.modulate = _normal_modulate
+			_base_sprite.modulate = _normal_modulate
+			if tower_type != TowerDefinition.TowerType.FREEZE:
+				_barrel_sprite.modulate = _normal_modulate
+		return
+
+	# Freeze Tower: area pulse instead of targeted projectile
+	if tower_type == TowerDefinition.TowerType.FREEZE:
+		_fire_cooldown -= delta
+		if _fire_cooldown <= 0.0:
+			_fire_cooldown = fire_rate
+			_do_freeze_pulse()
 		return
 
 	var target = _pick_target()
@@ -202,6 +218,28 @@ func update_tower(delta: float, enemies: Array) -> void:
 
 	_fire_cooldown = fire_rate
 	_spawn_projectile(target)
+
+func _do_freeze_pulse() -> void:
+	var s = TowerDefinition.stats(tower_type)
+	var slow_f: float = float(s.get("slow_factor", 0.40))
+	var slow_d: float = float(s.get("slow_duration", 2.0))
+	for e in _enemies_ref:
+		if is_instance_valid(e) and not e.is_dead:
+			if position.distance_to(e.position) <= range_radius:
+				e.apply_slow(slow_f, slow_d)
+	# Spawn expanding ice pulse ring at tower position in parent layer
+	if get_parent() != null:
+		var pulse = _FreezePulseRing.new()
+		pulse.radius = range_radius
+		pulse.position = position
+		get_parent().add_child(pulse)
+	# Brief white flash on the tower body
+	_base_sprite.modulate = Color(0.85, 0.97, 1.0)
+	if _fire_tween:
+		_fire_tween.kill()
+	_fire_tween = create_tween()
+	_fire_tween.tween_property(_base_sprite, "modulate", _normal_modulate, 0.3)
+	fired.emit(tower_type)
 
 func _pick_target() -> EnemyNode:
 	var best: EnemyNode = null
@@ -221,7 +259,10 @@ func _spawn_projectile(target: EnemyNode) -> void:
 	var proj = ProjectileNode.new()
 	proj.position = position
 	_projectile_layer.add_child(proj)
-	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref, int(tower_type))
+	var s = TowerDefinition.stats(tower_type)
+	var slow_f: float = float(s.get("slow_factor", 1.0))
+	var slow_d: float = float(s.get("slow_duration", 0.0))
+	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref, int(tower_type), slow_f, slow_d)
 	# Fire flash — briefly brighten then fade back
 	if _fire_tween:
 		_fire_tween.kill()
@@ -238,6 +279,32 @@ func _spawn_projectile(target: EnemyNode) -> void:
 ## Inner helper class for drawing the range ring
 class _RangeRing extends Node2D:
 	var radius: float = 100.0
+	var is_freeze: bool = false
 
 	func _draw() -> void:
-		draw_arc(Vector2.ZERO, radius, 0, TAU, 64, Color(1, 1, 1, 0.15), 1.0)
+		if is_freeze:
+			# Dashed ice blue ring for freeze area
+			draw_arc(Vector2.ZERO, radius, 0, TAU, 64, Color(0.35, 0.78, 1.0, 0.30), 1.5)
+			draw_arc(Vector2.ZERO, radius - 2.0, 0, TAU, 64, Color(0.7, 0.92, 1.0, 0.12), 1.0)
+		else:
+			draw_arc(Vector2.ZERO, radius, 0, TAU, 64, Color(1, 1, 1, 0.15), 1.0)
+
+## Expanding ice pulse ring spawned at pulse time
+class _FreezePulseRing extends Node2D:
+	var radius: float = 100.0
+	var _t: float = 0.0
+	const DURATION: float = 0.6
+
+	func _process(delta: float) -> void:
+		_t += delta
+		if _t >= DURATION:
+			queue_free()
+			return
+		queue_redraw()
+
+	func _draw() -> void:
+		var progress := _t / DURATION
+		var alpha := (1.0 - progress) * 0.7
+		var r := radius * (0.15 + progress * 0.85)
+		draw_arc(Vector2.ZERO, r, 0, TAU, 64, Color(0.4, 0.85, 1.0, alpha), 3.0)
+		draw_arc(Vector2.ZERO, r * 0.75, 0, TAU, 48, Color(0.8, 0.96, 1.0, alpha * 0.5), 1.5)

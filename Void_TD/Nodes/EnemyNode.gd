@@ -33,6 +33,10 @@ var _shield_interval_val: float = 0.0
 var _shield_duration_val: float = 0.0
 var _shield_ring_node: Node2D = null
 
+# Slow (applied by Freeze Tower)
+var _slow_factor: float = 1.0   # 1.0 = full speed; 0.45 = heavily slowed
+var _slow_timer: float = 0.0
+
 # Armor phases (Mega Boss)
 var _is_armored: bool = false
 var _armor_threshold: float = 0.0
@@ -150,10 +154,18 @@ func _process(delta: float) -> void:
 		_on_exit()
 		return
 
+	# Tick slow timer
+	if _slow_timer > 0.0:
+		_slow_timer -= delta
+		if _slow_timer <= 0.0:
+			_slow_timer = 0.0
+			_slow_factor = 1.0
+			_sprite.modulate = Color.WHITE
+
 	var target = _waypoints[_current_waypoint]
 	var dir = (target - position).normalized()
 	var dist_to_target = position.distance_to(target)
-	var move_dist = speed * delta
+	var move_dist = speed * _slow_factor * delta
 
 	# Rotate sprite to face movement direction (sprites point up by default)
 	_sprite.rotation = dir.angle() + PI / 2.0
@@ -183,6 +195,15 @@ func _process(delta: float) -> void:
 			_shield_phase_timer = _shield_duration_val if _is_shielded else _shield_interval_val
 			if _shield_ring_node != null:
 				_shield_ring_node.visible = _is_shielded
+
+func apply_slow(factor: float, duration: float) -> void:
+	if is_dead:
+		return
+	# Stack to strongest slow, longest duration
+	_slow_factor = min(_slow_factor, factor)
+	_slow_timer  = max(_slow_timer, duration)
+	# Ice blue tint while slowed
+	_sprite.modulate = Color(0.55, 0.85, 1.0)
 
 func take_damage(amount: float) -> void:
 	if is_dead:

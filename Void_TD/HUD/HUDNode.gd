@@ -47,6 +47,7 @@ const _TOWER_TYPES: Array = [
 	TowerDefinition.TowerType.CANNON,
 	TowerDefinition.TowerType.MISSILE,
 	TowerDefinition.TowerType.MECHA_SOLDIER,
+	TowerDefinition.TowerType.FREEZE,
 ]
 
 func _ready() -> void:

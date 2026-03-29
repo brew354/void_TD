@@ -16,18 +16,21 @@ Enemies spawn in randomized order and with variable spacing each wave, so no two
 | Plasma Cannon | $100 | 40 | 150 | 6 | AoE splash damage |
 | Void-Seeker | $150 | 80 | 300 | 4 | Longest range, single target |
 | Mecha Soldier | $300 | 150 | 220 | 4 | Heavy AoE, most powerful |
+| Freeze Tower | $125 | — | 160 | 5 | Pulses every 7s, slowing all enemies in range to 40% speed for 2s |
 
 **Maximum 30 towers total** on the field at once. The HUD shows your current count.
+
+The **Freeze Tower** is a static crystal structure — no rotating barrel. Its range is always shown on the map. Upgrades increase its pulse area.
 
 ### Upgrades
 
 Double-click a placed tower to open the upgrade panel. Towers can be upgraded to level 3.
 
-| Level | Damage | Range | Cost (Laser / Cannon / Missile / Mecha) |
-|-------|--------|-------|------------------------------------------|
+| Level | Damage | Range | Cost (Laser / Cannon / Missile / Mecha / Freeze) |
+|-------|--------|-------|--------------------------------------------------|
 | L1 | 1.0× | 1.0× | — |
-| L2 | 1.6× | 1.3× | $50 / $100 / $150 / $300 |
-| L3 | 2.5× | 1.6× | $100 / $200 / $300 / $600 |
+| L2 | 1.6× | 1.3× | $50 / $100 / $150 / $300 / $125 |
+| L3 | 2.5× | 1.6× | $100 / $200 / $300 / $600 / $250 |
 
 Selling a tower refunds **50% of total invested** (base cost + all upgrades paid).
 

@@ -14,16 +14,21 @@ var hit_radius: float = 20.0
 
 var _enemies_ref: Array  # Reference to GameScene's enemies array for splash
 var _tower_type: int = 0  # int of TowerDefinition.TowerType
+var _slow_factor: float = 1.0
+var _slow_duration: float = 0.0
 
 var _visual: _ProjectileVisual
 
-func setup(t: EnemyNode, dmg: float, spd: float, splash: float, enemies: Array, ttype: int = 0) -> void:
+func setup(t: EnemyNode, dmg: float, spd: float, splash: float, enemies: Array, ttype: int = 0,
+		slow_factor: float = 1.0, slow_duration: float = 0.0) -> void:
 	target = t
 	damage = dmg
 	projectile_speed = spd
 	splash_radius = splash
 	_enemies_ref = enemies
 	_tower_type = ttype
+	_slow_factor = slow_factor
+	_slow_duration = slow_duration
 
 	_visual = _ProjectileVisual.new()
 	_visual.tower_type = ttype
@@ -51,9 +56,13 @@ func _on_hit() -> void:
 			if is_instance_valid(enemy) and not enemy.is_dead:
 				if position.distance_to(enemy.position) <= splash_radius:
 					enemy.take_damage(damage)
+					if _slow_duration > 0.0:
+						enemy.apply_slow(_slow_factor, _slow_duration)
 	else:
 		if is_instance_valid(target) and not target.is_dead:
 			target.take_damage(damage)
+			if _slow_duration > 0.0:
+				target.apply_slow(_slow_factor, _slow_duration)
 
 	hit_target.emit()
 	queue_free()
@@ -62,8 +71,7 @@ func _spawn_splash_ring() -> void:
 	var ring = _SplashRing.new()
 	ring.radius = splash_radius
 	ring.position = position
-	# Mecha uses red splash, Cannon uses orange
-	ring.is_mecha = (_tower_type == 3)
+	ring.tower_type = _tower_type  # 1=Cannon, 3=Mecha, 4=Freeze
 	if get_parent() != null:
 		get_parent().add_child(ring)
 
@@ -136,7 +144,7 @@ class _ProjectileVisual extends Node2D:
 ## Expanding AoE impact ring
 class _SplashRing extends Node2D:
 	var radius: float = 60.0
-	var is_mecha: bool = false
+	var tower_type: int = 1  # 1=Cannon, 3=Mecha, 4=Freeze
 	var _t: float = 0.0
 	const DURATION: float = 0.35
 
@@ -151,9 +159,13 @@ class _SplashRing extends Node2D:
 		var progress := _t / DURATION
 		var alpha := (1.0 - progress) * 0.75
 		var r := radius * (0.4 + progress * 0.6)
-		if is_mecha:
+		if tower_type == 3:  # Mecha — red
 			draw_arc(Vector2.ZERO, r, 0, TAU, 32, Color(1.0, 0.15, 0.0, alpha), 3.0)
 			draw_arc(Vector2.ZERO, r * 0.7, 0, TAU, 32, Color(1.0, 0.5, 0.2, alpha * 0.5), 1.5)
-		else:
+		elif tower_type == 4:  # Freeze — ice blue, slower expand
+			var rf := radius * (0.3 + progress * 0.7)
+			draw_arc(Vector2.ZERO, rf, 0, TAU, 32, Color(0.4, 0.85, 1.0, alpha), 3.0)
+			draw_arc(Vector2.ZERO, rf * 0.65, 0, TAU, 32, Color(0.8, 0.96, 1.0, alpha * 0.6), 1.5)
+		else:  # Cannon — orange
 			draw_arc(Vector2.ZERO, r, 0, TAU, 32, Color(1.0, 0.55, 0.1, alpha), 3.0)
 			draw_arc(Vector2.ZERO, r * 0.7, 0, TAU, 32, Color(1.0, 0.8, 0.2, alpha * 0.5), 1.5)
