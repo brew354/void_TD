@@ -64,6 +64,29 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_body.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(_body)
 
+	# Ducky skin accents — eyes and beak as children of _body so they rotate with it
+	if type == TowerDefinition.TowerType.MECHA_SOLDIER and body_color == TowerSkins.DUCKY_COLOR:
+		var eye_l = ColorRect.new()
+		eye_l.color = Color(0.05, 0.05, 0.05)
+		eye_l.size = Vector2(5, 5)
+		eye_l.position = Vector2(8, 9)
+		eye_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(eye_l)
+
+		var eye_r = ColorRect.new()
+		eye_r.color = Color(0.05, 0.05, 0.05)
+		eye_r.size = Vector2(5, 5)
+		eye_r.position = Vector2(24, 9)
+		eye_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(eye_r)
+
+		var beak = ColorRect.new()
+		beak.color = Color(1.0, 0.45, 0.0)
+		beak.size = Vector2(8, 6)
+		beak.position = Vector2(33, 17)
+		beak.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(beak)
+
 	# Range ring — visible on hover only
 	_range_ring = Node2D.new()
 	_range_ring.visible = false

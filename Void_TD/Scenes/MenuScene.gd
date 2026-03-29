@@ -33,6 +33,7 @@ var _time: float = 0.0
 var _skin_panel: Node2D = null
 var _skin_previews: Array = []        # Array[ColorRect]  one per tower row
 var _swatch_borders: Array = []       # Array[Array[ColorRect]]  [tower][palette]
+var _ducky_border: ColorRect = null   # selection border for the Ducky button
 
 func _ready() -> void:
 	TowerSkins.load_from_disk()
@@ -265,6 +266,33 @@ func _build_skin_panel() -> void:
 
 		_swatch_borders.append(row_borders)
 
+		# Titan Mech (ti == 3) gets an extra Ducky special skin button
+		if ti == 3:
+			var duck_x: float = px + PW - 158.0
+
+			# Ducky selection border
+			_ducky_border = ColorRect.new()
+			_ducky_border.color = Color(1.0, 1.0, 0.3)
+			_ducky_border.size = Vector2(68, 38)
+			_ducky_border.position = Vector2(duck_x - 1, row_y + 3)
+			_ducky_border.visible = (TowerSkins.overrides.get(3, Color(-1,-1,-1)) == TowerSkins.DUCKY_COLOR)
+			_skin_panel.add_child(_ducky_border)
+
+			var duck_btn = Button.new()
+			duck_btn.text = "Ducky"
+			duck_btn.size = Vector2(66, 36)
+			duck_btn.position = Vector2(duck_x, row_y + 4)
+			duck_btn.add_theme_font_size_override("font_size", 13)
+			var duck_flat = StyleBoxFlat.new()
+			duck_flat.bg_color = TowerSkins.DUCKY_COLOR
+			duck_btn.add_theme_stylebox_override("normal",  duck_flat)
+			duck_btn.add_theme_stylebox_override("hover",   duck_flat)
+			duck_btn.add_theme_stylebox_override("pressed", duck_flat)
+			duck_btn.add_theme_stylebox_override("focus",   duck_flat)
+			duck_btn.add_theme_color_override("font_color", Color(0.1, 0.1, 0.1))
+			duck_btn.pressed.connect(_on_ducky_pressed)
+			_skin_panel.add_child(duck_btn)
+
 		# Reset / Default button
 		var reset_btn = Button.new()
 		reset_btn.text = "Default"
@@ -278,17 +306,27 @@ func _build_skin_panel() -> void:
 func _on_swatch_pressed(tower_idx: int, color_idx: int) -> void:
 	var color: Color = _PALETTE[color_idx]
 	TowerSkins.set_color(tower_idx, color)
-	# Update preview
 	_skin_previews[tower_idx].color = color
-	# Update border indicators for this row
 	for ci in _swatch_borders[tower_idx].size():
 		_swatch_borders[tower_idx][ci].visible = (ci == color_idx)
+	if tower_idx == 3 and _ducky_border != null:
+		_ducky_border.visible = false
+
+func _on_ducky_pressed() -> void:
+	TowerSkins.set_color(3, TowerSkins.DUCKY_COLOR)
+	_skin_previews[3].color = TowerSkins.DUCKY_COLOR
+	for border in _swatch_borders[3]:
+		border.visible = false
+	if _ducky_border != null:
+		_ducky_border.visible = true
 
 func _on_reset_skin(tower_idx: int) -> void:
 	TowerSkins.reset_color(tower_idx)
 	_skin_previews[tower_idx].color = _DEFAULT_COLORS[tower_idx]
 	for border in _swatch_borders[tower_idx]:
 		border.visible = false
+	if tower_idx == 3 and _ducky_border != null:
+		_ducky_border.visible = false
 
 func _on_skins_btn() -> void:
 	_skin_panel.visible = true

@@ -1,6 +1,9 @@
 ## TowerSkins.gd — Persisted tower color overrides
 class_name TowerSkins
 
+# Special named skins
+const DUCKY_COLOR: Color = Color(1.0, 0.88, 0.0)  # Rubber duck yellow
+
 # Maps TowerType int → Color override.  Missing key = use default color.
 static var overrides: Dictionary = {}
 
