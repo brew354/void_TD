@@ -442,9 +442,11 @@ func _on_hud_pause() -> void:
 	if state_machine.current == GameStateMachine.State.PAUSED:
 		state_machine.resume_from_pause()
 		get_tree().paused = false
+		hud.set_paused(false)
 	else:
 		state_machine.transition_to(GameStateMachine.State.PAUSED)
 		get_tree().paused = true
+		hud.set_paused(true)
 
 # ── Enemy Spawning ────────────────────────────────────────────────────────────
 func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float) -> void:

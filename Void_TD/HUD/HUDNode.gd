@@ -285,6 +285,9 @@ func flash_damage() -> void:
 	var tween = create_tween()
 	tween.tween_property(_damage_flash, "color:a", 0.0, 0.45)
 
+func set_paused(paused: bool) -> void:
+	_pause_btn.text = "Resume" if paused else "Pause"
+
 func set_start_wave_enabled(enabled: bool) -> void:
 	_start_wave_btn.disabled = not enabled
 
