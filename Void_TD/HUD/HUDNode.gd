@@ -54,8 +54,8 @@ func _build_hud() -> void:
 	_lives_label = _make_label("Lives: 20", Vector2(10, 5))
 	add_child(_lives_label)
 
-	# Top: Wave
-	_wave_label = _make_label("Wave: 0/3", Vector2(200, 5))
+	# Top: Assault (wave)
+	_wave_label = _make_label("Assault: 0/3", Vector2(200, 5))
 	add_child(_wave_label)
 
 	# Top: Score
@@ -72,8 +72,8 @@ func _build_hud() -> void:
 	_pause_btn.pressed.connect(func(): pause_pressed.emit())
 	add_child(_pause_btn)
 
-	# Bottom: Credits
-	_credits_label = _make_label("Credits: 150", Vector2(10, 715))
+	# Bottom: Energy
+	_credits_label = _make_label("Energy: 150", Vector2(10, 715))
 	add_child(_credits_label)
 
 	# Bottom: Tower buttons
@@ -97,8 +97,8 @@ func _build_hud() -> void:
 	_next_wave_label = _make_label("", Vector2(800, 715))
 	add_child(_next_wave_label)
 
-	# Bottom: Start Wave button
-	_start_wave_btn = _make_button("START WAVE", Vector2(1170, 713), Vector2(150, 28))
+	# Bottom: Launch Defense button
+	_start_wave_btn = _make_button("REPEL ASSAULT", Vector2(1150, 713), Vector2(170, 28))
 	_start_wave_btn.pressed.connect(func(): start_wave_pressed.emit())
 	add_child(_start_wave_btn)
 
@@ -230,16 +230,16 @@ func update_lives(lives: int) -> void:
 
 func update_wave(current: int, total: int) -> void:
 	if current > total:
-		_wave_label.text = "Wave: %d (∞)" % current
+		_wave_label.text = "Assault: %d (∞)" % current
 	else:
-		_wave_label.text = "Wave: %d/%d" % [current, total]
+		_wave_label.text = "Assault: %d/%d" % [current, total]
 
 func update_score(score: int) -> void:
 	_score_label.text = "Score: %d" % score
 
 func update_credits(credits: int) -> void:
 	_last_credits = credits
-	_credits_label.text = "Credits: %d" % credits
+	_credits_label.text = "Energy: %d" % credits
 	_refresh_tower_buttons()
 
 func update_tower_limits(counts: Dictionary) -> void:

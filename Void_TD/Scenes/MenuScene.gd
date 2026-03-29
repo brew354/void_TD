@@ -39,20 +39,31 @@ func _ready() -> void:
 	add_child(_title)
 
 	var sub = Label.new()
-	sub.text = "Void Tower Defense Game"
-	sub.position = Vector2(0, 290)
-	sub.size = Vector2(1334, 40)
+	sub.text = "The last human base. The last hope for the universe."
+	sub.position = Vector2(0, 286)
+	sub.size = Vector2(1334, 36)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.add_theme_font_size_override("font_size", 24)
+	sub.add_theme_font_size_override("font_size", 22)
 	sub.add_theme_color_override("font_color", Color(0.75, 0.4, 1.0))
 	sub.modulate.a = 0.0
 	add_child(sub)
+
+	# Lore blurb
+	var lore = Label.new()
+	lore.text = "The Void stirs on its home planet.\nIts forces march on the last human stronghold.\nDefeat it — or the universe falls."
+	lore.position = Vector2(0, 320)
+	lore.size = Vector2(1334, 72)
+	lore.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lore.add_theme_font_size_override("font_size", 16)
+	lore.add_theme_color_override("font_color", Color(0.55, 0.45, 0.7))
+	lore.modulate.a = 0.0
+	add_child(lore)
 
 	# Campaign button
 	var btn_campaign = Button.new()
 	btn_campaign.text = "CAMPAIGN"
 	btn_campaign.size = Vector2(240, 60)
-	btn_campaign.position = Vector2(1334 / 2.0 - 260, 400)
+	btn_campaign.position = Vector2(1334 / 2.0 - 260, 420)
 	btn_campaign.add_theme_font_size_override("font_size", 26)
 	btn_campaign.modulate.a = 0.0
 	btn_campaign.pressed.connect(_on_start_campaign)
@@ -62,7 +73,7 @@ func _ready() -> void:
 	var btn_endless = Button.new()
 	btn_endless.text = "ENDLESS"
 	btn_endless.size = Vector2(240, 60)
-	btn_endless.position = Vector2(1334 / 2.0 + 20, 400)
+	btn_endless.position = Vector2(1334 / 2.0 + 20, 420)
 	btn_endless.add_theme_font_size_override("font_size", 26)
 	btn_endless.modulate.a = 0.0
 	btn_endless.pressed.connect(_on_start_endless)
@@ -70,8 +81,8 @@ func _ready() -> void:
 
 	# Mode descriptions
 	var lbl_c = Label.new()
-	lbl_c.text = "20 waves · Final Boss"
-	lbl_c.position = Vector2(1334 / 2.0 - 280, 468)
+	lbl_c.text = "20 Assaults · Defeat The Void"
+	lbl_c.position = Vector2(1334 / 2.0 - 280, 488)
 	lbl_c.size = Vector2(280, 28)
 	lbl_c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl_c.add_theme_font_size_override("font_size", 15)
@@ -80,8 +91,8 @@ func _ready() -> void:
 	add_child(lbl_c)
 
 	var lbl_e = Label.new()
-	lbl_e.text = "Score-chase · No end"
-	lbl_e.position = Vector2(1334 / 2.0, 468)
+	lbl_e.text = "Survive as long as possible"
+	lbl_e.position = Vector2(1334 / 2.0, 488)
 	lbl_e.size = Vector2(280, 28)
 	lbl_e.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	lbl_e.add_theme_font_size_override("font_size", 15)
@@ -97,22 +108,23 @@ func _ready() -> void:
 	var tween = create_tween().set_parallel(true)
 	tween.tween_property(_title,       "modulate:a", 1.0, 1.2)
 	tween.tween_property(sub,          "modulate:a", 1.0, 0.8).set_delay(0.9)
-	tween.tween_property(btn_campaign, "modulate:a", 1.0, 0.8).set_delay(1.5)
-	tween.tween_property(btn_endless,  "modulate:a", 1.0, 0.8).set_delay(1.5)
-	tween.tween_property(lbl_c,        "modulate:a", 1.0, 0.8).set_delay(1.7)
-	tween.tween_property(lbl_e,        "modulate:a", 1.0, 0.8).set_delay(1.7)
+	tween.tween_property(lore,         "modulate:a", 1.0, 0.8).set_delay(1.1)
+	tween.tween_property(btn_campaign, "modulate:a", 1.0, 0.8).set_delay(1.6)
+	tween.tween_property(btn_endless,  "modulate:a", 1.0, 0.8).set_delay(1.6)
+	tween.tween_property(lbl_c,        "modulate:a", 1.0, 0.8).set_delay(1.8)
+	tween.tween_property(lbl_e,        "modulate:a", 1.0, 0.8).set_delay(1.8)
 
 	if hs > 0:
 		var hs_lbl = Label.new()
 		hs_lbl.text = "Best Score: %d" % hs
-		hs_lbl.position = Vector2(0, 520)
+		hs_lbl.position = Vector2(0, 540)
 		hs_lbl.size = Vector2(1334, 36)
 		hs_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hs_lbl.add_theme_font_size_override("font_size", 22)
 		hs_lbl.add_theme_color_override("font_color", Color(0.7, 0.5, 1.0))
 		hs_lbl.modulate.a = 0.0
 		add_child(hs_lbl)
-		tween.tween_property(hs_lbl, "modulate:a", 1.0, 0.8).set_delay(1.9)
+		tween.tween_property(hs_lbl, "modulate:a", 1.0, 0.8).set_delay(2.0)
 
 func _process(delta: float) -> void:
 	_time += delta

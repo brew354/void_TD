@@ -20,21 +20,35 @@ func _ready() -> void:
 	# ── Title ─────────────────────────────────────────────────────────────────
 	var title = Label.new()
 	if won:
-		title.text = "VICTORY!"
+		title.text = "THE VOID IS DEFEATED"
 		title.add_theme_color_override("font_color", Color(0.0, 1.0, 0.4))
 	else:
-		title.text = "GAME OVER"
+		title.text = "THE BASE HAS FALLEN"
 		title.add_theme_color_override("font_color", Color(1.0, 0.2, 0.2))
-	title.position = Vector2(0, 160)
+	title.position = Vector2(0, 130)
 	title.size = Vector2(1334, 100)
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 72)
+	title.add_theme_font_size_override("font_size", 60)
 	add_child(title)
+
+	# ── Subtitle ──────────────────────────────────────────────────────────────
+	var subtitle = Label.new()
+	if won:
+		subtitle.text = "Humanity survives. The universe endures."
+		subtitle.add_theme_color_override("font_color", Color(0.5, 1.0, 0.65))
+	else:
+		subtitle.text = "The Void consumes all."
+		subtitle.add_theme_color_override("font_color", Color(0.9, 0.45, 0.45))
+	subtitle.position = Vector2(0, 218)
+	subtitle.size = Vector2(1334, 36)
+	subtitle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	subtitle.add_theme_font_size_override("font_size", 22)
+	add_child(subtitle)
 
 	# ── Score ─────────────────────────────────────────────────────────────────
 	var score_lbl = Label.new()
 	score_lbl.text = "Score: %d" % final_score
-	score_lbl.position = Vector2(0, 270)
+	score_lbl.position = Vector2(0, 278)
 	score_lbl.size = Vector2(1334, 50)
 	score_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	score_lbl.add_theme_font_size_override("font_size", 36)
@@ -51,7 +65,7 @@ func _ready() -> void:
 		cfg.save(SAVE_PATH)
 		var new_hs_lbl = Label.new()
 		new_hs_lbl.text = "NEW HIGH SCORE!"
-		new_hs_lbl.position = Vector2(0, 315)
+		new_hs_lbl.position = Vector2(0, 322)
 		new_hs_lbl.size = Vector2(1334, 36)
 		new_hs_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		new_hs_lbl.add_theme_font_size_override("font_size", 24)
@@ -60,7 +74,7 @@ func _ready() -> void:
 	else:
 		var hs_lbl = Label.new()
 		hs_lbl.text = "Best: %d" % old_high
-		hs_lbl.position = Vector2(0, 315)
+		hs_lbl.position = Vector2(0, 322)
 		hs_lbl.size = Vector2(1334, 36)
 		hs_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hs_lbl.add_theme_font_size_override("font_size", 22)
@@ -69,10 +83,10 @@ func _ready() -> void:
 
 	# ── Stats Grid ────────────────────────────────────────────────────────────
 	var stats = [
-		["Enemies Killed", str(kills)],
-		["Towers Built",   str(towers_built)],
-		["Upgrades",       str(upgrades_done)],
-		["Credits Spent",  "$%d" % credits_spent],
+		["Void Entities Slain", str(kills)],
+		["Defenses Built",      str(towers_built)],
+		["Upgrades",            str(upgrades_done)],
+		["Energy Spent",        "%d ⚡" % credits_spent],
 	]
 	var col_w: float = 240.0
 	var start_x: float = (1334.0 - col_w * stats.size()) / 2.0
@@ -80,7 +94,7 @@ func _ready() -> void:
 		var x := start_x + i * col_w
 		var key_lbl = Label.new()
 		key_lbl.text = stats[i][0]
-		key_lbl.position = Vector2(x, 368)
+		key_lbl.position = Vector2(x, 375)
 		key_lbl.size = Vector2(col_w, 28)
 		key_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		key_lbl.add_theme_font_size_override("font_size", 16)
@@ -89,7 +103,7 @@ func _ready() -> void:
 
 		var val_lbl = Label.new()
 		val_lbl.text = stats[i][1]
-		val_lbl.position = Vector2(x, 394)
+		val_lbl.position = Vector2(x, 401)
 		val_lbl.size = Vector2(col_w, 34)
 		val_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		val_lbl.add_theme_font_size_override("font_size", 28)
@@ -100,7 +114,7 @@ func _ready() -> void:
 	var btn = Button.new()
 	btn.text = "Return to Menu"
 	btn.size = Vector2(260, 60)
-	btn.position = Vector2((1334 - 260) / 2.0, 480)
+	btn.position = Vector2((1334 - 260) / 2.0, 490)
 	btn.add_theme_font_size_override("font_size", 28)
 	btn.pressed.connect(_on_return)
 	add_child(btn)

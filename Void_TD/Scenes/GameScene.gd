@@ -225,11 +225,11 @@ func _refresh_hud() -> void:
 func _wave_preview_text() -> String:
 	var groups = wave_manager.get_next_wave_groups()
 	if groups.is_empty():
-		return "Next: Endless Wave" if wave_manager.is_endless else ""
+		return "Incoming: Endless Void Assault" if wave_manager.is_endless else ""
 	var parts = []
 	for g in groups:
 		parts.append("%d %s" % [g.count, EnemyDefinition.stats(g.type)["label"]])
-	return "Next: " + ", ".join(parts)
+	return "Incoming: " + ", ".join(parts)
 
 # ── Main Update Loop ──────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
@@ -480,7 +480,7 @@ func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
 
 func _spawn_reward_label(pos: Vector2, amount: int) -> void:
 	var lbl := Label.new()
-	lbl.text = "+$%d" % amount
+	lbl.text = "+%d ⚡" % amount
 	lbl.position = pos + Vector2(-20.0, -28.0)
 	lbl.add_theme_font_size_override("font_size", 22)
 	lbl.add_theme_color_override("font_color", Color(1.0, 1.0, 0.0))
@@ -669,7 +669,7 @@ func _screen_shake(strength: float, duration: float = 0.25) -> void:
 
 func _spawn_streak_label(bonus: int) -> void:
 	var lbl := Label.new()
-	lbl.text = "STREAK x%d!  +$%d" % [_streak, bonus]
+	lbl.text = "VOID SUPPRESSED! STREAK x%d  +%d" % [_streak, bonus]
 	lbl.position = Vector2(547, 340)
 	lbl.size = Vector2(240, 40)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -688,9 +688,8 @@ func _spawn_streak_label(bonus: int) -> void:
 func _on_mega_boss_armor_broken() -> void:
 	_screen_shake(10.0, 0.6)
 	_play_chime([180.0, 120.0, 75.0], 0.12)
-	# "ARMOR BROKEN!" flash label
 	var lbl := Label.new()
-	lbl.text = "ARMOR BROKEN!"
+	lbl.text = "THE VOID'S ARMOR SHATTERS!"
 	lbl.position = Vector2(507, 310)
 	lbl.size = Vector2(320, 60)
 	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
