@@ -34,6 +34,7 @@ var _skin_panel: Node2D = null
 var _skin_previews: Array = []        # Array[ColorRect]  one per tower row
 var _swatch_borders: Array = []       # Array[Array[ColorRect]]  [tower][palette]
 var _ducky_border: ColorRect = null   # selection border for the Ducky button
+var _doggo_border: ColorRect = null   # selection border for the Doggo button
 
 func _ready() -> void:
 	TowerSkins.load_from_disk()
@@ -266,6 +267,32 @@ func _build_skin_panel() -> void:
 
 		_swatch_borders.append(row_borders)
 
+		# Void-Seeker (ti == 2) gets a Doggo special skin button
+		if ti == 2:
+			var dog_x: float = px + PW - 158.0
+
+			_doggo_border = ColorRect.new()
+			_doggo_border.color = Color(1.0, 1.0, 0.3)
+			_doggo_border.size = Vector2(68, 38)
+			_doggo_border.position = Vector2(dog_x - 1, row_y + 3)
+			_doggo_border.visible = (TowerSkins.overrides.get(2, Color(-1,-1,-1)) == TowerSkins.DOGGO_COLOR)
+			_skin_panel.add_child(_doggo_border)
+
+			var dog_btn = Button.new()
+			dog_btn.text = "Doggo"
+			dog_btn.size = Vector2(66, 36)
+			dog_btn.position = Vector2(dog_x, row_y + 4)
+			dog_btn.add_theme_font_size_override("font_size", 13)
+			var dog_flat = StyleBoxFlat.new()
+			dog_flat.bg_color = TowerSkins.DOGGO_COLOR
+			dog_btn.add_theme_stylebox_override("normal",  dog_flat)
+			dog_btn.add_theme_stylebox_override("hover",   dog_flat)
+			dog_btn.add_theme_stylebox_override("pressed", dog_flat)
+			dog_btn.add_theme_stylebox_override("focus",   dog_flat)
+			dog_btn.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+			dog_btn.pressed.connect(_on_doggo_pressed)
+			_skin_panel.add_child(dog_btn)
+
 		# Titan Mech (ti == 3) gets an extra Ducky special skin button
 		if ti == 3:
 			var duck_x: float = px + PW - 158.0
@@ -309,8 +336,18 @@ func _on_swatch_pressed(tower_idx: int, color_idx: int) -> void:
 	_skin_previews[tower_idx].color = color
 	for ci in _swatch_borders[tower_idx].size():
 		_swatch_borders[tower_idx][ci].visible = (ci == color_idx)
+	if tower_idx == 2 and _doggo_border != null:
+		_doggo_border.visible = false
 	if tower_idx == 3 and _ducky_border != null:
 		_ducky_border.visible = false
+
+func _on_doggo_pressed() -> void:
+	TowerSkins.set_color(2, TowerSkins.DOGGO_COLOR)
+	_skin_previews[2].color = TowerSkins.DOGGO_COLOR
+	for border in _swatch_borders[2]:
+		border.visible = false
+	if _doggo_border != null:
+		_doggo_border.visible = true
 
 func _on_ducky_pressed() -> void:
 	TowerSkins.set_color(3, TowerSkins.DUCKY_COLOR)
@@ -325,6 +362,8 @@ func _on_reset_skin(tower_idx: int) -> void:
 	_skin_previews[tower_idx].color = _DEFAULT_COLORS[tower_idx]
 	for border in _swatch_borders[tower_idx]:
 		border.visible = false
+	if tower_idx == 2 and _doggo_border != null:
+		_doggo_border.visible = false
 	if tower_idx == 3 and _ducky_border != null:
 		_ducky_border.visible = false
 

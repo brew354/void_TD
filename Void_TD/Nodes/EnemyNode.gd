@@ -72,7 +72,7 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 
 	if s.has("armor_threshold"):
 		_armor_threshold = float(s["armor_threshold"])
-		_armor_phase2_speed = float(s["speed"]) * 2.0
+		_armor_phase2_speed = speed * 2.0  # double the already wave-scaled speed
 		_is_armored = true
 
 	_waypoints = GameConfig.PATH_WAYPOINTS

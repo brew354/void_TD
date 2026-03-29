@@ -75,9 +75,8 @@ func _do_spawn(enemy_type: EnemyDefinition.EnemyType) -> void:
 
 func on_enemy_resolved() -> void:
 	# Called by GameScene when an enemy dies or exits
-	_active_enemy_count -= 1
-	if _active_enemy_count <= 0 and _spawning:
-		_active_enemy_count = 0
+	_active_enemy_count = max(_active_enemy_count - 1, 0)
+	if _active_enemy_count == 0 and _spawning:
 		_spawning = false
 		wave_complete.emit()
 

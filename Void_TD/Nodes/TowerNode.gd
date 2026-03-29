@@ -64,6 +64,43 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_body.mouse_filter = Control.MOUSE_FILTER_PASS
 	add_child(_body)
 
+	# Doggo skin accents — ears, eyes, nose as children of _body so they rotate with it
+	if type == TowerDefinition.TowerType.MISSILE and body_color == TowerSkins.DOGGO_COLOR:
+		var ear_l = ColorRect.new()  # left ear (darker brown patch, top-left)
+		ear_l.color = Color(0.48, 0.26, 0.05)
+		ear_l.size = Vector2(11, 14)
+		ear_l.position = Vector2(2, 2)
+		ear_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(ear_l)
+
+		var ear_r = ColorRect.new()  # right ear (top-right)
+		ear_r.color = Color(0.48, 0.26, 0.05)
+		ear_r.size = Vector2(11, 14)
+		ear_r.position = Vector2(27, 2)
+		ear_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(ear_r)
+
+		var eye_l = ColorRect.new()
+		eye_l.color = Color(0.05, 0.05, 0.05)
+		eye_l.size = Vector2(5, 5)
+		eye_l.position = Vector2(8, 18)
+		eye_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(eye_l)
+
+		var eye_r = ColorRect.new()
+		eye_r.color = Color(0.05, 0.05, 0.05)
+		eye_r.size = Vector2(5, 5)
+		eye_r.position = Vector2(25, 18)
+		eye_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(eye_r)
+
+		var nose = ColorRect.new()  # nose on the right side (front)
+		nose.color = Color(0.05, 0.05, 0.05)
+		nose.size = Vector2(8, 6)
+		nose.position = Vector2(33, 27)
+		nose.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(nose)
+
 	# Ducky skin accents — eyes and beak as children of _body so they rotate with it
 	if type == TowerDefinition.TowerType.MECHA_SOLDIER and body_color == TowerSkins.DUCKY_COLOR:
 		var eye_l = ColorRect.new()
