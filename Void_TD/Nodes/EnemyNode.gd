@@ -48,6 +48,7 @@ var _body_pivot: Node2D  # parent for all body halves; rotated to face movement
 var _body_rect: ColorRect
 var _hp_bar_bg: ColorRect
 var _hp_bar_fg: ColorRect
+var _shard_color: Color = Color.WHITE
 
 func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 	enemy_type = type
@@ -74,6 +75,10 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 		_armor_threshold = float(s["armor_threshold"])
 		_armor_phase2_speed = speed * 2.0  # double the already wave-scaled speed
 		_is_armored = true
+
+	# Shard color: lighten the enemy color; fall back to void purple if it's too dark
+	var raw: Color = s["color"]
+	_shard_color = raw.lightened(0.45) if (raw.r + raw.g + raw.b) > 0.25 else Color(0.65, 0.15, 1.0)
 
 	_waypoints = GameConfig.PATH_WAYPOINTS
 	position = _waypoints[0]
@@ -225,11 +230,36 @@ func _on_die() -> void:
 	_hp_bar_bg.visible = false
 	_hp_bar_fg.visible = false
 	died.emit(self)
+	_spawn_death_shards()
 	var tween = create_tween().set_parallel(true)
 	tween.tween_property(self, "scale", Vector2(1.4, 1.4), 0.12)
 	tween.tween_property(_body_rect, "modulate:a", 0.0, 0.12)
 	await tween.finished
 	queue_free()
+
+func _spawn_death_shards() -> void:
+	var parent = get_parent()
+	if parent == null:
+		return
+	var num := 7 if not is_boss else 12
+	for i in num:
+		var angle := randf() * TAU
+		var spd   := randf_range(55.0, 130.0)
+		var sz    := randf_range(3.0, 7.0)
+		var dur   := randf_range(0.28, 0.48)
+
+		var shard = ColorRect.new()
+		shard.color = _shard_color
+		shard.size = Vector2(sz, sz)
+		shard.position = position + Vector2(-sz * 0.5, -sz * 0.5)
+		parent.add_child(shard)
+
+		var end_pos: Vector2 = shard.position + Vector2(cos(angle), sin(angle)) * spd * dur
+		var tw := parent.create_tween().set_parallel(true)
+		tw.tween_property(shard, "position", end_pos, dur)
+		tw.tween_property(shard, "color:a",  0.0,     dur)
+		tw.tween_property(shard, "scale",    Vector2(0.1, 0.1), dur)
+		tw.finished.connect(shard.queue_free)
 
 func _on_exit() -> void:
 	if is_dead:
