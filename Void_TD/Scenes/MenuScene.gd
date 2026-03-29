@@ -31,6 +31,16 @@ var _title: Label
 var _stars: Array = []
 var _time: float = 0.0
 var _skin_panel: Node2D = null
+
+# ── Ambient music synthesis ───────────────────────────────────────────────────
+const _MIX_RATE   := 22050.0
+# Frequencies: deep bass A1, E2, A2, slight detune for chorus
+const _FREQS: Array = [55.0, 82.41, 110.03, 146.85, 220.07]
+const _AMPS:  Array = [0.26, 0.14,  0.18,   0.09,   0.07]
+var _ambient_player: AudioStreamPlayer = null
+var _ambient_pb: AudioStreamGeneratorPlayback = null
+var _osc_phase: Array = [0.0, 0.0, 0.0, 0.0, 0.0]
+var _lfo_t: float = 0.0
 var _skin_previews: Array = []        # Array[ColorRect]  one per tower row
 var _swatch_borders: Array = []       # Array[Array[ColorRect]]  [tower][palette]
 var _ducky_border: ColorRect = null     # selection border for the Ducky button
@@ -166,6 +176,7 @@ func _ready() -> void:
 		tween.tween_property(hs_lbl, "modulate:a", 1.0, 0.8).set_delay(2.2)
 
 	_build_skin_panel()
+	_start_ambient_music()
 
 func _build_skin_panel() -> void:
 	_skin_panel = Node2D.new()
@@ -391,6 +402,33 @@ func _process(delta: float) -> void:
 	# Twinkle stars independently
 	for i in _stars.size():
 		_stars[i].modulate.a = 0.4 + 0.6 * (0.5 + 0.5 * sin(_time * (0.8 + (i % 7) * 0.25) + i))
+
+	# Fill ambient audio buffer
+	if _ambient_pb != null:
+		_lfo_t += delta
+		# Slow tremolo + eerie shimmer LFO
+		var lfo := 0.72 + 0.28 * sin(_lfo_t * 0.13 * TAU)
+		var shimmer := 1.0 + 0.004 * sin(_lfo_t * 0.37 * TAU)
+		var frames := _ambient_pb.get_frames_available()
+		for _f in frames:
+			var sample := 0.0
+			for j in _FREQS.size():
+				var freq: float = _FREQS[j] * (shimmer if j >= 3 else 1.0)
+				sample += sin(_osc_phase[j] * TAU) * float(_AMPS[j])
+				_osc_phase[j] = fmod(_osc_phase[j] + freq / _MIX_RATE, 1.0)
+			sample *= lfo
+			_ambient_pb.push_frame(Vector2(sample, sample))
+
+func _start_ambient_music() -> void:
+	var gen := AudioStreamGenerator.new()
+	gen.mix_rate = _MIX_RATE
+	gen.buffer_length = 0.3
+	_ambient_player = AudioStreamPlayer.new()
+	_ambient_player.stream = gen
+	_ambient_player.volume_db = -14.0
+	add_child(_ambient_player)
+	_ambient_player.play()
+	_ambient_pb = _ambient_player.get_stream_playback()
 
 func _on_start_campaign() -> void:
 	GameMode.endless = false
