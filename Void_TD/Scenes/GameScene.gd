@@ -16,6 +16,7 @@ const HUDNode         = preload("res://HUD/HUDNode.gd")
 const GameOverScene   = preload("res://Scenes/GameOverScene.gd")
 const BaseNode        = preload("res://Nodes/BaseNode.gd")
 const GameMode        = preload("res://Models/GameMode.gd")
+const TowerSkins      = preload("res://Models/TowerSkins.gd")
 
 # ── Game State ──────────────────────────────────────────────────────────────
 var lives: int = GameConfig.STARTING_LIVES
@@ -74,6 +75,7 @@ var _endless: bool = false
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
+	TowerSkins.load_from_disk()
 	_endless = GameMode.endless
 	_build_layers()
 	_init_systems()

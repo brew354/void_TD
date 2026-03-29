@@ -5,6 +5,7 @@ extends Node2D
 const TowerDefinition  = preload("res://Models/TowerDefinition.gd")
 const EnemyNode        = preload("res://Nodes/EnemyNode.gd")
 const ProjectileNode   = preload("res://Nodes/ProjectileNode.gd")
+const TowerSkins       = preload("res://Models/TowerSkins.gd")
 
 signal fired(tower_type: TowerDefinition.TowerType)
 
@@ -46,16 +47,17 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	base_range = range_radius
 	total_invested = s["cost"]
 
-	# Body: colored square
-	var colors = {
+	# Body: colored square — default color overridden by player skin choice
+	var default_colors = {
 		TowerDefinition.TowerType.LASER:         Color(0.2, 0.6, 1.0),
 		TowerDefinition.TowerType.CANNON:        Color(0.9, 0.5, 0.1),
 		TowerDefinition.TowerType.MISSILE:       Color(0.8, 0.2, 0.8),
 		TowerDefinition.TowerType.MECHA_SOLDIER: Color(1.0, 0.15, 0.0),
 	}
+	var body_color: Color = TowerSkins.get_color(int(type), default_colors[type])
 	_body = ColorRect.new()
-	_body.color = colors[type]
-	_normal_color = colors[type]
+	_body.color = body_color
+	_normal_color = body_color
 	_body.size = Vector2(40, 40)
 	_body.position = Vector2(-20, -20)
 	_body.pivot_offset = Vector2(20, 20)
