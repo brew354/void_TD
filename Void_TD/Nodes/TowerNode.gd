@@ -38,20 +38,20 @@ var _fire_tween: Tween
 const _BASE_PATHS = {
 	0: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_turret.png",
 	1: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon.png",
-	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/flak_cannon/flak_turret.png",
-	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/heavy_laser_cannon/heavy_laser_cannon.png",
+	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/missile_launcher_base.png",
+	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/mecha_soldier_base.png",
 }
 const _BARREL_PATHS = {
 	0: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_barrel.png",
 	1: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon_barrel.png",
-	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/flak_cannon/flak_barrel.png",
+	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/autocannon/autocannon_barrel.png",
 	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/heavy_laser_cannon/heavy_laser_cannon_barrel.png",
 }
 # Uniform scale applied to both base and barrel to reach ~48 px display size
-const _BASE_SCALE   = {0: 1.5,  1: 1.5, 2: 1.0, 3: 1.0}
-const _BARREL_SCALE = {0: 0.8,  1: 1.5, 2: 1.0, 3: 1.0}
+const _BASE_SCALE   = {0: 1.5,  1: 1.5, 2: 0.75, 3: 0.75}
+const _BARREL_SCALE = {0: 0.8,  1: 1.5, 2: 2.0,  3: 1.0}
 # Barrel offset.y (local, pre-scale) so the barrel's bottom aligns with the node origin
-const _BARREL_OFFSET_Y = {0: -16.0, 1: -16.0, 2: -24.0, 3: -16.0}
+const _BARREL_OFFSET_Y = {0: -16.0, 1: -16.0, 2: -8.0, 3: -16.0}
 
 func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) -> void:
 	tower_type = type
@@ -98,6 +98,29 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_mouse_rect.mouse_entered.connect(func(): _range_ring.visible = true)
 	_mouse_rect.mouse_exited.connect(func(): _range_ring.visible = false)
 	add_child(_mouse_rect)
+
+	# Ducky skin accents for Titan Mech — eyes on base, bill rotates with barrel
+	if type == TowerDefinition.TowerType.MECHA_SOLDIER and _normal_modulate == TowerSkins.DUCKY_COLOR:
+		var eye_l = ColorRect.new()
+		eye_l.color = Color(0.05, 0.05, 0.05)
+		eye_l.size = Vector2(5, 5)
+		eye_l.position = Vector2(-8, -10)
+		eye_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_barrel_sprite.add_child(eye_l)
+
+		var eye_r = ColorRect.new()
+		eye_r.color = Color(0.05, 0.05, 0.05)
+		eye_r.size = Vector2(5, 5)
+		eye_r.position = Vector2(3, -10)
+		eye_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_barrel_sprite.add_child(eye_r)
+
+		var bill = ColorRect.new()
+		bill.color = Color(1.0, 0.45, 0.0)
+		bill.size = Vector2(10, 6)
+		bill.position = Vector2(-5, -35)
+		bill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_barrel_sprite.add_child(bill)
 
 	# Range ring — visible on hover only
 	_range_ring = Node2D.new()

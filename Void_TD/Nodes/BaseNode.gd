@@ -9,17 +9,12 @@ var _level_label: Label
 
 func setup(pos: Vector2) -> void:
 	position = pos
-	var rect = ColorRect.new()
-	rect.color = Color(0.0, 0.6, 0.8)
-	rect.size = Vector2(60, 60)
-	rect.position = Vector2(-30, -30)
-	add_child(rect)
-
-	var label = Label.new()
-	label.text = "BASE"
-	label.add_theme_color_override("font_color", Color.WHITE)
-	label.position = Vector2(-18, -8)
-	add_child(label)
+	var sprite = Sprite2D.new()
+	sprite.texture = load("res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/base_bunker.png")
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	# scifiStructure_01 is 64x64; scale to ~60px display size
+	sprite.scale = Vector2(0.94, 0.94)
+	add_child(sprite)
 
 	_level_label = Label.new()
 	_level_label.add_theme_font_size_override("font_size", 10)

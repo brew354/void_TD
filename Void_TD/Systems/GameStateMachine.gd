@@ -26,7 +26,7 @@ func resume_from_pause() -> void:
 	transition_to(_prior_state)
 
 func can_place_tower() -> bool:
-	return current == State.BUILD_PHASE or current == State.WAVE_IN_PROGRESS
+	return current == State.BUILD_PHASE or current == State.WAVE_IN_PROGRESS or current == State.WAVE_CLEAR
 
 func can_start_wave() -> bool:
 	return current == State.BUILD_PHASE or current == State.WAVE_CLEAR

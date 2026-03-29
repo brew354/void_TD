@@ -17,7 +17,7 @@ static func stats(type: TowerType) -> Dictionary:
 					 "splash_radius": 0.0, "projectile_speed": 350.0, "label": "Void-Seeker" }
 		TowerType.MECHA_SOLDIER:
 			return { "cost": 300, "damage": 150, "range": 220.0, "fire_rate": 1.0,
-					 "splash_radius": 45.0, "projectile_speed": 500.0, "label": "Titan Mech" }
+					 "splash_radius": 45.0, "projectile_speed": 500.0, "label": "Mecha Soldier" }
 	return {}
 
 ## Returns the maximum number of this tower that can be placed. 0 = unlimited.

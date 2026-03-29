@@ -136,6 +136,26 @@ func _draw_background() -> void:
 		star.position = Vector2(randf_range(0, 1334), randf_range(0, 750))
 		star.color = Color(1.0, 1.0, 1.0, 1.0)
 		background_layer.add_child(star)
+	# Planet 1 — upper-left, toxic green/teal gas giant with ring
+	var p1 = _Planet.new()
+	p1.position = Vector2(110, 95)
+	p1.planet_radius = 62.0
+	p1.planet_color   = Color(0.18, 0.72, 0.38)
+	p1.atmosphere_color = Color(0.4, 1.0, 0.55, 0.18)
+	p1.highlight_color  = Color(0.55, 1.0, 0.65, 0.22)
+	p1.ring_color       = Color(0.3, 0.85, 0.5, 0.45)
+	p1.ring_tilt        = 0.28
+	background_layer.add_child(p1)
+	# Planet 2 — upper-right, deep purple/violet alien world with faint ring
+	var p2 = _Planet.new()
+	p2.position = Vector2(1224, 80)
+	p2.planet_radius = 48.0
+	p2.planet_color   = Color(0.38, 0.12, 0.72)
+	p2.atmosphere_color = Color(0.65, 0.3, 1.0, 0.20)
+	p2.highlight_color  = Color(0.75, 0.5, 1.0, 0.25)
+	p2.ring_color       = Color(0.55, 0.2, 0.9, 0.40)
+	p2.ring_tilt        = -0.22
+	background_layer.add_child(p2)
 
 # ── Systems Init ──────────────────────────────────────────────────────────────
 func _init_systems() -> void:
@@ -471,14 +491,15 @@ func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
 		return
 	match tower_type:
 		TowerDefinition.TowerType.LASER:
-			_play_file("laser_small", 0.0)
+			_play_file("laser_small", -8.0)
 		TowerDefinition.TowerType.CANNON:
-			_play_file("explosion", 0.0)
+			_play_file("explosion_crunch", 4.0)
 			_screen_shake(3.0, 0.18)
 		TowerDefinition.TowerType.MISSILE:
-			_play_file("thruster", -6.0)
+			_play_file("thruster", -4.0)
 		TowerDefinition.TowerType.MECHA_SOLDIER:
-			_play_file("laser_large", -2.0)
+			_play_file("explosion", 6.0)
+			_play_file("explosion_crunch", 2.0)
 			_screen_shake(5.0, 0.25)
 	_fire_sfx_cooldowns[key] = 0.15
 
@@ -580,13 +601,14 @@ func _on_wave_complete() -> void:
 func _load_audio() -> void:
 	var sf := "res://Assets/audio/kenney_sci-fi-sounds/Audio/"
 	var im := "res://Assets/audio/kenney_impact-sounds/Audio/"
-	_sfx["laser_small"]    = _load_sfx_arr(sf + "laserRetro_%03d.ogg",            5)
+	_sfx["laser_small"]    = _load_sfx_arr(sf + "laserRetro_%03d.ogg",            1)
 	_sfx["laser_large"]    = _load_sfx_arr(sf + "laserLarge_%03d.ogg",           5)
 	_sfx["explosion"]      = _load_sfx_arr(sf + "lowFrequency_explosion_%03d.ogg", 2)
 	_sfx["explosion_crunch"] = _load_sfx_arr(sf + "explosionCrunch_%03d.ogg",    5)
 	_sfx["explosion_low"]  = _load_sfx_arr(sf + "lowFrequency_explosion_%03d.ogg", 2)
 	_sfx["force_field"]    = _load_sfx_arr(sf + "forceField_%03d.ogg",           5)
 	_sfx["thruster"]       = _load_sfx_arr(sf + "thrusterFire_%03d.ogg",         5)
+	_sfx["engine_small"]   = _load_sfx_arr(sf + "spaceEngineSmall_%03d.ogg",     5)
 	_sfx["metal_heavy"]    = _load_sfx_arr(im + "impactMetal_heavy_%03d.ogg",    5)
 	_sfx["metal_light"]    = _load_sfx_arr(im + "impactMetal_light_%03d.ogg",    5)
 	_sfx["generic_light"]  = _load_sfx_arr(im + "impactGeneric_light_%03d.ogg",  5)
@@ -600,16 +622,21 @@ func _load_sfx_arr(pattern: String, count: int) -> Array:
 			arr.append(res)
 	return arr
 
-func _play_file(key: String, volume_db: float = 0.0) -> void:
+func _play_file(key: String, volume_db: float = 0.0, max_duration: float = 1.0) -> void:
 	var arr: Array = _sfx.get(key, [])
 	if arr.is_empty():
 		return
 	var player := AudioStreamPlayer.new()
-	player.stream = arr[randi() % arr.size()]
+	player.stream = arr[0]
 	player.volume_db = volume_db
 	add_child(player)
 	player.play()
 	player.finished.connect(player.queue_free)
+	get_tree().create_timer(max_duration).timeout.connect(func():
+		if is_instance_valid(player):
+			player.stop()
+			player.queue_free()
+	, CONNECT_ONE_SHOT)
 
 func _screen_shake(strength: float, duration: float = 0.25) -> void:
 	_shake_strength = max(_shake_strength, strength)
@@ -651,6 +678,41 @@ func _on_mega_boss_armor_broken() -> void:
 	tween.tween_interval(1.8)
 	tween.tween_property(lbl, "modulate:a", 0.0, 0.6)
 	tween.tween_callback(lbl.queue_free)
+
+## Alien planet with atmosphere glow and orbital ring
+class _Planet extends Node2D:
+	var planet_radius: float = 50.0
+	var planet_color:    Color = Color(0.2, 0.7, 0.4)
+	var atmosphere_color: Color = Color(0.4, 1.0, 0.5, 0.2)
+	var highlight_color:  Color = Color(0.6, 1.0, 0.6, 0.25)
+	var ring_color:       Color = Color(0.3, 0.8, 0.5, 0.4)
+	var ring_tilt: float = 0.25  # vertical squish of ring ellipse
+
+	func _draw() -> void:
+		# Outer atmosphere glow
+		draw_circle(Vector2.ZERO, planet_radius + 10.0, Color(atmosphere_color.r, atmosphere_color.g, atmosphere_color.b, 0.08))
+		draw_circle(Vector2.ZERO, planet_radius + 5.0,  atmosphere_color)
+		# Planet body
+		draw_circle(Vector2.ZERO, planet_radius, planet_color)
+		# Surface band (darker stripe across middle)
+		var band_col := planet_color.darkened(0.28)
+		band_col.a = 0.55
+		for dy in range(-6, 7):
+			var half_w := sqrt(max(0.0, planet_radius * planet_radius - float(dy) * float(dy)))
+			draw_line(Vector2(-half_w, dy), Vector2(half_w, dy), band_col, 1.0)
+		# Orbital ring (thin ellipse drawn as arcs)
+		var rw := planet_radius * 1.75
+		var rh := rw * abs(ring_tilt)
+		var segs := 48
+		for i in segs:
+			var a0 := float(i) / segs * TAU
+			var a1 := float(i + 1) / segs * TAU
+			var p0 := Vector2(cos(a0) * rw, sin(a0) * rh)
+			var p1 := Vector2(cos(a1) * rw, sin(a1) * rh)
+			draw_line(p0, p1, ring_color, 2.0)
+		# Highlight (top-left sheen)
+		draw_circle(Vector2(-planet_radius * 0.3, -planet_radius * 0.3),
+					planet_radius * 0.45, highlight_color)
 
 ## Left-to-right gradient: black → dark purple
 class _HorizGradient extends Node2D:
