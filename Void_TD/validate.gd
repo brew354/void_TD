@@ -30,7 +30,9 @@ func _init() -> void:
 	print("[ GameConfig ]")
 	_assert(GameConfig.STARTING_LIVES == 5, "STARTING_LIVES = 5")
 	_assert(GameConfig.STARTING_CREDITS == 300, "STARTING_CREDITS = 300")
-	_assert(GameConfig.WAVE_COMPLETE_BONUS == 75, "WAVE_COMPLETE_BONUS = 75")
+	_assert(GameConfig.wave_bonus(1) == 8, "wave_bonus(1) == 8")
+	_assert(GameConfig.wave_bonus(10) == 80, "wave_bonus(10) == 80")
+	_assert(GameConfig.TOWER_MAX_TOTAL == 30, "TOWER_MAX_TOTAL == 30")
 	_assert(GameConfig.TILE_SIZE == 64.0, "TILE_SIZE = 64")
 	_assert(GameConfig.GRID_COLS == 20, "GRID_COLS = 20")
 	_assert(GameConfig.GRID_ROWS == 11, "GRID_ROWS = 11")
@@ -58,8 +60,8 @@ func _init() -> void:
 	var mecha = TowerDefinition.stats(TowerDefinition.TowerType.MECHA_SOLDIER)
 	_assert(mecha["cost"] == 300, "Mecha cost = 300")
 	_assert(mecha["damage"] > TowerDefinition.stats(TowerDefinition.TowerType.MISSILE)["damage"], "Mecha damage > Missile damage")
-	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.MECHA_SOLDIER, 2) == 150, "Mecha L2 cost = 150")
-	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.MECHA_SOLDIER, 3) == 300, "Mecha L3 cost = 300")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.MECHA_SOLDIER, 2) == 300, "Mecha L2 cost = 300")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.MECHA_SOLDIER, 3) == 600, "Mecha L3 cost = 600")
 
 	# --- EnemyDefinition ---
 	print("\n[ EnemyDefinition ]")
@@ -179,9 +181,9 @@ func _init() -> void:
 	boss.queue_free()
 
 	var scaled = EnemyNode.new()
-	scaled.setup(EnemyDefinition.EnemyType.SCOUT, 2.0)
+	scaled.setup(EnemyDefinition.EnemyType.SCOUT, 2.0, 1.2)
 	_assert(scaled.max_hp == 130.0, "Scout at scale 2.0 has 130 hp")
-	_assert(scaled.speed > 200.0, "Scout at scale 2.0 is faster than base")
+	_assert(scaled.speed > 200.0, "Scout with speed_scale 1.2 is faster than base")
 	scaled.queue_free()
 
 	# --- New Enemy Types (Speeder + Shielded) ---
@@ -234,9 +236,9 @@ func _init() -> void:
 
 	# --- Tower Upgrade System ---
 	print("\n[ Tower Upgrade System ]")
-	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.LASER, 2) == 25, "Laser L2 cost = 25")
-	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.CANNON, 2) == 50, "Cannon L2 cost = 50")
-	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.MISSILE, 3) == 150, "Missile L3 cost = 150")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.LASER, 2) == 50, "Laser L2 cost = 50")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.CANNON, 2) == 100, "Cannon L2 cost = 100")
+	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.MISSILE, 3) == 300, "Missile L3 cost = 300")
 	_assert(TowerDefinition.upgrade_cost(TowerDefinition.TowerType.LASER, 4) == 0, "Invalid level cost = 0")
 
 	var m1 = TowerDefinition.upgrade_multipliers(1)
@@ -255,13 +257,13 @@ func _init() -> void:
 	_assert(utower.upgrade_level == 2, "Tower upgraded to L2")
 	_assert(is_equal_approx(utower.damage, 64.0), "L2 damage = 40 * 1.6 = 64")
 	_assert(is_equal_approx(utower.range_radius, 195.0), "L2 range = 150 * 1.3 = 195")
-	_assert(utower.total_invested == 150, "total_invested after L2 = 100 + 50 = 150")
+	_assert(utower.total_invested == 200, "total_invested after L2 = 100 + 100 = 200")
 	utower.upgrade()
 	_assert(utower.upgrade_level == 3, "Tower upgraded to L3")
 	_assert(is_equal_approx(utower.damage, 100.0), "L3 damage = 40 * 2.5 = 100")
 	_assert(is_equal_approx(utower.range_radius, 240.0), "L3 range = 150 * 1.6 = 240")
-	_assert(utower.total_invested == 250, "total_invested after L3 = 100 + 50 + 100 = 250")
-	_assert(utower.total_invested / 2 == 125, "L3 sell refund = 125")
+	_assert(utower.total_invested == 400, "total_invested after L3 = 100 + 100 + 200 = 400")
+	_assert(utower.total_invested / 2 == 200, "L3 sell refund = 200")
 	utower.queue_free()
 
 	# --- BaseNode upgrades ---

@@ -30,8 +30,8 @@ static func max_count(type: TowerType) -> int:
 
 static func upgrade_cost(type: TowerType, to_level: int) -> int:
 	var base = stats(type)["cost"]
-	if to_level == 2: return base / 2
-	if to_level == 3: return base
+	if to_level == 2: return base
+	if to_level == 3: return base * 2
 	return 0
 
 static func upgrade_multipliers(level: int) -> Dictionary:

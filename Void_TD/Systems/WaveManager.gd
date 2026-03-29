@@ -5,7 +5,7 @@ const WaveDefinition  = preload("res://Models/WaveDefinition.gd")
 const EnemyDefinition = preload("res://Models/EnemyDefinition.gd")
 
 signal wave_complete
-signal enemy_spawned(enemy_type, wave_scale: float)
+signal enemy_spawned(enemy_type, wave_scale: float, speed_scale: float)
 
 var _scene: Node  # GameScene reference for running timers
 var _waves: Array
@@ -16,6 +16,8 @@ var _current_wave_scale: float = 1.0
 
 var is_endless: bool = false
 var _endless_wave_count: int = 0
+var _current_speed_scale: float = 1.0
+var _total_waves_started: int = 0
 
 func _init(scene: Node, endless: bool = false) -> void:
 	_scene = scene
@@ -54,24 +56,36 @@ func start_wave() -> void:
 		wave_data = WaveDefinition.generate_endless_wave(_endless_wave_count)
 		_endless_wave_count += 1
 	_current_wave_scale = wave_data.difficulty_scale
+	_current_speed_scale = 1.0 + _total_waves_started * 0.02
+	_total_waves_started += 1
 	_current_wave_index += 1
 	_schedule_wave(wave_data)
 
 func _schedule_wave(wave_data) -> void:
-	var delay = wave_data.pre_delay
+	# Build a flat list of {type, interval} for every enemy in the wave
+	var entries: Array = []
 	for group in wave_data.groups:
 		for i in range(group.count):
-			var t = _scene.get_tree().create_timer(delay)
-			var captured_type = group.type
-			t.timeout.connect(func(): _do_spawn(captured_type), CONNECT_ONE_SHOT)
-			_active_enemy_count += 1
-			delay += group.interval
+			entries.append({"type": group.type, "interval": group.interval})
+
+	# Shuffle to randomize spawn order across all groups
+	entries.shuffle()
+
+	# Schedule each enemy with ±30% jitter on its base interval
+	var delay: float = wave_data.pre_delay
+	for entry in entries:
+		var t = _scene.get_tree().create_timer(delay)
+		var captured_type = entry["type"]
+		t.timeout.connect(func(): _do_spawn(captured_type), CONNECT_ONE_SHOT)
+		_active_enemy_count += 1
+		delay += entry["interval"] * randf_range(0.7, 1.3)
+
 	# After all spawns, check after a buffer
 	var end_timer = _scene.get_tree().create_timer(delay + 0.5)
 	end_timer.timeout.connect(_check_wave_end, CONNECT_ONE_SHOT)
 
 func _do_spawn(enemy_type: EnemyDefinition.EnemyType) -> void:
-	enemy_spawned.emit(enemy_type, _current_wave_scale)
+	enemy_spawned.emit(enemy_type, _current_wave_scale, _current_speed_scale)
 
 func on_enemy_resolved() -> void:
 	# Called by GameScene when an enemy dies or exits

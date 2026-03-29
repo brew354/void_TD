@@ -99,26 +99,26 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_mouse_rect.mouse_exited.connect(func(): _range_ring.visible = false)
 	add_child(_mouse_rect)
 
-	# Ducky skin accents for Titan Mech — eyes on base, bill rotates with barrel
+	# Ducky skin accents for Mecha Soldier — face features on the rotating robot body
 	if type == TowerDefinition.TowerType.MECHA_SOLDIER and _normal_modulate == TowerSkins.DUCKY_COLOR:
 		var eye_l = ColorRect.new()
 		eye_l.color = Color(0.05, 0.05, 0.05)
 		eye_l.size = Vector2(5, 5)
-		eye_l.position = Vector2(-8, -10)
+		eye_l.position = Vector2(-9, -22)
 		eye_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_barrel_sprite.add_child(eye_l)
 
 		var eye_r = ColorRect.new()
 		eye_r.color = Color(0.05, 0.05, 0.05)
 		eye_r.size = Vector2(5, 5)
-		eye_r.position = Vector2(3, -10)
+		eye_r.position = Vector2(3, -22)
 		eye_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_barrel_sprite.add_child(eye_r)
 
 		var bill = ColorRect.new()
 		bill.color = Color(1.0, 0.45, 0.0)
-		bill.size = Vector2(10, 6)
-		bill.position = Vector2(-5, -35)
+		bill.size = Vector2(12, 7)
+		bill.position = Vector2(-6, -14)
 		bill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_barrel_sprite.add_child(bill)
 
@@ -150,6 +150,27 @@ func upgrade() -> void:
 	total_invested += TowerDefinition.upgrade_cost(tower_type, upgrade_level)
 	_level_label.text = "L%d" % upgrade_level
 	_level_label.visible = true
+
+	# Laser turret: swap sprites to reflect upgrade level
+	if tower_type == TowerDefinition.TowerType.LASER:
+		const _LASER_BASE_PATHS = {
+			2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/dual_laser_cannon/dual_laser_cannon_turret.png",
+			3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/heavy_laser_cannon/heavy_laser_cannon.png",
+		}
+		const _LASER_BARREL_PATHS = {
+			2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/dual_laser_cannon/laser_cannon_barrel.png",
+			3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/heavy_laser_cannon/heavy_laser_cannon_barrel.png",
+		}
+		# dual/heavy base sprites are 48×48 vs laser's 32×32, so scale down to 1.0
+		const _LASER_BASE_SCALES  = {2: 1.0, 3: 1.0}
+		const _LASER_BARREL_SCALES = {2: 0.8, 3: 1.0}
+		if upgrade_level in _LASER_BASE_PATHS:
+			_base_sprite.texture   = load(_LASER_BASE_PATHS[upgrade_level])
+			_barrel_sprite.texture = load(_LASER_BARREL_PATHS[upgrade_level])
+			_base_sprite.scale   = Vector2(_LASER_BASE_SCALES[upgrade_level],   _LASER_BASE_SCALES[upgrade_level])
+			_barrel_sprite.scale = Vector2(_LASER_BARREL_SCALES[upgrade_level], _LASER_BARREL_SCALES[upgrade_level])
+			_base_sprite.modulate   = _normal_modulate
+			_barrel_sprite.modulate = _normal_modulate
 
 func apply_stun(duration: float) -> void:
 	if _fire_tween:

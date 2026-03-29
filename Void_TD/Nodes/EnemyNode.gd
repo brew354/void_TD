@@ -61,12 +61,12 @@ const _SPRITE_PATHS = {
 # Natural pixel size of each sprite (boss1 is 128×128, all others 32×32)
 const _NATURAL_PX = {0: 32, 1: 32, 2: 128, 3: 32, 4: 32, 5: 128}
 
-func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
+func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0, speed_scale: float = 1.0) -> void:
 	enemy_type = type
 	var s = EnemyDefinition.stats(type)
 	max_hp = float(s["hp"]) * wave_scale
 	current_hp = max_hp
-	speed = float(s["speed"]) * (1.0 + (wave_scale - 1.0) * 0.3)
+	speed = float(s["speed"]) * speed_scale
 	reward = int(s["reward"])
 	lives_damage = int(s["lives_damage"])
 

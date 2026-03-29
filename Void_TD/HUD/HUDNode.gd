@@ -25,6 +25,7 @@ var _lives_label: Label
 var _wave_label: Label
 var _score_label: Label
 var _credits_label: Label
+var _towers_label: Label
 var _next_wave_label: Label  # unused, kept for API compatibility
 var _start_wave_btn: Button
 var _pause_btn: Button
@@ -71,6 +72,9 @@ func _build_hud() -> void:
 
 	_score_label = _make_label("Score: 0", Vector2(720, 7))
 	add_child(_score_label)
+
+	_towers_label = _make_label("Towers: 0/30", Vector2(980, 7))
+	add_child(_towers_label)
 
 	# ── Bottom bar — actions only ─────────────────────────────────────────────
 	var bot_bg = ColorRect.new()
@@ -289,6 +293,11 @@ func set_start_wave_enabled(enabled: bool) -> void:
 func set_selected_tower(type: TowerDefinition.TowerType) -> void:
 	for i in _tower_btns.size():
 		_tower_btns[i].modulate = Color(0.4, 1.0, 0.4) if i == int(type) else Color(1, 1, 1)
+
+func update_tower_total(count: int, max_total: int) -> void:
+	_towers_label.text = "Towers: %d/%d" % [count, max_total]
+	_towers_label.add_theme_color_override("font_color",
+		Color(1.0, 0.4, 0.4) if count >= max_total else Color.WHITE)
 
 func update_next_wave(_text: String) -> void:
 	pass  # incoming wave label removed

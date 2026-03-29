@@ -318,6 +318,7 @@ func _sell_tower(col: int, row: int) -> void:
 			_tower_counts[tkey] = max(_tower_counts.get(tkey, 0) - 1, 0)
 			hud.update_credits(currency)
 			hud.update_tower_limits(_tower_counts)
+			hud.update_tower_total(tower_manager.towers.size(), GameConfig.TOWER_MAX_TOTAL)
 			break
 
 func _on_tile_clicked(col: int, row: int) -> void:
@@ -329,6 +330,9 @@ func _on_tile_clicked(col: int, row: int) -> void:
 		return
 	var cost = TowerDefinition.stats(selected_tower_type)["cost"]
 	if currency < cost:
+		tile_nodes[row][col].flash_invalid()
+		return
+	if tower_manager.towers.size() >= GameConfig.TOWER_MAX_TOTAL:
 		tile_nodes[row][col].flash_invalid()
 		return
 	var max_c: int = TowerDefinition.max_count(selected_tower_type)
@@ -357,6 +361,7 @@ func _place_tower(col: int, row: int, type: TowerDefinition.TowerType) -> void:
 	_tower_counts[int(type)] = _tower_counts.get(int(type), 0) + 1
 	hud.update_credits(currency)
 	hud.update_tower_limits(_tower_counts)
+	hud.update_tower_total(tower_manager.towers.size(), GameConfig.TOWER_MAX_TOTAL)
 
 func _open_upgrade_panel(col: int, row: int) -> void:
 	_panel_col = col
@@ -473,10 +478,10 @@ func _on_hud_pause() -> void:
 		hud.set_paused(true)
 
 # ── Enemy Spawning ────────────────────────────────────────────────────────────
-func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float) -> void:
+func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float, speed_scale: float) -> void:
 	var enemy = EnemyNode.new()
 	enemy_layer.add_child(enemy)
-	enemy.setup(enemy_type, wave_scale)
+	enemy.setup(enemy_type, wave_scale, speed_scale)
 	enemy.died.connect(_on_enemy_died)
 	enemy.exited.connect(_on_enemy_exited)
 	if enemy.is_boss:
@@ -568,7 +573,7 @@ func _on_state_changed(new_state: GameStateMachine.State) -> void:
 func _on_wave_complete() -> void:
 	if lives <= 0:
 		return
-	currency += GameConfig.WAVE_COMPLETE_BONUS
+	currency += GameConfig.wave_bonus(current_wave)
 	hud.update_credits(currency)
 
 	# Streak bonus: +$25 per consecutive clean wave
