@@ -49,6 +49,7 @@ const _TOWER_TYPES: Array = [
 ]
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_hud()
 
 func _build_hud() -> void:
