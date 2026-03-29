@@ -101,6 +101,48 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 		nose.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_body.add_child(nose)
 
+	# Finger Gun skin — index finger barrel pointing right + thumb pointing up
+	if type == TowerDefinition.TowerType.LASER and body_color == TowerSkins.FINGERGUN_COLOR:
+		# Index finger barrel (extends right = firing direction)
+		var barrel = ColorRect.new()
+		barrel.color = Color(0.95, 0.76, 0.54)
+		barrel.size = Vector2(18, 10)
+		barrel.position = Vector2(38, 15)
+		barrel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(barrel)
+
+		# Knuckle crease on barrel
+		var knuckle = ColorRect.new()
+		knuckle.color = Color(0.60, 0.38, 0.12)
+		knuckle.size = Vector2(2, 10)
+		knuckle.position = Vector2(44, 15)
+		knuckle.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(knuckle)
+
+		# Fingernail at barrel tip
+		var nail_barrel = ColorRect.new()
+		nail_barrel.color = Color(0.88, 0.82, 0.72)
+		nail_barrel.size = Vector2(5, 10)
+		nail_barrel.position = Vector2(51, 15)
+		nail_barrel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(nail_barrel)
+
+		# Thumb (points up from top-left of body)
+		var thumb = ColorRect.new()
+		thumb.color = Color(0.95, 0.76, 0.54)
+		thumb.size = Vector2(10, 14)
+		thumb.position = Vector2(3, -14)
+		thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(thumb)
+
+		# Fingernail at thumb tip
+		var nail_thumb = ColorRect.new()
+		nail_thumb.color = Color(0.88, 0.82, 0.72)
+		nail_thumb.size = Vector2(10, 4)
+		nail_thumb.position = Vector2(3, -18)
+		nail_thumb.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_body.add_child(nail_thumb)
+
 	# Ducky skin accents — eyes and beak as children of _body so they rotate with it
 	if type == TowerDefinition.TowerType.MECHA_SOLDIER and body_color == TowerSkins.DUCKY_COLOR:
 		var eye_l = ColorRect.new()
