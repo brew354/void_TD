@@ -11,7 +11,7 @@ static func stats(type: EnemyType) -> Dictionary:
 					 "color": Color(0.0, 0.0, 0.0), "color2": Color(0.35, 0.0, 0.55), "size": Vector2(20, 20), "label": "Void Scout" }
 		EnemyType.TANK:
 			return { "hp": 600, "speed": 60.0, "reward": 45, "lives_damage": 3,
-					 "color": Color(1.0, 0.4, 0.0), "size": Vector2(36, 36), "label": "Void Colossus" }
+					 "color": Color(0.0, 0.0, 0.0), "size": Vector2(36, 36), "label": "Void Tanker" }
 		EnemyType.BOSS:
 			return { "hp": 2000, "speed": 40.0, "reward": 200, "lives_damage": 0,
 					 "color": Color(0.6, 0.0, 0.8), "size": Vector2(52, 52), "label": "Void Herald",
