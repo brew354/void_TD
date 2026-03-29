@@ -33,7 +33,6 @@ var _time: float = 0.0
 var _skin_panel: Node2D = null
 var _skin_previews: Array = []        # Array[ColorRect]  one per tower row
 var _swatch_borders: Array = []       # Array[Array[ColorRect]]  [tower][palette]
-var _fingergun_border: ColorRect = null # selection border for the Finger Gun button
 var _ducky_border: ColorRect = null     # selection border for the Ducky button
 var _doggo_border: ColorRect = null     # selection border for the Doggo button
 
@@ -286,29 +285,6 @@ func _build_skin_panel() -> void:
 		# Special named skin buttons
 		var sp_x: float = sw_start_x + 9.0 * (SW_SZ + SW_GAP) + 10.0
 
-		if ti == 0:  # Laser Turret — Finger Gun
-			_fingergun_border = ColorRect.new()
-			_fingergun_border.color = Color(1.0, 1.0, 0.3)
-			_fingergun_border.size = Vector2(SP_W + 4, SW_SZ + 4)
-			_fingergun_border.position = Vector2(sp_x - 2, item_y - 2)
-			_fingergun_border.visible = (TowerSkins.overrides.get(0, Color(-1,-1,-1)) == TowerSkins.FINGERGUN_COLOR)
-			_skin_panel.add_child(_fingergun_border)
-
-			var fg_btn = Button.new()
-			fg_btn.text = "Finger Gun"
-			fg_btn.size = Vector2(SP_W, SW_SZ)
-			fg_btn.position = Vector2(sp_x, item_y)
-			fg_btn.add_theme_font_size_override("font_size", 12)
-			var fg_flat = StyleBoxFlat.new()
-			fg_flat.bg_color = TowerSkins.FINGERGUN_COLOR
-			fg_btn.add_theme_stylebox_override("normal",  fg_flat)
-			fg_btn.add_theme_stylebox_override("hover",   fg_flat)
-			fg_btn.add_theme_stylebox_override("pressed", fg_flat)
-			fg_btn.add_theme_stylebox_override("focus",   fg_flat)
-			fg_btn.add_theme_color_override("font_color", Color(0.15, 0.05, 0.0))
-			fg_btn.pressed.connect(_on_fingergun_pressed)
-			_skin_panel.add_child(fg_btn)
-
 		if ti == 2:  # Void-Seeker — Doggo
 			_doggo_border = ColorRect.new()
 			_doggo_border.color = Color(1.0, 1.0, 0.3)
@@ -371,20 +347,10 @@ func _on_swatch_pressed(tower_idx: int, color_idx: int) -> void:
 	_skin_previews[tower_idx].color = color
 	for ci in _swatch_borders[tower_idx].size():
 		_swatch_borders[tower_idx][ci].visible = (ci == color_idx)
-	if tower_idx == 0 and _fingergun_border != null:
-		_fingergun_border.visible = false
 	if tower_idx == 2 and _doggo_border != null:
 		_doggo_border.visible = false
 	if tower_idx == 3 and _ducky_border != null:
 		_ducky_border.visible = false
-
-func _on_fingergun_pressed() -> void:
-	TowerSkins.set_color(0, TowerSkins.FINGERGUN_COLOR)
-	_skin_previews[0].color = TowerSkins.FINGERGUN_COLOR
-	for border in _swatch_borders[0]:
-		border.visible = false
-	if _fingergun_border != null:
-		_fingergun_border.visible = true
 
 func _on_doggo_pressed() -> void:
 	TowerSkins.set_color(2, TowerSkins.DOGGO_COLOR)
@@ -407,8 +373,6 @@ func _on_reset_skin(tower_idx: int) -> void:
 	_skin_previews[tower_idx].color = _DEFAULT_COLORS[tower_idx]
 	for border in _swatch_borders[tower_idx]:
 		border.visible = false
-	if tower_idx == 0 and _fingergun_border != null:
-		_fingergun_border.visible = false
 	if tower_idx == 2 and _doggo_border != null:
 		_doggo_border.visible = false
 	if tower_idx == 3 and _ducky_border != null:
