@@ -8,7 +8,7 @@ static func stats(type: EnemyType) -> Dictionary:
 	match type:
 		EnemyType.SCOUT:
 			return { "hp": 65, "speed": 200.0, "reward": 5, "lives_damage": 1,
-					 "color": Color(0.0, 1.0, 0.4), "size": Vector2(20, 20), "label": "Void Scout" }
+					 "color": Color(0.35, 0.0, 0.55), "size": Vector2(20, 20), "label": "Void Scout" }
 		EnemyType.TANK:
 			return { "hp": 600, "speed": 60.0, "reward": 45, "lives_damage": 3,
 					 "color": Color(1.0, 0.4, 0.0), "size": Vector2(36, 36), "label": "Void Colossus" }
