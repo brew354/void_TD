@@ -87,9 +87,19 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 	var sz: Vector2 = s["size"]
 	_body_rect = ColorRect.new()
 	_body_rect.color = s["color"]
-	_body_rect.size = sz
-	_body_rect.position = -sz / 2.0
 	_body_rect.pivot_offset = sz / 2.0  # rotate around center
+	if s.has("color2"):
+		# Two-tone: left half = color, right half = color2
+		_body_rect.size = Vector2(sz.x / 2.0, sz.y)
+		_body_rect.position = Vector2(-sz.x / 2.0, -sz.y / 2.0)
+		var half2 = ColorRect.new()
+		half2.color = s["color2"]
+		half2.size = Vector2(sz.x / 2.0, sz.y)
+		half2.position = Vector2(0.0, -sz.y / 2.0)
+		add_child(half2)
+	else:
+		_body_rect.size = sz
+		_body_rect.position = -sz / 2.0
 	add_child(_body_rect)
 
 	# HP bar background
