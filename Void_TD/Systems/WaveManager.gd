@@ -20,10 +20,10 @@ var _endless_wave_count: int = 0
 func _init(scene: Node, endless: bool = false) -> void:
 	_scene = scene
 	is_endless = endless
-	if endless:
-		_waves = []
-	else:
-		_waves = WaveDefinition.all_waves()
+	# Campaign: 19 scripted waves + Final Boss (wave 20)
+	# Endless: same 19 scripted waves, then procedural forever (no Final Boss, no win)
+	_waves = WaveDefinition.all_waves()
+	if not endless:
 		_waves.append(WaveDefinition.final_boss_wave())
 
 func current_wave_number() -> int:
@@ -37,9 +37,9 @@ func has_more_waves() -> bool:
 		return true
 	return _current_wave_index < _waves.size()
 
-## Returns the groups array for the next wave (empty if endless or past end)
+## Returns the groups array for the next wave (empty when past scripted waves)
 func get_next_wave_groups() -> Array:
-	if is_endless or _current_wave_index >= _waves.size():
+	if _current_wave_index >= _waves.size():
 		return []
 	return _waves[_current_wave_index].groups
 
@@ -48,11 +48,11 @@ func start_wave() -> void:
 		return
 	_spawning = true
 	var wave_data
-	if is_endless:
+	if _current_wave_index < _waves.size():
+		wave_data = _waves[_current_wave_index]
+	else:
 		wave_data = WaveDefinition.generate_endless_wave(_endless_wave_count)
 		_endless_wave_count += 1
-	else:
-		wave_data = _waves[_current_wave_index]
 	_current_wave_scale = wave_data.difficulty_scale
 	_current_wave_index += 1
 	_schedule_wave(wave_data)
