@@ -51,6 +51,7 @@ var _panel_row: int = -1
 var _panel_target: String = ""  # "tower" or "base"
 var _base: Node2D
 var _fire_sfx_cooldowns: Dictionary = {}
+var _sfx: Dictionary = {}
 var _tower_counts: Dictionary = {}  # TowerType int key → placed count
 var _path_tile_nodes: Array = []
 var _chevron_tween: Tween = null
@@ -77,6 +78,7 @@ var _endless: bool = false
 func _ready() -> void:
 	TowerSkins.load_from_disk()
 	_endless = GameMode.endless
+	_load_audio()
 	_build_layers()
 	_init_systems()
 	_build_grid()
@@ -388,7 +390,7 @@ func _on_upgrade_pressed() -> void:
 			_credits_spent += up_cost
 			_upgrades_done += 1
 			tower.upgrade()
-			_play_chime([440.0, 554.0, 659.0], 0.09)
+			_play_file("bell_heavy", -6.0)
 			hud.update_credits(currency)
 			_open_upgrade_panel(_panel_col, _panel_row)
 			break
@@ -403,7 +405,7 @@ func _upgrade_base() -> void:
 	_credits_spent += up_cost
 	_upgrades_done += 1
 	_base.upgrade()
-	_play_chime([440.0, 554.0, 659.0], 0.09)
+	_play_file("bell_heavy", -6.0)
 	hud.update_credits(currency)
 	_open_base_panel()
 
@@ -430,7 +432,7 @@ func _on_hud_start_wave() -> void:
 	_close_upgrade_panel()
 	_start_chevron_fade()
 	_lives_at_wave_start = lives
-	_play_sfx(440.0, 0.18, -6.0)
+	_play_file("force_field", -10.0)
 	state_machine.transition_to(GameStateMachine.State.WAVE_IN_PROGRESS)
 	wave_manager.start_wave()
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
@@ -469,16 +471,14 @@ func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
 		return
 	match tower_type:
 		TowerDefinition.TowerType.LASER:
-			_play_sweep(1600.0, 300.0, 0.07, -8.0)
+			_play_file("laser_small", -4.0)
 		TowerDefinition.TowerType.CANNON:
-			_play_noise(0.05, -5.0)
-			_play_sfx(70.0, 0.15, -7.0)
+			_play_file("explosion", -3.0)
 			_screen_shake(3.0, 0.18)
 		TowerDefinition.TowerType.MISSILE:
-			_play_sweep(180.0, 700.0, 0.09, -9.0)
+			_play_file("thruster", -6.0)
 		TowerDefinition.TowerType.MECHA_SOLDIER:
-			_play_noise(0.08, -3.0)
-			_play_sweep(400.0, 80.0, 0.10, -5.0)
+			_play_file("laser_large", -2.0)
 			_screen_shake(5.0, 0.25)
 	_fire_sfx_cooldowns[key] = 0.15
 
@@ -503,22 +503,19 @@ func _on_enemy_died(enemy: EnemyNode) -> void:
 	_spawn_reward_label(enemy.position, enemy.reward)
 	match enemy.enemy_type:
 		EnemyDefinition.EnemyType.SCOUT:
-			_play_sweep(900.0, 180.0, 0.05, -8.0)
+			_play_file("metal_light", -6.0)
 		EnemyDefinition.EnemyType.TANK:
-			_play_noise(0.06, -4.0)
-			_play_sfx(55.0, 0.15, -6.0)
+			_play_file("explosion", -4.0)
 		EnemyDefinition.EnemyType.BOSS:
-			_play_noise(0.12, -3.0)
-			_play_chime([300.0, 200.0, 120.0], 0.1)
+			_play_file("explosion_low", -2.0)
 			_screen_shake(8.0, 0.45)
 		EnemyDefinition.EnemyType.SPEEDER:
-			_play_sweep(1200.0, 100.0, 0.03, -6.0)
+			_play_file("generic_light", -5.0)
 		EnemyDefinition.EnemyType.SHIELDED:
-			_play_noise(0.08, -3.0)
-			_play_sfx(110.0, 0.15, -5.0)
+			_play_file("force_field", -4.0)
 		EnemyDefinition.EnemyType.MEGA_BOSS:
-			_play_noise(0.20, -1.0)
-			_play_chime([200.0, 140.0, 90.0, 55.0], 0.14)
+			_play_file("explosion_low", 0.0)
+			_play_file("explosion", -2.0)
 			_screen_shake(12.0, 0.7)
 	currency += enemy.reward
 	score += enemy.reward
@@ -566,7 +563,9 @@ func _on_wave_complete() -> void:
 	else:
 		_streak = 0
 
-	_play_chime([523.0, 659.0, 784.0, 1047.0], 0.12)
+	_play_file("bell_heavy", -4.0)
+	get_tree().create_timer(0.22).timeout.connect(func(): _play_file("bell_heavy", -5.0), CONNECT_ONE_SHOT)
+	get_tree().create_timer(0.44).timeout.connect(func(): _play_file("bell_heavy", -7.0), CONNECT_ONE_SHOT)
 
 	if not wave_manager.has_more_waves():
 		_trigger_game_over(true)
@@ -577,91 +576,35 @@ func _on_wave_complete() -> void:
 	hud.update_next_wave(_wave_preview_text())
 	hud.set_start_wave_enabled(true)
 
-# ── Audio Helpers ─────────────────────────────────────────────────────────────
-func _make_tone(freq: float, duration: float) -> AudioStreamWAV:
-	var rate := 22050
-	var frames := int(rate * duration)
-	var data := PackedByteArray()
-	data.resize(frames * 2)
-	for i in range(frames):
-		var t := float(i) / float(rate)
-		var env := 1.0 - (t / duration)
-		var s := int(sin(TAU * freq * t) * env * 10000.0)
-		s = clamp(s, -32768, 32767)
-		data[i * 2]     = s & 0xFF
-		data[i * 2 + 1] = (s >> 8) & 0xFF
-	var wav := AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_16_BITS
-	wav.mix_rate = rate
-	wav.stereo = false
-	wav.data = data
-	return wav
+# ── Audio ─────────────────────────────────────────────────────────────────────
+func _load_audio() -> void:
+	var sf := "res://Assets/audio/kenney_sci-fi-sounds/Audio/"
+	var im := "res://Assets/audio/kenney_impact-sounds/Audio/"
+	_sfx["laser_small"]    = _load_sfx_arr(sf + "laserSmall_%03d.ogg",           5)
+	_sfx["laser_large"]    = _load_sfx_arr(sf + "laserLarge_%03d.ogg",           5)
+	_sfx["explosion"]      = _load_sfx_arr(sf + "explosionCrunch_%03d.ogg",      5)
+	_sfx["explosion_low"]  = _load_sfx_arr(sf + "lowFrequency_explosion_%03d.ogg", 2)
+	_sfx["force_field"]    = _load_sfx_arr(sf + "forceField_%03d.ogg",           5)
+	_sfx["thruster"]       = _load_sfx_arr(sf + "thrusterFire_%03d.ogg",         5)
+	_sfx["metal_heavy"]    = _load_sfx_arr(im + "impactMetal_heavy_%03d.ogg",    5)
+	_sfx["metal_light"]    = _load_sfx_arr(im + "impactMetal_light_%03d.ogg",    5)
+	_sfx["generic_light"]  = _load_sfx_arr(im + "impactGeneric_light_%03d.ogg",  5)
+	_sfx["bell_heavy"]     = _load_sfx_arr(im + "impactBell_heavy_%03d.ogg",     5)
 
-func _play_sfx(freq: float, duration: float, volume_db: float = 0.0) -> void:
+func _load_sfx_arr(pattern: String, count: int) -> Array:
+	var arr := []
+	for i in count:
+		var res = load(pattern % i)
+		if res != null:
+			arr.append(res)
+	return arr
+
+func _play_file(key: String, volume_db: float = 0.0) -> void:
+	var arr: Array = _sfx.get(key, [])
+	if arr.is_empty():
+		return
 	var player := AudioStreamPlayer.new()
-	player.stream = _make_tone(freq, duration)
-	player.volume_db = volume_db
-	add_child(player)
-	player.play()
-	player.finished.connect(player.queue_free)
-
-func _play_chime(freqs: Array, note_dur: float) -> void:
-	for i in freqs.size():
-		var freq: float = freqs[i]
-		get_tree().create_timer(float(i) * note_dur * 0.55).timeout.connect(
-			func(): _play_sfx(freq, note_dur, -6.0), CONNECT_ONE_SHOT)
-
-func _make_sweep(freq_start: float, freq_end: float, duration: float) -> AudioStreamWAV:
-	var rate := 22050
-	var frames := int(rate * duration)
-	var data := PackedByteArray()
-	data.resize(frames * 2)
-	for i in range(frames):
-		var t := float(i) / float(rate)
-		var progress := float(i) / float(max(frames - 1, 1))
-		var freq := freq_start + (freq_end - freq_start) * progress
-		var env := 1.0 - (t / duration)
-		var s := int(sin(TAU * freq * t) * env * 10000.0)
-		s = clamp(s, -32768, 32767)
-		data[i * 2]     = s & 0xFF
-		data[i * 2 + 1] = (s >> 8) & 0xFF
-	var wav := AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_16_BITS
-	wav.mix_rate = rate
-	wav.stereo = false
-	wav.data = data
-	return wav
-
-func _make_noise_burst(duration: float) -> AudioStreamWAV:
-	var rate := 22050
-	var frames := int(rate * duration)
-	var data := PackedByteArray()
-	data.resize(frames * 2)
-	for i in range(frames):
-		var t := float(i) / float(rate)
-		var env := pow(1.0 - (t / duration), 2.0)
-		var s := int((randf() * 2.0 - 1.0) * env * 12000.0)
-		s = clamp(s, -32768, 32767)
-		data[i * 2]     = s & 0xFF
-		data[i * 2 + 1] = (s >> 8) & 0xFF
-	var wav := AudioStreamWAV.new()
-	wav.format = AudioStreamWAV.FORMAT_16_BITS
-	wav.mix_rate = rate
-	wav.stereo = false
-	wav.data = data
-	return wav
-
-func _play_sweep(freq_start: float, freq_end: float, duration: float, volume_db: float = 0.0) -> void:
-	var player := AudioStreamPlayer.new()
-	player.stream = _make_sweep(freq_start, freq_end, duration)
-	player.volume_db = volume_db
-	add_child(player)
-	player.play()
-	player.finished.connect(player.queue_free)
-
-func _play_noise(duration: float, volume_db: float = 0.0) -> void:
-	var player := AudioStreamPlayer.new()
-	player.stream = _make_noise_burst(duration)
+	player.stream = arr[randi() % arr.size()]
 	player.volume_db = volume_db
 	add_child(player)
 	player.play()
@@ -691,7 +634,7 @@ func _spawn_streak_label(bonus: int) -> void:
 
 func _on_mega_boss_armor_broken() -> void:
 	_screen_shake(10.0, 0.6)
-	_play_chime([180.0, 120.0, 75.0], 0.12)
+	_play_file("metal_heavy", -3.0)
 	var lbl := Label.new()
 	lbl.text = "THE VOID'S ARMOR SHATTERS!"
 	lbl.position = Vector2(507, 310)
