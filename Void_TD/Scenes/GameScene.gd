@@ -471,9 +471,9 @@ func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
 		return
 	match tower_type:
 		TowerDefinition.TowerType.LASER:
-			_play_file("laser_small", -4.0)
+			_play_file("laser_small", 0.0)
 		TowerDefinition.TowerType.CANNON:
-			_play_file("explosion", -3.0)
+			_play_file("explosion", 0.0)
 			_screen_shake(3.0, 0.18)
 		TowerDefinition.TowerType.MISSILE:
 			_play_file("thruster", -6.0)
@@ -505,7 +505,7 @@ func _on_enemy_died(enemy: EnemyNode) -> void:
 		EnemyDefinition.EnemyType.SCOUT:
 			_play_file("metal_light", -6.0)
 		EnemyDefinition.EnemyType.TANK:
-			_play_file("explosion", -4.0)
+			_play_file("explosion_crunch", -4.0)
 		EnemyDefinition.EnemyType.BOSS:
 			_play_file("explosion_low", -2.0)
 			_screen_shake(8.0, 0.45)
@@ -580,9 +580,10 @@ func _on_wave_complete() -> void:
 func _load_audio() -> void:
 	var sf := "res://Assets/audio/kenney_sci-fi-sounds/Audio/"
 	var im := "res://Assets/audio/kenney_impact-sounds/Audio/"
-	_sfx["laser_small"]    = _load_sfx_arr(sf + "laserSmall_%03d.ogg",           5)
+	_sfx["laser_small"]    = _load_sfx_arr(sf + "laserRetro_%03d.ogg",            5)
 	_sfx["laser_large"]    = _load_sfx_arr(sf + "laserLarge_%03d.ogg",           5)
-	_sfx["explosion"]      = _load_sfx_arr(sf + "explosionCrunch_%03d.ogg",      5)
+	_sfx["explosion"]      = _load_sfx_arr(sf + "lowFrequency_explosion_%03d.ogg", 2)
+	_sfx["explosion_crunch"] = _load_sfx_arr(sf + "explosionCrunch_%03d.ogg",    5)
 	_sfx["explosion_low"]  = _load_sfx_arr(sf + "lowFrequency_explosion_%03d.ogg", 2)
 	_sfx["force_field"]    = _load_sfx_arr(sf + "forceField_%03d.ogg",           5)
 	_sfx["thruster"]       = _load_sfx_arr(sf + "thrusterFire_%03d.ogg",         5)
