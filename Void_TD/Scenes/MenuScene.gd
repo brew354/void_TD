@@ -172,94 +172,109 @@ func _build_skin_panel() -> void:
 	_skin_panel.visible = false
 	add_child(_skin_panel)
 
-	# Semi-transparent overlay
-	var overlay = ColorRect.new()
-	overlay.color = Color(0, 0, 0, 0.78)
-	overlay.size = Vector2(1334, 750)
-	overlay.position = Vector2.ZERO
-	_skin_panel.add_child(overlay)
+	# ── Full-screen background ────────────────────────────────────────────────
+	var bg = ColorRect.new()
+	bg.color = Color(0.04, 0.0, 0.08)
+	bg.size = Vector2(1334, 750)
+	bg.position = Vector2.ZERO
+	_skin_panel.add_child(bg)
 
-	# Panel background
-	const PW: float = 700.0
-	const PH: float = 290.0
-	var px: float = (1334.0 - PW) / 2.0
-	var py: float = (750.0  - PH) / 2.0
-
-	var panel_bg = ColorRect.new()
-	panel_bg.color = Color(0.06, 0.0, 0.1, 0.98)
-	panel_bg.size = Vector2(PW, PH)
-	panel_bg.position = Vector2(px, py)
-	_skin_panel.add_child(panel_bg)
-
-	# Header bar
+	# ── Header ────────────────────────────────────────────────────────────────
+	const HEADER_H: float = 68.0
 	var header = ColorRect.new()
-	header.color = Color(0.22, 0.0, 0.38, 1.0)
-	header.size = Vector2(PW, 38)
-	header.position = Vector2(px, py)
+	header.color = Color(0.15, 0.0, 0.26)
+	header.size = Vector2(1334, HEADER_H)
+	header.position = Vector2.ZERO
 	_skin_panel.add_child(header)
 
 	var title_lbl = Label.new()
 	title_lbl.text = "Tower Skins"
-	title_lbl.position = Vector2(px + 14, py + 7)
-	title_lbl.add_theme_font_size_override("font_size", 20)
+	title_lbl.size = Vector2(1334, HEADER_H)
+	title_lbl.position = Vector2.ZERO
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 30)
 	title_lbl.add_theme_color_override("font_color", Color.WHITE)
 	_skin_panel.add_child(title_lbl)
 
 	var close_btn = Button.new()
 	close_btn.text = "X"
-	close_btn.size = Vector2(30, 30)
-	close_btn.position = Vector2(px + PW - 34, py + 4)
+	close_btn.size = Vector2(44, 44)
+	close_btn.position = Vector2(1334 - 52, 12)
+	close_btn.add_theme_font_size_override("font_size", 18)
 	close_btn.pressed.connect(func(): _skin_panel.visible = false)
 	_skin_panel.add_child(close_btn)
 
-	# One row per tower type
+	# ── Layout constants ──────────────────────────────────────────────────────
+	const ROW_H:    float = 130.0
+	const SW_SZ:    float = 52.0   # swatch size
+	const SW_GAP:   float = 8.0
+	const LM:       float = 173.0  # left margin (symmetric with right)
+	const NAME_W:   float = 180.0
+	const PREV_SZ:  float = 52.0
+	const SP_W:     float = 90.0   # special skin button width
+	const DEF_X:    float = 1059.0 # Default button x (fixed for all rows)
+	const DEF_W:    float = 102.0
+
+	# Vertically center the 4 rows in the space below the header
+	var rows_total: float = ROW_H * 4.0
+	var row_start_y: float = HEADER_H + (750.0 - HEADER_H - rows_total) / 2.0
+
 	var tower_labels = ["Photon Lance", "Plasma Cannon", "Void-Seeker", "Titan Mech"]
 
 	for ti in 4:
-		var row_y: float = py + 48 + ti * 58
+		var row_y: float = row_start_y + ti * ROW_H
+		var item_y: float = row_y + (ROW_H - SW_SZ) / 2.0   # vertically center items in row
+
+		# Subtle row separator
+		if ti > 0:
+			var sep = ColorRect.new()
+			sep.color = Color(0.2, 0.0, 0.35, 0.4)
+			sep.size = Vector2(1334, 1)
+			sep.position = Vector2(0, row_y)
+			_skin_panel.add_child(sep)
 
 		# Tower name label
 		var name_lbl = Label.new()
 		name_lbl.text = tower_labels[ti]
-		name_lbl.position = Vector2(px + 12, row_y + 8)
-		name_lbl.size = Vector2(128, 28)
-		name_lbl.add_theme_font_size_override("font_size", 14)
+		name_lbl.position = Vector2(LM, row_y + (ROW_H - 24) / 2.0)
+		name_lbl.size = Vector2(NAME_W, 24)
+		name_lbl.add_theme_font_size_override("font_size", 16)
 		name_lbl.add_theme_color_override("font_color", Color(0.85, 0.75, 1.0))
 		_skin_panel.add_child(name_lbl)
 
 		# Current color preview square
 		var preview = ColorRect.new()
-		preview.size = Vector2(36, 36)
-		preview.position = Vector2(px + 144, row_y + 4)
+		preview.size = Vector2(PREV_SZ, PREV_SZ)
+		preview.position = Vector2(LM + NAME_W + 10.0, item_y)
 		preview.color = TowerSkins.get_color(ti, _DEFAULT_COLORS[ti])
 		_skin_panel.add_child(preview)
 		_skin_previews.append(preview)
 
 		# Palette swatches
+		var sw_start_x: float = LM + NAME_W + 10.0 + PREV_SZ + 10.0
 		var row_borders: Array = []
 		for ci in _PALETTE.size():
-			var sx: float = px + 190.0 + ci * 42.0
+			var sx: float = sw_start_x + ci * (SW_SZ + SW_GAP)
 
-			# Yellow selection border (shown when this swatch is active)
 			var border = ColorRect.new()
 			border.color = Color(1.0, 1.0, 0.3)
-			border.size = Vector2(38, 38)
-			border.position = Vector2(sx - 1, row_y + 3)
+			border.size = Vector2(SW_SZ + 4, SW_SZ + 4)
+			border.position = Vector2(sx - 2, item_y - 2)
 			var current = TowerSkins.overrides.get(ti, Color(-1, -1, -1))
 			border.visible = (current == _PALETTE[ci])
 			_skin_panel.add_child(border)
 			row_borders.append(border)
 
-			# Swatch button
 			var swatch = Button.new()
-			swatch.size = Vector2(36, 36)
-			swatch.position = Vector2(sx, row_y + 4)
+			swatch.size = Vector2(SW_SZ, SW_SZ)
+			swatch.position = Vector2(sx, item_y)
 			var flat = StyleBoxFlat.new()
 			flat.bg_color = _PALETTE[ci]
-			swatch.add_theme_stylebox_override("normal",   flat)
-			swatch.add_theme_stylebox_override("hover",    flat)
-			swatch.add_theme_stylebox_override("pressed",  flat)
-			swatch.add_theme_stylebox_override("focus",    flat)
+			swatch.add_theme_stylebox_override("normal",  flat)
+			swatch.add_theme_stylebox_override("hover",   flat)
+			swatch.add_theme_stylebox_override("pressed", flat)
+			swatch.add_theme_stylebox_override("focus",   flat)
 			var cap_ti = ti
 			var cap_ci = ci
 			swatch.pressed.connect(func(): _on_swatch_pressed(cap_ti, cap_ci))
@@ -267,49 +282,45 @@ func _build_skin_panel() -> void:
 
 		_swatch_borders.append(row_borders)
 
-		# Void-Seeker (ti == 2) gets a Doggo special skin button
-		if ti == 2:
-			var dog_x: float = px + PW - 158.0
+		# Special named skin buttons (Doggo for Void-Seeker, Ducky for Titan Mech)
+		var sp_x: float = sw_start_x + 9.0 * (SW_SZ + SW_GAP) + 10.0
 
+		if ti == 2:  # Void-Seeker — Doggo
 			_doggo_border = ColorRect.new()
 			_doggo_border.color = Color(1.0, 1.0, 0.3)
-			_doggo_border.size = Vector2(68, 38)
-			_doggo_border.position = Vector2(dog_x - 1, row_y + 3)
+			_doggo_border.size = Vector2(SP_W + 4, SW_SZ + 4)
+			_doggo_border.position = Vector2(sp_x - 2, item_y - 2)
 			_doggo_border.visible = (TowerSkins.overrides.get(2, Color(-1,-1,-1)) == TowerSkins.DOGGO_COLOR)
 			_skin_panel.add_child(_doggo_border)
 
 			var dog_btn = Button.new()
 			dog_btn.text = "Doggo"
-			dog_btn.size = Vector2(66, 36)
-			dog_btn.position = Vector2(dog_x, row_y + 4)
-			dog_btn.add_theme_font_size_override("font_size", 13)
+			dog_btn.size = Vector2(SP_W, SW_SZ)
+			dog_btn.position = Vector2(sp_x, item_y)
+			dog_btn.add_theme_font_size_override("font_size", 14)
 			var dog_flat = StyleBoxFlat.new()
 			dog_flat.bg_color = TowerSkins.DOGGO_COLOR
 			dog_btn.add_theme_stylebox_override("normal",  dog_flat)
 			dog_btn.add_theme_stylebox_override("hover",   dog_flat)
 			dog_btn.add_theme_stylebox_override("pressed", dog_flat)
 			dog_btn.add_theme_stylebox_override("focus",   dog_flat)
-			dog_btn.add_theme_color_override("font_color", Color(1.0, 1.0, 1.0))
+			dog_btn.add_theme_color_override("font_color", Color.WHITE)
 			dog_btn.pressed.connect(_on_doggo_pressed)
 			_skin_panel.add_child(dog_btn)
 
-		# Titan Mech (ti == 3) gets an extra Ducky special skin button
-		if ti == 3:
-			var duck_x: float = px + PW - 158.0
-
-			# Ducky selection border
+		if ti == 3:  # Titan Mech — Ducky
 			_ducky_border = ColorRect.new()
 			_ducky_border.color = Color(1.0, 1.0, 0.3)
-			_ducky_border.size = Vector2(68, 38)
-			_ducky_border.position = Vector2(duck_x - 1, row_y + 3)
+			_ducky_border.size = Vector2(SP_W + 4, SW_SZ + 4)
+			_ducky_border.position = Vector2(sp_x - 2, item_y - 2)
 			_ducky_border.visible = (TowerSkins.overrides.get(3, Color(-1,-1,-1)) == TowerSkins.DUCKY_COLOR)
 			_skin_panel.add_child(_ducky_border)
 
 			var duck_btn = Button.new()
 			duck_btn.text = "Ducky"
-			duck_btn.size = Vector2(66, 36)
-			duck_btn.position = Vector2(duck_x, row_y + 4)
-			duck_btn.add_theme_font_size_override("font_size", 13)
+			duck_btn.size = Vector2(SP_W, SW_SZ)
+			duck_btn.position = Vector2(sp_x, item_y)
+			duck_btn.add_theme_font_size_override("font_size", 14)
 			var duck_flat = StyleBoxFlat.new()
 			duck_flat.bg_color = TowerSkins.DUCKY_COLOR
 			duck_btn.add_theme_stylebox_override("normal",  duck_flat)
@@ -320,12 +331,12 @@ func _build_skin_panel() -> void:
 			duck_btn.pressed.connect(_on_ducky_pressed)
 			_skin_panel.add_child(duck_btn)
 
-		# Reset / Default button
+		# Default button — fixed x so it lines up across all rows
 		var reset_btn = Button.new()
 		reset_btn.text = "Default"
-		reset_btn.size = Vector2(72, 30)
-		reset_btn.position = Vector2(px + PW - 82, row_y + 8)
-		reset_btn.add_theme_font_size_override("font_size", 13)
+		reset_btn.size = Vector2(DEF_W, 38)
+		reset_btn.position = Vector2(DEF_X, row_y + (ROW_H - 38) / 2.0)
+		reset_btn.add_theme_font_size_override("font_size", 14)
 		var cap_ti2 = ti
 		reset_btn.pressed.connect(func(): _on_reset_skin(cap_ti2))
 		_skin_panel.add_child(reset_btn)
