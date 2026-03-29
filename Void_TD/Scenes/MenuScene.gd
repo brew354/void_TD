@@ -39,7 +39,7 @@ func _ready() -> void:
 	add_child(_title)
 
 	var sub = Label.new()
-	sub.text = "The last human base. The last hope for the universe."
+	sub.text = "a void tower defense game"
 	sub.position = Vector2(0, 286)
 	sub.size = Vector2(1334, 36)
 	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -48,16 +48,15 @@ func _ready() -> void:
 	sub.modulate.a = 0.0
 	add_child(sub)
 
-	# Lore blurb
-	var lore = Label.new()
-	lore.text = "The Void stirs on its home planet.\nIts forces march on the last human stronghold.\nDefeat it — or the universe falls."
-	lore.position = Vector2(0, 320)
-	lore.size = Vector2(1334, 72)
-	lore.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lore.add_theme_font_size_override("font_size", 16)
-	lore.add_theme_color_override("font_color", Color(0.55, 0.45, 0.7))
-	lore.modulate.a = 0.0
-	add_child(lore)
+	var made_by = Label.new()
+	made_by.text = "made by Findog_Games"
+	made_by.position = Vector2(0, 320)
+	made_by.size = Vector2(1334, 36)
+	made_by.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	made_by.add_theme_font_size_override("font_size", 18)
+	made_by.add_theme_color_override("font_color", Color(0.55, 0.45, 0.7))
+	made_by.modulate.a = 0.0
+	add_child(made_by)
 
 	# Campaign button
 	var btn_campaign = Button.new()
@@ -108,7 +107,7 @@ func _ready() -> void:
 	var tween = create_tween().set_parallel(true)
 	tween.tween_property(_title,       "modulate:a", 1.0, 1.2)
 	tween.tween_property(sub,          "modulate:a", 1.0, 0.8).set_delay(0.9)
-	tween.tween_property(lore,         "modulate:a", 1.0, 0.8).set_delay(1.1)
+	tween.tween_property(made_by,      "modulate:a", 1.0, 0.8).set_delay(1.1)
 	tween.tween_property(btn_campaign, "modulate:a", 1.0, 0.8).set_delay(1.6)
 	tween.tween_property(btn_endless,  "modulate:a", 1.0, 0.8).set_delay(1.6)
 	tween.tween_property(lbl_c,        "modulate:a", 1.0, 0.8).set_delay(1.8)
