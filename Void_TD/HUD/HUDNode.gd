@@ -25,7 +25,7 @@ var _lives_label: Label
 var _wave_label: Label
 var _score_label: Label
 var _credits_label: Label
-var _next_wave_label: Label
+var _next_wave_label: Label  # unused, kept for API compatibility
 var _start_wave_btn: Button
 var _pause_btn: Button
 var _speed_btn: Button
@@ -114,12 +114,6 @@ func _build_hud() -> void:
 	_speed_btn.add_theme_font_size_override("font_size", 12)
 	_speed_btn.pressed.connect(_on_speed_btn_pressed)
 	add_child(_speed_btn)
-
-	# Incoming wave label — fills the gap between tower buttons and right controls
-	var tower_section_end: float = _BTN_GAP + _TOWER_TYPES.size() * (_BTN_W + _BTN_GAP)
-	_next_wave_label = _make_small_label("", Vector2(tower_section_end + 8, _BOT_Y + 9))
-	_next_wave_label.size = Vector2(988 - tower_section_end - 12, 20)
-	add_child(_next_wave_label)
 
 	_build_upgrade_panel()
 
@@ -296,8 +290,8 @@ func set_selected_tower(type: TowerDefinition.TowerType) -> void:
 	for i in _tower_btns.size():
 		_tower_btns[i].modulate = Color(0.4, 1.0, 0.4) if i == int(type) else Color(1, 1, 1)
 
-func update_next_wave(text: String) -> void:
-	_next_wave_label.text = text
+func update_next_wave(_text: String) -> void:
+	pass  # incoming wave label removed
 
 func _on_speed_btn_pressed() -> void:
 	_fast_mode = not _fast_mode
