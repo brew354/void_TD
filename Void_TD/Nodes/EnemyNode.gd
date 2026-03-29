@@ -44,11 +44,22 @@ var _current_waypoint: int = 1
 var _total_path_length: float = 0.0
 var _distance_traveled: float = 0.0
 
-var _body_pivot: Node2D  # parent for all body halves; rotated to face movement
-var _body_rect: ColorRect
+var _sprite: Sprite2D
 var _hp_bar_bg: ColorRect
 var _hp_bar_fg: ColorRect
 var _shard_color: Color = Color.WHITE
+
+# Sprite paths indexed by EnemyType int
+const _SPRITE_PATHS = {
+	0: "res://Assets/enemies/spaceships/spaceshipset32x32/enemy_1.png",     # SCOUT
+	1: "res://Assets/enemies/spaceships/spaceshipset32x32/enemy_3.png",     # TANK
+	2: "res://Assets/enemies/spaceships/spaceshipset32x32/boss1.png",       # BOSS (Void Herald)
+	3: "res://Assets/enemies/spaceships/spaceshipset32x32/player_ship.png", # SPEEDER
+	4: "res://Assets/enemies/spaceships/spaceshipset32x32/enemy_2.png",     # SHIELDED
+	5: "res://Assets/enemies/spaceships/spaceshipset32x32/boss1.png",       # MEGA_BOSS
+}
+# Natural pixel size of each sprite (boss1 is 128×128, all others 32×32)
+const _NATURAL_PX = {0: 32, 1: 32, 2: 128, 3: 32, 4: 32, 5: 128}
 
 func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 	enemy_type = type
@@ -69,14 +80,14 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 	if s.has("shield_interval"):
 		_shield_interval_val = float(s["shield_interval"])
 		_shield_duration_val = float(s["shield_duration"])
-		_shield_phase_timer = _shield_interval_val  # start vulnerable
+		_shield_phase_timer = _shield_interval_val
 
 	if s.has("armor_threshold"):
 		_armor_threshold = float(s["armor_threshold"])
-		_armor_phase2_speed = speed * 2.0  # double the already wave-scaled speed
+		_armor_phase2_speed = speed * 2.0
 		_is_armored = true
 
-	# Shard color: lighten the enemy color; fall back to void purple if it's too dark
+	# Shard color: lighten the enemy color; fall back to void purple if too dark
 	var raw: Color = s["color"]
 	_shard_color = raw.lightened(0.45) if (raw.r + raw.g + raw.b) > 0.25 else Color(0.65, 0.15, 1.0)
 
@@ -89,26 +100,17 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 	for i in range(_waypoints.size() - 1):
 		_total_path_length += _waypoints[i].distance_to(_waypoints[i + 1])
 
-	# Build visuals
+	# Build sprite
 	var sz: Vector2 = s["size"]
-	_body_pivot = Node2D.new()
-	add_child(_body_pivot)
+	var ti: int = int(type)
+	var natural_px: float = float(_NATURAL_PX[ti])
+	var sf: float = sz.x / natural_px
 
-	_body_rect = ColorRect.new()
-	_body_rect.color = s["color"]
-	if s.has("color2"):
-		# Two-tone: left half = color, right half = color2
-		_body_rect.size = Vector2(sz.x / 2.0, sz.y)
-		_body_rect.position = Vector2(-sz.x / 2.0, -sz.y / 2.0)
-		var half2 = ColorRect.new()
-		half2.color = s["color2"]
-		half2.size = Vector2(sz.x / 2.0, sz.y)
-		half2.position = Vector2(0.0, -sz.y / 2.0)
-		_body_pivot.add_child(half2)
-	else:
-		_body_rect.size = sz
-		_body_rect.position = -sz / 2.0
-	_body_pivot.add_child(_body_rect)
+	_sprite = Sprite2D.new()
+	_sprite.texture = load(_SPRITE_PATHS[ti])
+	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_sprite.scale = Vector2(sf, sf)
+	add_child(_sprite)
 
 	# HP bar background
 	_hp_bar_bg = ColorRect.new()
@@ -153,8 +155,8 @@ func _process(delta: float) -> void:
 	var dist_to_target = position.distance_to(target)
 	var move_dist = speed * delta
 
-	# Rotate body to face movement direction
-	_body_pivot.rotation = dir.angle()
+	# Rotate sprite to face movement direction (sprites point up by default)
+	_sprite.rotation = dir.angle() + PI / 2.0
 
 	if move_dist >= dist_to_target:
 		position = target
@@ -208,8 +210,8 @@ func _break_armor() -> void:
 	if _armor_ring_node != null:
 		_armor_ring_node.queue_free()
 		_armor_ring_node = null
-	# Shift to exposed color (glowing orange-red)
-	_body_rect.color = Color(0.85, 0.25, 0.05)
+	# Tint sprite orange-red to show exposed state
+	_sprite.modulate = Color(1.0, 0.3, 0.06)
 	armor_broken.emit()
 
 func _update_hp_bar() -> void:
@@ -226,14 +228,13 @@ func _on_die() -> void:
 	if is_dead:
 		return
 	is_dead = true
-	_body_rect.color = Color.WHITE
 	_hp_bar_bg.visible = false
 	_hp_bar_fg.visible = false
 	died.emit(self)
 	_spawn_death_shards()
 	var tween = create_tween().set_parallel(true)
 	tween.tween_property(self, "scale", Vector2(1.4, 1.4), 0.12)
-	tween.tween_property(_body_rect, "modulate:a", 0.0, 0.12)
+	tween.tween_property(_sprite, "modulate:a", 0.0, 0.12)
 	await tween.finished
 	queue_free()
 
@@ -280,11 +281,8 @@ class _ArmorRing extends Node2D:
 
 	func _draw() -> void:
 		var pulse := 0.7 + 0.3 * sin(_t * 2.5)
-		# Outer thick ring — dark steel gray
 		draw_arc(Vector2.ZERO, ring_radius, 0, TAU, 48, Color(0.55, 0.55, 0.6, pulse), 4.0, true)
-		# Inner highlight ring
 		draw_arc(Vector2.ZERO, ring_radius - 6.0, 0, TAU, 48, Color(0.8, 0.8, 0.85, pulse * 0.5), 1.5, true)
-		# Four corner bolts
 		for i in 4:
 			var angle := _t * 0.4 + i * TAU / 4.0
 			var bp := Vector2(cos(angle), sin(angle)) * ring_radius

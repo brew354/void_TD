@@ -24,13 +24,33 @@ var _level_label: Label
 
 var _fire_cooldown: float = 0.0
 var _stun_timer: float = 0.0
-var _projectile_layer: Node2D  # Set by GameScene after placing
-var _enemies_ref: Array  # Reference to GameScene's live enemies
+var _projectile_layer: Node2D
+var _enemies_ref: Array
 
-var _body: ColorRect
-var _normal_color: Color
+var _base_sprite: Sprite2D
+var _barrel_sprite: Sprite2D
+var _mouse_rect: ColorRect      # transparent overlay for hover/click detection
+var _normal_modulate: Color
 var _range_ring: Node2D
 var _fire_tween: Tween
+
+# Sprite asset paths indexed by TowerType int
+const _BASE_PATHS = {
+	0: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_turret.png",
+	1: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon.png",
+	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/flak_cannon/flak_turret.png",
+	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/heavy_laser_cannon/heavy_laser_cannon.png",
+}
+const _BARREL_PATHS = {
+	0: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_barrel.png",
+	1: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon_barrel.png",
+	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/flak_cannon/flak_barrel.png",
+	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/heavy_laser_cannon/heavy_laser_cannon_barrel.png",
+}
+# Uniform scale applied to both base and barrel to reach ~48 px display size
+const _SPRITE_SCALE = {0: 1.5, 1: 1.5, 2: 1.0, 3: 1.0}
+# Barrel offset.y (local, pre-scale) so the barrel's bottom aligns with the node origin
+const _BARREL_OFFSET_Y = {0: -16.0, 1: -16.0, 2: -24.0, 3: -16.0}
 
 func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) -> void:
 	tower_type = type
@@ -47,82 +67,36 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	base_range = range_radius
 	total_invested = s["cost"]
 
-	# Body: colored square — default color overridden by player skin choice
-	var default_colors = {
-		TowerDefinition.TowerType.LASER:         Color(0.2, 0.6, 1.0),
-		TowerDefinition.TowerType.CANNON:        Color(0.9, 0.5, 0.1),
-		TowerDefinition.TowerType.MISSILE:       Color(0.8, 0.2, 0.8),
-		TowerDefinition.TowerType.MECHA_SOLDIER: Color(1.0, 0.15, 0.0),
-	}
-	var body_color: Color = TowerSkins.get_color(int(type), default_colors[type])
-	_body = ColorRect.new()
-	_body.color = body_color
-	_normal_color = body_color
-	_body.size = Vector2(40, 40)
-	_body.position = Vector2(-20, -20)
-	_body.pivot_offset = Vector2(20, 20)
-	_body.mouse_filter = Control.MOUSE_FILTER_PASS
-	add_child(_body)
+	var ti: int = int(type)
+	# Color.WHITE = show natural sprite; any override = tint the sprite that color
+	_normal_modulate = TowerSkins.overrides.get(ti, Color.WHITE)
 
-	# Doggo skin accents — ears, eyes, nose as children of _body so they rotate with it
-	if type == TowerDefinition.TowerType.MISSILE and body_color == TowerSkins.DOGGO_COLOR:
-		var ear_l = ColorRect.new()  # left ear (darker brown patch, top-left)
-		ear_l.color = Color(0.48, 0.26, 0.05)
-		ear_l.size = Vector2(11, 14)
-		ear_l.position = Vector2(2, 2)
-		ear_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_body.add_child(ear_l)
+	# Base sprite (stationary)
+	_base_sprite = Sprite2D.new()
+	_base_sprite.texture = load(_BASE_PATHS[ti])
+	_base_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_base_sprite.scale = Vector2(_SPRITE_SCALE[ti], _SPRITE_SCALE[ti])
+	_base_sprite.modulate = _normal_modulate
+	add_child(_base_sprite)
 
-		var ear_r = ColorRect.new()  # right ear (top-right)
-		ear_r.color = Color(0.48, 0.26, 0.05)
-		ear_r.size = Vector2(11, 14)
-		ear_r.position = Vector2(27, 2)
-		ear_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_body.add_child(ear_r)
+	# Barrel sprite (rotates to face target; offset so bottom is at node origin)
+	_barrel_sprite = Sprite2D.new()
+	_barrel_sprite.texture = load(_BARREL_PATHS[ti])
+	_barrel_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_barrel_sprite.scale = Vector2(_SPRITE_SCALE[ti], _SPRITE_SCALE[ti])
+	_barrel_sprite.offset = Vector2(0.0, _BARREL_OFFSET_Y[ti])
+	_barrel_sprite.modulate = _normal_modulate
+	add_child(_barrel_sprite)
 
-		var eye_l = ColorRect.new()
-		eye_l.color = Color(0.05, 0.05, 0.05)
-		eye_l.size = Vector2(5, 5)
-		eye_l.position = Vector2(8, 18)
-		eye_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_body.add_child(eye_l)
-
-		var eye_r = ColorRect.new()
-		eye_r.color = Color(0.05, 0.05, 0.05)
-		eye_r.size = Vector2(5, 5)
-		eye_r.position = Vector2(25, 18)
-		eye_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_body.add_child(eye_r)
-
-		var nose = ColorRect.new()  # nose on the right side (front)
-		nose.color = Color(0.05, 0.05, 0.05)
-		nose.size = Vector2(8, 6)
-		nose.position = Vector2(33, 27)
-		nose.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_body.add_child(nose)
-
-	# Ducky skin accents — eyes and beak as children of _body so they rotate with it
-	if type == TowerDefinition.TowerType.MECHA_SOLDIER and body_color == TowerSkins.DUCKY_COLOR:
-		var eye_l = ColorRect.new()
-		eye_l.color = Color(0.05, 0.05, 0.05)
-		eye_l.size = Vector2(5, 5)
-		eye_l.position = Vector2(8, 9)
-		eye_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_body.add_child(eye_l)
-
-		var eye_r = ColorRect.new()
-		eye_r.color = Color(0.05, 0.05, 0.05)
-		eye_r.size = Vector2(5, 5)
-		eye_r.position = Vector2(24, 9)
-		eye_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_body.add_child(eye_r)
-
-		var beak = ColorRect.new()
-		beak.color = Color(1.0, 0.45, 0.0)
-		beak.size = Vector2(8, 6)
-		beak.position = Vector2(33, 17)
-		beak.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_body.add_child(beak)
+	# Transparent ColorRect for hover detection (Control nodes have mouse signals)
+	_mouse_rect = ColorRect.new()
+	_mouse_rect.color = Color(0.0, 0.0, 0.0, 0.0)
+	_mouse_rect.size = Vector2(48, 48)
+	_mouse_rect.position = Vector2(-24, -24)
+	_mouse_rect.mouse_filter = Control.MOUSE_FILTER_PASS
+	_mouse_rect.mouse_entered.connect(func(): _range_ring.visible = true)
+	_mouse_rect.mouse_exited.connect(func(): _range_ring.visible = false)
+	add_child(_mouse_rect)
 
 	# Range ring — visible on hover only
 	_range_ring = Node2D.new()
@@ -131,10 +105,8 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	var ring = _RangeRing.new()
 	ring.radius = range_radius
 	_range_ring.add_child(ring)
-	_body.mouse_entered.connect(func(): _range_ring.visible = true)
-	_body.mouse_exited.connect(func(): _range_ring.visible = false)
 
-	# Level label (bottom-right of body, hidden at L1)
+	# Level label (bottom-right, hidden at L1)
 	_level_label = Label.new()
 	_level_label.add_theme_font_size_override("font_size", 10)
 	_level_label.add_theme_color_override("font_color", Color(1.0, 0.9, 0.0))
@@ -159,7 +131,9 @@ func apply_stun(duration: float) -> void:
 	if _fire_tween:
 		_fire_tween.kill()
 	_stun_timer = max(_stun_timer, duration)
-	_body.color = Color(0.4, 0.4, 0.5)
+	var stun_col := Color(0.4, 0.4, 0.5)
+	_base_sprite.modulate   = stun_col
+	_barrel_sprite.modulate = stun_col
 
 func update_tower(delta: float, enemies: Array) -> void:
 	_enemies_ref = enemies
@@ -167,12 +141,13 @@ func update_tower(delta: float, enemies: Array) -> void:
 		_stun_timer -= delta
 		if _stun_timer <= 0.0:
 			_stun_timer = 0.0
-			_body.color = _normal_color
+			_base_sprite.modulate   = _normal_modulate
+			_barrel_sprite.modulate = _normal_modulate
 		return
 
 	var target = _pick_target()
 	if target != null:
-		_body.rotation = (target.position - position).angle()
+		_barrel_sprite.rotation = (target.position - position).angle() + PI / 2.0
 
 	_fire_cooldown -= delta
 	if _fire_cooldown > 0.0:
@@ -202,12 +177,16 @@ func _spawn_projectile(target: EnemyNode) -> void:
 	proj.position = position
 	_projectile_layer.add_child(proj)
 	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref, int(tower_type))
-	# Fire flash
+	# Fire flash — briefly brighten then fade back
 	if _fire_tween:
 		_fire_tween.kill()
-	_body.color = _normal_color.lightened(0.7)
-	_fire_tween = create_tween()
-	_fire_tween.tween_property(_body, "color", _normal_color, 0.12)
+	var flash_col := Color(_normal_modulate.r * 2.5, _normal_modulate.g * 2.5,
+						   _normal_modulate.b * 2.5, 1.0)
+	_base_sprite.modulate   = flash_col
+	_barrel_sprite.modulate = flash_col
+	_fire_tween = create_tween().set_parallel(true)
+	_fire_tween.tween_property(_base_sprite,   "modulate", _normal_modulate, 0.12)
+	_fire_tween.tween_property(_barrel_sprite, "modulate", _normal_modulate, 0.12)
 	fired.emit(tower_type)
 
 

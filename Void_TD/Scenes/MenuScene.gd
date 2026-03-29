@@ -21,10 +21,10 @@ const _PALETTE: Array = [
 ]
 
 const _DEFAULT_COLORS: Array = [
-	Color(0.2,  0.6,  1.0),  # Photon Lance
-	Color(0.9,  0.5,  0.1),  # Plasma Cannon
-	Color(0.8,  0.2,  0.8),  # Void-Seeker
-	Color(1.0,  0.15, 0.0),  # Titan Mech
+	Color(1.0, 1.0, 1.0),  # Laser Turret  — natural sprite (no tint)
+	Color(1.0, 1.0, 1.0),  # Plasma Cannon — natural sprite (no tint)
+	Color(1.0, 1.0, 1.0),  # Void-Seeker   — natural sprite (no tint)
+	Color(1.0, 1.0, 1.0),  # Titan Mech    — natural sprite (no tint)
 ]
 
 var _title: Label
