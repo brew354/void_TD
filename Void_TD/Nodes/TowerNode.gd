@@ -48,7 +48,8 @@ const _BARREL_PATHS = {
 	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/heavy_laser_cannon/heavy_laser_cannon_barrel.png",
 }
 # Uniform scale applied to both base and barrel to reach ~48 px display size
-const _SPRITE_SCALE = {0: 1.5, 1: 1.5, 2: 1.0, 3: 1.0}
+const _BASE_SCALE   = {0: 1.5,  1: 1.5, 2: 1.0, 3: 1.0}
+const _BARREL_SCALE = {0: 0.8,  1: 1.5, 2: 1.0, 3: 1.0}
 # Barrel offset.y (local, pre-scale) so the barrel's bottom aligns with the node origin
 const _BARREL_OFFSET_Y = {0: -16.0, 1: -16.0, 2: -24.0, 3: -16.0}
 
@@ -75,7 +76,7 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_base_sprite = Sprite2D.new()
 	_base_sprite.texture = load(_BASE_PATHS[ti])
 	_base_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_base_sprite.scale = Vector2(_SPRITE_SCALE[ti], _SPRITE_SCALE[ti])
+	_base_sprite.scale = Vector2(_BASE_SCALE[ti], _BASE_SCALE[ti])
 	_base_sprite.modulate = _normal_modulate
 	add_child(_base_sprite)
 
@@ -83,7 +84,7 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_barrel_sprite = Sprite2D.new()
 	_barrel_sprite.texture = load(_BARREL_PATHS[ti])
 	_barrel_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_barrel_sprite.scale = Vector2(_SPRITE_SCALE[ti], _SPRITE_SCALE[ti])
+	_barrel_sprite.scale = Vector2(_BARREL_SCALE[ti], _BARREL_SCALE[ti])
 	_barrel_sprite.offset = Vector2(0.0, _BARREL_OFFSET_Y[ti])
 	_barrel_sprite.modulate = _normal_modulate
 	add_child(_barrel_sprite)
