@@ -39,19 +39,19 @@ const _BASE_PATHS = {
 	0: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_turret.png",
 	1: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon.png",
 	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/missile_launcher_base.png",
-	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/mecha_soldier_base.png",
+	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/autocannon/autocannon2.png",
 }
 const _BARREL_PATHS = {
 	0: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_barrel.png",
 	1: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon_barrel.png",
 	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/autocannon/autocannon_barrel.png",
-	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/heavy_laser_cannon/heavy_laser_cannon_barrel.png",
+	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/mecha_soldier_base.png",
 }
 # Uniform scale applied to both base and barrel to reach ~48 px display size
-const _BASE_SCALE   = {0: 1.5,  1: 1.5, 2: 0.75, 3: 0.75}
-const _BARREL_SCALE = {0: 0.8,  1: 1.5, 2: 2.0,  3: 1.0}
+const _BASE_SCALE   = {0: 1.5,  1: 1.5, 2: 0.75, 3: 1.5}
+const _BARREL_SCALE = {0: 0.8,  1: 1.5, 2: 2.0,  3: 0.85}
 # Barrel offset.y (local, pre-scale) so the barrel's bottom aligns with the node origin
-const _BARREL_OFFSET_Y = {0: -16.0, 1: -16.0, 2: -8.0, 3: -16.0}
+const _BARREL_OFFSET_Y = {0: -16.0, 1: -16.0, 2: -8.0, 3: 0.0}
 
 func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) -> void:
 	tower_type = type

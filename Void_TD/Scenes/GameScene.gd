@@ -136,15 +136,15 @@ func _draw_background() -> void:
 		star.position = Vector2(randf_range(0, 1334), randf_range(0, 750))
 		star.color = Color(1.0, 1.0, 1.0, 1.0)
 		background_layer.add_child(star)
-	# Planet 1 — upper-left, toxic green/teal gas giant with ring
+	# Planet 1 — upper-left, void dark-black/purple gas giant with wide flat ring
 	var p1 = _Planet.new()
 	p1.position = Vector2(110, 95)
-	p1.planet_radius = 62.0
-	p1.planet_color   = Color(0.18, 0.72, 0.38)
-	p1.atmosphere_color = Color(0.4, 1.0, 0.55, 0.18)
-	p1.highlight_color  = Color(0.55, 1.0, 0.65, 0.22)
-	p1.ring_color       = Color(0.3, 0.85, 0.5, 0.45)
-	p1.ring_tilt        = 0.28
+	p1.planet_radius = 70.0
+	p1.planet_color     = Color(0.06, 0.02, 0.14)
+	p1.atmosphere_color = Color(0.55, 0.05, 0.9, 0.28)
+	p1.highlight_color  = Color(0.4, 0.0, 0.7, 0.18)
+	p1.ring_color       = Color(0.65, 0.1, 1.0, 0.55)
+	p1.ring_tilt        = 0.12
 	background_layer.add_child(p1)
 	# Planet 2 — upper-right, deep purple/violet alien world with faint ring
 	var p2 = _Planet.new()
@@ -702,7 +702,7 @@ class _Planet extends Node2D:
 			draw_line(Vector2(-half_w, dy), Vector2(half_w, dy), band_col, 1.0)
 		# Orbital ring (thin ellipse drawn as arcs)
 		var rw := planet_radius * 1.75
-		var rh := rw * abs(ring_tilt)
+		var rh: float = rw * abs(ring_tilt)
 		var segs := 48
 		for i in segs:
 			var a0 := float(i) / segs * TAU
