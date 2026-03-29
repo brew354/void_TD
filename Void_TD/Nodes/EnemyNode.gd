@@ -44,6 +44,7 @@ var _current_waypoint: int = 1
 var _total_path_length: float = 0.0
 var _distance_traveled: float = 0.0
 
+var _body_pivot: Node2D  # parent for all body halves; rotated to face movement
 var _body_rect: ColorRect
 var _hp_bar_bg: ColorRect
 var _hp_bar_fg: ColorRect
@@ -85,9 +86,11 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 
 	# Build visuals
 	var sz: Vector2 = s["size"]
+	_body_pivot = Node2D.new()
+	add_child(_body_pivot)
+
 	_body_rect = ColorRect.new()
 	_body_rect.color = s["color"]
-	_body_rect.pivot_offset = sz / 2.0  # rotate around center
 	if s.has("color2"):
 		# Two-tone: left half = color, right half = color2
 		_body_rect.size = Vector2(sz.x / 2.0, sz.y)
@@ -96,11 +99,11 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0) -> void:
 		half2.color = s["color2"]
 		half2.size = Vector2(sz.x / 2.0, sz.y)
 		half2.position = Vector2(0.0, -sz.y / 2.0)
-		add_child(half2)
+		_body_pivot.add_child(half2)
 	else:
 		_body_rect.size = sz
 		_body_rect.position = -sz / 2.0
-	add_child(_body_rect)
+	_body_pivot.add_child(_body_rect)
 
 	# HP bar background
 	_hp_bar_bg = ColorRect.new()
@@ -146,7 +149,7 @@ func _process(delta: float) -> void:
 	var move_dist = speed * delta
 
 	# Rotate body to face movement direction
-	_body_rect.rotation = dir.angle()
+	_body_pivot.rotation = dir.angle()
 
 	if move_dist >= dist_to_target:
 		position = target
