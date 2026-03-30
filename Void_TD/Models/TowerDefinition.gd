@@ -20,7 +20,7 @@ static func stats(type: TowerType) -> Dictionary:
 					 "splash_radius": 45.0, "projectile_speed": 500.0, "label": "Mecha Soldier" }
 		TowerType.FREEZE:
 			return { "cost": 125, "damage": 0, "range": 160.0, "fire_rate": 7.0,
-					 "splash_radius": 0.0, "projectile_speed": 0.0, "label": "Freeze Tower",
+					 "splash_radius": 0.0, "projectile_speed": 0.0, "label": "Void Stunner",
 					 "slow_factor": 0.40, "slow_duration": 2.0 }
 	return {}
 

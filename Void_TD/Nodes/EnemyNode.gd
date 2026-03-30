@@ -34,7 +34,7 @@ var _shield_interval_val: float = 0.0
 var _shield_duration_val: float = 0.0
 var _shield_ring_node: Node2D = null
 
-# Slow (applied by Freeze Tower)
+# Slow (applied by Void Stunner)
 var _slow_factor: float = 1.0   # 1.0 = full speed; 0.45 = heavily slowed
 var _slow_timer: float = 0.0
 

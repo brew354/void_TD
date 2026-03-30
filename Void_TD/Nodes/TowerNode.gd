@@ -71,7 +71,7 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 
 	var ti: int = int(type)
 	# Color.WHITE = show natural sprite; any override = tint the sprite that color
-	# Freeze Tower defaults to ice blue unless a skin override is set
+	# Void Stunner defaults to ice blue unless a skin override is set
 	var freeze_default := Color(0.35, 0.78, 1.0) if type == TowerDefinition.TowerType.FREEZE else Color.WHITE
 	_normal_modulate = TowerSkins.overrides.get(ti, freeze_default)
 
@@ -83,7 +83,7 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_base_sprite.modulate = _normal_modulate
 	add_child(_base_sprite)
 
-	# Barrel sprite (rotates to face target) — Freeze Tower has no barrel
+	# Barrel sprite (rotates to face target) — Void Stunner has no barrel
 	_barrel_sprite = Sprite2D.new()
 	if type != TowerDefinition.TowerType.FREEZE:
 		_barrel_sprite.texture = load(_BARREL_PATHS[ti])
@@ -124,7 +124,7 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 		bill.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_barrel_sprite.add_child(bill)
 
-	# Range ring — always visible for Freeze Tower, hover-only for others
+	# Range ring — always visible for Void Stunner, hover-only for others
 	_range_ring = Node2D.new()
 	_range_ring.visible = (type == TowerDefinition.TowerType.FREEZE)
 	add_child(_range_ring)
@@ -200,7 +200,7 @@ func update_tower(delta: float, enemies: Array) -> void:
 				_barrel_sprite.modulate = _normal_modulate
 		return
 
-	# Freeze Tower: area pulse instead of targeted projectile
+	# Void Stunner: area pulse instead of targeted projectile
 	if tower_type == TowerDefinition.TowerType.FREEZE:
 		_fire_cooldown -= delta
 		if _fire_cooldown <= 0.0:
