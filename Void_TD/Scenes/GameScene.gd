@@ -686,10 +686,12 @@ func _play_file(key: String, volume_db: float = 0.0, max_duration: float = 1.0) 
 	add_child(player)
 	player.play()
 	player.finished.connect(player.queue_free)
+	var wr := weakref(player)
 	get_tree().create_timer(max_duration).timeout.connect(func():
-		if is_instance_valid(player):
-			player.stop()
-			player.queue_free()
+		var p: AudioStreamPlayer = wr.get_ref()
+		if p != null:
+			p.stop()
+			p.queue_free()
 	, CONNECT_ONE_SHOT)
 
 func _screen_shake(strength: float, duration: float = 0.25) -> void:
