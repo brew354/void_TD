@@ -600,13 +600,13 @@ func _on_boss_stun_pulse(pos: Vector2, radius: float, duration: float) -> void:
 
 func _on_enemy_exited(enemy: EnemyNode) -> void:
 	wave_manager.on_enemy_resolved()
-	if enemy.is_boss:
-		_trigger_game_over(false)
-		return
-	lives -= max(enemy.lives_damage - _base.damage_reduction, 1)
+	var damage := 4 if enemy.is_boss else max(enemy.lives_damage - _base.damage_reduction, 1)
+	lives -= damage
 	lives = max(lives, 0)
 	hud.flash_damage()
 	hud.update_lives(lives)
+	if enemy.is_boss:
+		_screen_shake(10.0, 0.5)
 	if lives <= 0:
 		_trigger_game_over(false)
 
@@ -642,6 +642,13 @@ func _on_wave_complete() -> void:
 			_streak,
 			wave_manager.is_endless
 		)
+
+	# +1 life every 3 waves cleared
+	var waves_done := wave_manager.current_wave_number() - 1
+	if waves_done > 0 and waves_done % 3 == 0:
+		lives += 1
+		hud.update_lives(lives)
+		_spawn_life_restore_label()
 
 	_play_file("bell_heavy", -4.0)
 	get_tree().create_timer(0.22).timeout.connect(func(): _play_file("bell_heavy", -5.0), CONNECT_ONE_SHOT)
@@ -719,6 +726,25 @@ func _spawn_streak_label(bonus: int) -> void:
 	tween.tween_property(lbl, "position:y", 270.0, 0.8)
 	tween.parallel().tween_property(lbl, "modulate:a", 1.0, 0.0)
 	tween.tween_property(lbl, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(lbl.queue_free)
+
+func _spawn_life_restore_label() -> void:
+	var lbl := Label.new()
+	lbl.text = "+1 ♥"
+	lbl.size = Vector2(1334, 50)
+	lbl.position = Vector2(0, 370)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 38)
+	lbl.add_theme_color_override("font_color", Color(0.2, 1.0, 0.45))
+	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0))
+	lbl.add_theme_constant_override("outline_size", 4)
+	lbl.modulate.a = 0.0
+	hud.add_child(lbl)
+	var tween := create_tween()
+	tween.tween_property(lbl, "modulate:a", 1.0, 0.18)
+	tween.tween_property(lbl, "position:y", 310.0, 0.55)
+	tween.tween_interval(0.5)
+	tween.tween_property(lbl, "modulate:a", 0.0, 0.38)
 	tween.tween_callback(lbl.queue_free)
 
 func _show_assault_incoming() -> void:
