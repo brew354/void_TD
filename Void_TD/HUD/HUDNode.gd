@@ -53,6 +53,19 @@ var _panel_upgrade_btn: Button
 var _panel_sell_btn: Button
 var _tower_btns: Array = []
 
+# Wave preview panel — top-left, below top bar
+var _wave_preview_panel: ColorRect = null
+var _wave_preview_hdr_lbl: Label = null
+var _wave_preview_row_nodes: Array = []
+const _WP_W: float = 214.0
+const _WP_HDR_H: float = 26.0
+const _WP_ROW_H: float = 21.0
+const _WP_PAD: float = 6.0
+const _WP_MAX_ROWS: int = 6
+const _WP_X_SHOW: float = 10.0
+const _WP_X_HIDE: float = -230.0
+const _WP_Y: float = 46.0
+
 const _TOWER_TYPES: Array = [
 	TowerDefinition.TowerType.LASER,
 	TowerDefinition.TowerType.CANNON,
@@ -132,6 +145,7 @@ func _build_hud() -> void:
 	add_child(_speed_btn)
 
 	_build_upgrade_panel()
+	_build_wave_preview()
 
 	# ── Damage flash overlay (always on top) ──────────────────────────────────
 	_damage_flash = ColorRect.new()
@@ -378,3 +392,77 @@ func _on_speed_btn_pressed() -> void:
 	_fast_mode = not _fast_mode
 	_speed_btn.text = "Speed: 2x" if _fast_mode else "Speed: 1x"
 	speed_toggled.emit(_fast_mode)
+
+func _build_wave_preview() -> void:
+	_wave_preview_panel = ColorRect.new()
+	_wave_preview_panel.color = Color(0.04, 0.0, 0.12, 0.92)
+	_wave_preview_panel.size = Vector2(_WP_W, _WP_HDR_H + _WP_PAD)
+	_wave_preview_panel.position = Vector2(_WP_X_HIDE, _WP_Y)
+	_wave_preview_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_wave_preview_panel)
+
+	var hdr_bg = ColorRect.new()
+	hdr_bg.color = Color(0.25, 0.0, 0.42, 1.0)
+	hdr_bg.size = Vector2(_WP_W, _WP_HDR_H)
+	hdr_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_wave_preview_panel.add_child(hdr_bg)
+
+	var accent = ColorRect.new()
+	accent.color = Color(0.6, 0.0, 1.0)
+	accent.size = Vector2(4, _WP_HDR_H)
+	accent.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_wave_preview_panel.add_child(accent)
+
+	_wave_preview_hdr_lbl = Label.new()
+	_wave_preview_hdr_lbl.position = Vector2(10, 4)
+	_wave_preview_hdr_lbl.size = Vector2(_WP_W - 14, _WP_HDR_H - 4)
+	_wave_preview_hdr_lbl.add_theme_font_size_override("font_size", 13)
+	_wave_preview_hdr_lbl.add_theme_color_override("font_color", Color.WHITE)
+	_wave_preview_panel.add_child(_wave_preview_hdr_lbl)
+
+	for i in _WP_MAX_ROWS:
+		var row_y = _WP_HDR_H + _WP_PAD + i * _WP_ROW_H
+
+		var dot = ColorRect.new()
+		dot.size = Vector2(8, 8)
+		dot.position = Vector2(10, row_y + 6)
+		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_wave_preview_panel.add_child(dot)
+
+		var lbl = Label.new()
+		lbl.position = Vector2(24, row_y + 1)
+		lbl.size = Vector2(_WP_W - 28, _WP_ROW_H - 2)
+		lbl.add_theme_font_size_override("font_size", 13)
+		lbl.add_theme_color_override("font_color", Color(0.85, 0.8, 1.0))
+		_wave_preview_panel.add_child(lbl)
+
+		_wave_preview_row_nodes.append({"dot": dot, "lbl": lbl})
+		dot.visible = false
+		lbl.visible = false
+
+## Show the wave preview panel.
+## header: short string like "INCOMING — WAVE 3"
+## rows: Array of {label: String, count: int, color: Color}
+func show_wave_preview(header: String, rows: Array) -> void:
+	_wave_preview_hdr_lbl.text = header
+	var n := mini(rows.size(), _WP_MAX_ROWS)
+	for i in _WP_MAX_ROWS:
+		var vis := i < n
+		_wave_preview_row_nodes[i]["dot"].visible = vis
+		_wave_preview_row_nodes[i]["lbl"].visible = vis
+		if vis:
+			_wave_preview_row_nodes[i]["dot"].color = rows[i]["color"]
+			var c: int = rows[i]["count"]
+			_wave_preview_row_nodes[i]["lbl"].text = \
+				rows[i]["label"] if c < 0 else "%d × %s" % [c, rows[i]["label"]]
+	var panel_h := _WP_HDR_H + _WP_PAD * 2 + n * _WP_ROW_H
+	_wave_preview_panel.size = Vector2(_WP_W, panel_h)
+	_wave_preview_panel.position.x = _WP_X_HIDE
+	var tw := create_tween()
+	tw.tween_property(_wave_preview_panel, "position:x", _WP_X_SHOW, 0.25) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func hide_wave_preview() -> void:
+	var tw := create_tween()
+	tw.tween_property(_wave_preview_panel, "position:x", _WP_X_HIDE, 0.18) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)

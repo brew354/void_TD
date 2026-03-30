@@ -240,6 +240,7 @@ func _build_hud() -> void:
 	const MilestoneManager = preload("res://Systems/MilestoneManager.gd")
 	_milestone_manager = MilestoneManager.new(hud)
 	add_child(_milestone_manager)
+	_show_wave_preview()
 
 func _refresh_hud() -> void:
 	hud.update_lives(lives)
@@ -258,6 +259,37 @@ func _wave_preview_text() -> String:
 	for g in groups:
 		parts.append("%d %s" % [g.count, EnemyDefinition.stats(g.type)["label"]])
 	return "Incoming: " + ", ".join(parts)
+
+func _enemy_preview_color(type: EnemyDefinition.EnemyType) -> Color:
+	match type:
+		EnemyDefinition.EnemyType.SCOUT:     return Color(0.7,  0.3,  1.0)
+		EnemyDefinition.EnemyType.TANK:      return Color(1.0,  0.5,  0.1)
+		EnemyDefinition.EnemyType.BOSS:      return Color(1.0,  0.2,  0.8)
+		EnemyDefinition.EnemyType.SPEEDER:   return Color(0.0,  0.95, 1.0)
+		EnemyDefinition.EnemyType.SHIELDED:  return Color(0.4,  0.7,  1.0)
+		EnemyDefinition.EnemyType.MEGA_BOSS: return Color(1.0,  0.85, 0.0)
+	return Color.WHITE
+
+func _get_wave_preview_rows() -> Array:
+	var groups = wave_manager.get_next_wave_groups()
+	var rows: Array = []
+	for g in groups:
+		rows.append({
+			"label": EnemyDefinition.stats(g.type)["label"],
+			"count": g.count,
+			"color": _enemy_preview_color(g.type),
+		})
+	return rows
+
+func _show_wave_preview() -> void:
+	var next_num := wave_manager.current_wave_number()
+	var rows := _get_wave_preview_rows()
+	if rows.is_empty():
+		# Endless past scripted waves: procedural composition — no exact preview available
+		hud.show_wave_preview("ENDLESS — WAVE %d" % next_num,
+			[{"label": "Scouts + Tanks + Bosses…", "count": -1, "color": Color(0.7, 0.3, 1.0)}])
+	else:
+		hud.show_wave_preview("INCOMING — WAVE %d" % next_num, rows)
 
 # ── Main Update Loop ──────────────────────────────────────────────────────────
 func _process(delta: float) -> void:
@@ -459,6 +491,7 @@ func _on_hud_start_wave() -> void:
 	if not wave_manager.has_more_waves():
 		return
 	_close_upgrade_panel()
+	hud.hide_wave_preview()
 	_start_chevron_fade()
 	_lives_at_wave_start = lives
 	_play_file("force_field", -10.0)
@@ -615,8 +648,8 @@ func _on_wave_complete() -> void:
 
 	state_machine.transition_to(GameStateMachine.State.WAVE_CLEAR)
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
-	hud.update_next_wave(_wave_preview_text())
 	hud.set_start_wave_enabled(true)
+	_show_wave_preview()
 
 # ── Audio ─────────────────────────────────────────────────────────────────────
 func _load_audio() -> void:
