@@ -688,7 +688,7 @@ func _play_file(key: String, volume_db: float = 0.0, max_duration: float = 1.0) 
 	player.finished.connect(player.queue_free)
 	var wr := weakref(player)
 	get_tree().create_timer(max_duration).timeout.connect(func():
-		var p: AudioStreamPlayer = wr.get_ref()
+		var p = wr.get_ref()
 		if p != null:
 			p.stop()
 			p.queue_free()
