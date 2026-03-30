@@ -101,9 +101,9 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_mouse_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_mouse_rect)
 
-	# Range ring — always visible for Void Stunner, hover-only for others
+	# Range ring — hover-only for all towers including Void Stunner
 	_range_ring = Node2D.new()
-	_range_ring.visible = (type == TowerDefinition.TowerType.FREEZE)
+	_range_ring.visible = false
 	add_child(_range_ring)
 	var ring = _RangeRing.new()
 	ring.radius = range_radius
@@ -131,6 +131,10 @@ func upgrade() -> void:
 	_level_label.text = "L%d" % upgrade_level
 	_level_label.visible = true
 
+	# Void Stunner: faster pulse frequency per upgrade level
+	if tower_type == TowerDefinition.TowerType.FREEZE:
+		fire_rate = 5.0 if upgrade_level == 2 else 3.0
+
 	# Laser turret: swap sprites to reflect upgrade level
 	if tower_type == TowerDefinition.TowerType.LASER:
 		const _LASER_BASE_PATHS = {
@@ -153,8 +157,6 @@ func upgrade() -> void:
 			_barrel_sprite.modulate = _normal_modulate
 
 func _process(_delta: float) -> void:
-	if tower_type == TowerDefinition.TowerType.FREEZE:
-		return  # Freeze ring is always visible
 	_range_ring.visible = to_local(get_global_mouse_position()).length() <= 32.0
 
 func apply_stun(duration: float) -> void:
