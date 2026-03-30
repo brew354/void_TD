@@ -495,6 +495,7 @@ func _on_hud_start_wave() -> void:
 	_start_chevron_fade()
 	_lives_at_wave_start = lives
 	_play_file("force_field", -10.0)
+	_show_assault_incoming()
 	state_machine.transition_to(GameStateMachine.State.WAVE_IN_PROGRESS)
 	wave_manager.start_wave()
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
@@ -525,6 +526,10 @@ func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float,
 		enemy.stun_pulse.connect(_on_boss_stun_pulse)
 	if enemy.enemy_type == EnemyDefinition.EnemyType.MEGA_BOSS:
 		enemy.armor_broken.connect(_on_mega_boss_armor_broken)
+		hud.show_boss_bar("THE VOID")
+		enemy.hp_changed.connect(hud.update_boss_bar)
+		enemy.died.connect(func(_e): hud.hide_boss_bar())
+		enemy.exited.connect(func(_e): hud.hide_boss_bar())
 	enemies.append(enemy)
 
 func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
@@ -714,6 +719,25 @@ func _spawn_streak_label(bonus: int) -> void:
 	tween.tween_property(lbl, "position:y", 270.0, 0.8)
 	tween.parallel().tween_property(lbl, "modulate:a", 1.0, 0.0)
 	tween.tween_property(lbl, "modulate:a", 0.0, 0.5)
+	tween.tween_callback(lbl.queue_free)
+
+func _show_assault_incoming() -> void:
+	var lbl := Label.new()
+	lbl.text = "—   VOID ASSAULT INCOMING   —"
+	lbl.size = Vector2(1334, 60)
+	lbl.position = Vector2(0, 305)
+	lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	lbl.add_theme_font_size_override("font_size", 40)
+	lbl.add_theme_color_override("font_color", Color(1.0, 0.82, 0.82))
+	lbl.add_theme_color_override("font_outline_color", Color(0.0, 0.0, 0.0))
+	lbl.add_theme_constant_override("outline_size", 5)
+	lbl.modulate.a = 0.0
+	hud.add_child(lbl)
+	var tween := create_tween()
+	tween.tween_property(lbl, "modulate:a", 1.0, 0.18)
+	tween.tween_property(lbl, "position:y", 320.0, 0.18)
+	tween.tween_interval(0.85)
+	tween.tween_property(lbl, "modulate:a", 0.0, 0.38)
 	tween.tween_callback(lbl.queue_free)
 
 func _on_mega_boss_armor_broken() -> void:

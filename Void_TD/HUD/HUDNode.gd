@@ -53,6 +53,17 @@ var _panel_upgrade_btn: Button
 var _panel_sell_btn: Button
 var _tower_btns: Array = []
 
+# Mega Boss HP bar — centered at top, below top bar
+var _boss_bar_panel: ColorRect = null
+var _boss_hp_fg: ColorRect = null
+var _boss_name_lbl: Label = null
+const _BB_W: float = 420.0
+const _BB_H: float = 38.0
+const _BB_INNER_W: float = 394.0
+const _BB_X: float = (1334.0 - 420.0) / 2.0
+const _BB_Y_SHOW: float = 38.0
+const _BB_Y_HIDE: float = -50.0
+
 # Wave preview panel — top-left, below top bar
 var _wave_preview_panel: ColorRect = null
 var _wave_preview_hdr_lbl: Label = null
@@ -145,6 +156,7 @@ func _build_hud() -> void:
 	add_child(_speed_btn)
 
 	_build_upgrade_panel()
+	_build_boss_bar()
 	_build_wave_preview()
 
 	# ── Damage flash overlay (always on top) ──────────────────────────────────
@@ -392,6 +404,63 @@ func _on_speed_btn_pressed() -> void:
 	_fast_mode = not _fast_mode
 	_speed_btn.text = "Speed: 2x" if _fast_mode else "Speed: 1x"
 	speed_toggled.emit(_fast_mode)
+
+func _build_boss_bar() -> void:
+	_boss_bar_panel = ColorRect.new()
+	_boss_bar_panel.color = Color(0.07, 0.0, 0.0, 0.96)
+	_boss_bar_panel.size = Vector2(_BB_W, _BB_H)
+	_boss_bar_panel.position = Vector2(_BB_X, _BB_Y_HIDE)
+	_boss_bar_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_boss_bar_panel)
+
+	var top_stripe := ColorRect.new()
+	top_stripe.color = Color(0.75, 0.0, 0.15, 1.0)
+	top_stripe.size = Vector2(_BB_W, 2.0)
+	top_stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_bar_panel.add_child(top_stripe)
+
+	_boss_name_lbl = Label.new()
+	_boss_name_lbl.position = Vector2(0, 3)
+	_boss_name_lbl.size = Vector2(_BB_W, 16)
+	_boss_name_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_boss_name_lbl.add_theme_font_size_override("font_size", 13)
+	_boss_name_lbl.add_theme_color_override("font_color", Color(1.0, 0.55, 0.55))
+	_boss_bar_panel.add_child(_boss_name_lbl)
+
+	var hp_bg := ColorRect.new()
+	hp_bg.color = Color(0.2, 0.0, 0.0)
+	hp_bg.size = Vector2(_BB_INNER_W, 12)
+	hp_bg.position = Vector2((_BB_W - _BB_INNER_W) / 2.0, 22)
+	hp_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_bar_panel.add_child(hp_bg)
+
+	_boss_hp_fg = ColorRect.new()
+	_boss_hp_fg.color = Color(0.88, 0.08, 0.14)
+	_boss_hp_fg.size = Vector2(_BB_INNER_W, 12)
+	_boss_hp_fg.position = hp_bg.position
+	_boss_hp_fg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_boss_bar_panel.add_child(_boss_hp_fg)
+
+func show_boss_bar(boss_name: String) -> void:
+	_boss_name_lbl.text = "☠   %s   ☠" % boss_name
+	_boss_hp_fg.size.x = _BB_INNER_W
+	_boss_hp_fg.color = Color(0.88, 0.08, 0.14)
+	_boss_bar_panel.position.y = _BB_Y_HIDE
+	var tw := create_tween()
+	tw.tween_property(_boss_bar_panel, "position:y", _BB_Y_SHOW, 0.3) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+func update_boss_bar(ratio: float) -> void:
+	_boss_hp_fg.size.x = _BB_INNER_W * ratio
+	if ratio > 0.5:
+		_boss_hp_fg.color = Color(0.88, 0.08, 0.14).lerp(Color(1.0, 0.5, 0.0), (1.0 - ratio) * 2.0)
+	else:
+		_boss_hp_fg.color = Color(1.0, 0.5, 0.0).lerp(Color(0.5, 0.0, 0.05), (0.5 - ratio) * 2.0)
+
+func hide_boss_bar() -> void:
+	var tw := create_tween()
+	tw.tween_property(_boss_bar_panel, "position:y", _BB_Y_HIDE, 0.22) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 
 func _build_wave_preview() -> void:
 	_wave_preview_panel = ColorRect.new()

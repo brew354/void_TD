@@ -93,15 +93,12 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 		_barrel_sprite.modulate = _normal_modulate
 		add_child(_barrel_sprite)
 
-	# Transparent ColorRect for hover detection (Control nodes have mouse signals)
+	# Transparent ColorRect (kept for layout; hover handled in _process)
 	_mouse_rect = ColorRect.new()
 	_mouse_rect.color = Color(0.0, 0.0, 0.0, 0.0)
 	_mouse_rect.size = Vector2(48, 48)
 	_mouse_rect.position = Vector2(-24, -24)
-	_mouse_rect.mouse_filter = Control.MOUSE_FILTER_PASS
-	if type != TowerDefinition.TowerType.FREEZE:
-		_mouse_rect.mouse_entered.connect(func(): _range_ring.visible = true)
-		_mouse_rect.mouse_exited.connect(func(): _range_ring.visible = false)
+	_mouse_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_mouse_rect)
 
 	# Ducky skin accents for Mecha Soldier — face features on the rotating robot body
@@ -177,6 +174,11 @@ func upgrade() -> void:
 			_barrel_sprite.scale = Vector2(_LASER_BARREL_SCALES[upgrade_level], _LASER_BARREL_SCALES[upgrade_level])
 			_base_sprite.modulate   = _normal_modulate
 			_barrel_sprite.modulate = _normal_modulate
+
+func _process(_delta: float) -> void:
+	if tower_type == TowerDefinition.TowerType.FREEZE:
+		return  # Freeze ring is always visible
+	_range_ring.visible = to_local(get_global_mouse_position()).length() <= 32.0
 
 func apply_stun(duration: float) -> void:
 	if _fire_tween:

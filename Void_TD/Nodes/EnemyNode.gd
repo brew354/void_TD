@@ -9,6 +9,7 @@ signal died(enemy)
 signal exited(enemy)
 signal stun_pulse(pos: Vector2, radius: float, duration: float)
 signal armor_broken
+signal hp_changed(ratio: float)
 
 var enemy_type: EnemyDefinition.EnemyType
 var max_hp: float
@@ -244,6 +245,7 @@ func _update_hp_bar() -> void:
 			_hp_bar_fg.color = Color(0.0, 1.0, 0.2).lerp(Color(1.0, 1.0, 0.0), (1.0 - ratio) * 2.0)
 		else:
 			_hp_bar_fg.color = Color(1.0, 1.0, 0.0).lerp(Color(1.0, 0.0, 0.0), (0.5 - ratio) * 2.0)
+		hp_changed.emit(ratio)
 
 func _on_die() -> void:
 	if is_dead:
