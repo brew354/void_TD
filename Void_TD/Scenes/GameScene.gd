@@ -686,7 +686,7 @@ func _play_file(key: String, volume_db: float = 0.0, max_duration: float = 1.0) 
 	add_child(player)
 	player.play()
 	player.finished.connect(player.queue_free)
-	var wr := weakref(player)
+	var wr: WeakRef = weakref(player)
 	get_tree().create_timer(max_duration).timeout.connect(func():
 		var p = wr.get_ref()
 		if p != null:
