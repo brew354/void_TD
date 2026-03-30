@@ -2,8 +2,7 @@
 class_name TowerSkins
 
 # Special named skins
-const DUCKY_COLOR: Color = Color(1.0,  0.88, 0.0)  # Rubber duck yellow
-const DOGGO_COLOR: Color     = Color(0.72, 0.42, 0.12) # Warm dog brown
+const DOGGO_COLOR: Color = Color(0.72, 0.42, 0.12) # Warm dog brown
 
 # Maps TowerType int → Color override.  Missing key = use default color.
 static var overrides: Dictionary = {}

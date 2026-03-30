@@ -101,29 +101,6 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	_mouse_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_mouse_rect)
 
-	# Ducky skin accents for Mecha Soldier — face features on the rotating robot body
-	if type == TowerDefinition.TowerType.MECHA_SOLDIER and _normal_modulate == TowerSkins.DUCKY_COLOR:
-		var eye_l = ColorRect.new()
-		eye_l.color = Color(0.05, 0.05, 0.05)
-		eye_l.size = Vector2(5, 5)
-		eye_l.position = Vector2(-9, -22)
-		eye_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_barrel_sprite.add_child(eye_l)
-
-		var eye_r = ColorRect.new()
-		eye_r.color = Color(0.05, 0.05, 0.05)
-		eye_r.size = Vector2(5, 5)
-		eye_r.position = Vector2(3, -22)
-		eye_r.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_barrel_sprite.add_child(eye_r)
-
-		var bill = ColorRect.new()
-		bill.color = Color(1.0, 0.45, 0.0)
-		bill.size = Vector2(12, 7)
-		bill.position = Vector2(-6, -14)
-		bill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_barrel_sprite.add_child(bill)
-
 	# Range ring — always visible for Void Stunner, hover-only for others
 	_range_ring = Node2D.new()
 	_range_ring.visible = (type == TowerDefinition.TowerType.FREEZE)
