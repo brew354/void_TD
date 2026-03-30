@@ -27,6 +27,17 @@ var _score_label: Label
 var _credits_label: Label
 var _towers_label: Label
 var _next_wave_label: Label  # unused, kept for API compatibility
+
+# Milestone popups — top-right corner, stacked up to 4
+const _POPUP_W: float    = 300.0
+const _POPUP_H: float    = 52.0
+const _POPUP_X_SHOW: float = 1334.0 - _POPUP_W - 10.0
+const _POPUP_X_HIDE: float = 1344.0
+const _POPUP_Y0: float   = 46.0   # first slot top (below top bar)
+const _POPUP_GAP: float  = 6.0
+const _MAX_SLOTS: int    = 4
+var _popup_slots: Array  = []   # Array of {panel, stripe, label, free}
+var _popup_queue: Array  = []   # Array of {text, color}
 var _start_wave_btn: Button
 var _pause_btn: Button
 var _speed_btn: Button
@@ -128,6 +139,33 @@ func _build_hud() -> void:
 	_damage_flash.size = Vector2(1334, 750)
 	_damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_damage_flash)
+
+	# ── Milestone popup slots ─────────────────────────────────────────────────
+	for i in _MAX_SLOTS:
+		var panel = ColorRect.new()
+		panel.color = Color(0.04, 0.0, 0.12, 0.92)
+		panel.size = Vector2(_POPUP_W, _POPUP_H)
+		panel.position = Vector2(_POPUP_X_HIDE, _POPUP_Y0 + i * (_POPUP_H + _POPUP_GAP))
+		panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.visible = false
+		add_child(panel)
+
+		var stripe = ColorRect.new()
+		stripe.size = Vector2(4, _POPUP_H)
+		stripe.position = Vector2.ZERO
+		stripe.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		panel.add_child(stripe)
+
+		var lbl = Label.new()
+		lbl.position = Vector2(12, 0)
+		lbl.size = Vector2(_POPUP_W - 16, _POPUP_H)
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		lbl.add_theme_font_size_override("font_size", 15)
+		lbl.add_theme_color_override("font_color", Color.WHITE)
+		lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		panel.add_child(lbl)
+
+		_popup_slots.append({"panel": panel, "stripe": stripe, "label": lbl, "free": true})
 
 func _build_upgrade_panel() -> void:
 	_upgrade_panel = ColorRect.new()
@@ -294,6 +332,39 @@ func set_start_wave_enabled(enabled: bool) -> void:
 func set_selected_tower(type: TowerDefinition.TowerType) -> void:
 	for i in _tower_btns.size():
 		_tower_btns[i].modulate = Color(0.4, 1.0, 0.4) if i == int(type) else Color(1, 1, 1)
+
+func show_milestone_popup(text: String, accent_color: Color) -> void:
+	# Find first free slot
+	var slot_idx: int = -1
+	for i in _popup_slots.size():
+		if _popup_slots[i]["free"]:
+			slot_idx = i
+			break
+	if slot_idx == -1:
+		_popup_queue.append({"text": text, "color": accent_color})
+		return
+
+	var slot = _popup_slots[slot_idx]
+	slot["free"] = false
+	slot["label"].text = text
+	slot["stripe"].color = accent_color
+	var panel: ColorRect = slot["panel"]
+	panel.modulate.a = 1.0
+	panel.position.x = _POPUP_X_HIDE
+	panel.visible = true
+
+	var tw = create_tween().set_pause_mode(Tween.TWEEN_PAUSE_PROCESS)
+	tw.tween_property(panel, "position:x", _POPUP_X_SHOW, 0.22).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(2.5)
+	tw.tween_property(panel, "modulate:a", 0.0, 0.35)
+	tw.tween_callback(func():
+		panel.visible = false
+		panel.modulate.a = 1.0
+		slot["free"] = true
+		if not _popup_queue.is_empty():
+			var next = _popup_queue.pop_front()
+			show_milestone_popup(next["text"], next["color"])
+	)
 
 func update_tower_total(count: int, max_total: int) -> void:
 	_towers_label.text = "Towers: %d/%d" % [count, max_total]

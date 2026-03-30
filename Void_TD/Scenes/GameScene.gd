@@ -73,6 +73,7 @@ var _credits_spent: int = 0
 
 # ── Game mode ─────────────────────────────────────────────────────────────────
 var _endless: bool = false
+var _milestone_manager = null
 
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
@@ -236,6 +237,9 @@ func _build_hud() -> void:
 	hud.sell_pressed.connect(_on_sell_from_panel)
 	hud.upgrade_panel_closed.connect(_close_upgrade_panel)
 	_refresh_hud()
+	const MilestoneManager = preload("res://Systems/MilestoneManager.gd")
+	_milestone_manager = MilestoneManager.new(hud)
+	add_child(_milestone_manager)
 
 func _refresh_hud() -> void:
 	hud.update_lives(lives)
@@ -526,6 +530,8 @@ func _spawn_reward_label(pos: Vector2, amount: int) -> void:
 
 func _on_enemy_died(enemy: EnemyNode) -> void:
 	_total_kills += 1
+	if _milestone_manager:
+		_milestone_manager.on_enemy_killed(enemy, _total_kills)
 	_spawn_reward_label(enemy.position, enemy.reward)
 	match enemy.enemy_type:
 		EnemyDefinition.EnemyType.SCOUT:
@@ -588,6 +594,16 @@ func _on_wave_complete() -> void:
 			_spawn_streak_label(streak_bonus)
 	else:
 		_streak = 0
+
+	if _milestone_manager:
+		var completed := wave_manager.current_wave_number() - 1
+		_milestone_manager.on_wave_complete(
+			completed,
+			wave_manager.total_waves(),
+			lives < _lives_at_wave_start,
+			_streak,
+			wave_manager.is_endless
+		)
 
 	_play_file("bell_heavy", -4.0)
 	get_tree().create_timer(0.22).timeout.connect(func(): _play_file("bell_heavy", -5.0), CONNECT_ONE_SHOT)
