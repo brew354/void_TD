@@ -38,6 +38,18 @@ var _shield_ring_node: Node2D = null
 var _slow_factor: float = 1.0   # 1.0 = full speed; 0.45 = heavily slowed
 var _slow_timer: float = 0.0
 
+# Burn (applied by Laser L2+)
+var _burn_dps: float = 0.0
+var _burn_timer: float = 0.0
+
+# Void Rupture (applied by Void Stunner on bosses — take 2× damage)
+var _is_ruptured: bool = false
+var _rupture_timer: float = 0.0
+var _rupture_ring_node: Node2D = null
+
+# Base sprite tint — changes permanently on armor break
+var _base_tint: Color = Color.WHITE
+
 # Armor phases (Mega Boss)
 var _is_armored: bool = false
 var _armor_threshold: float = 0.0
@@ -148,6 +160,15 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0, speed_scale
 		aring.ring_radius = sz.x / 2.0 + 10.0
 		_armor_ring_node.add_child(aring)
 
+	# Rupture ring (all bosses — visible when Void Ruptured)
+	if is_boss:
+		_rupture_ring_node = Node2D.new()
+		_rupture_ring_node.visible = false
+		add_child(_rupture_ring_node)
+		var rring = _RuptureRing.new()
+		rring.ring_radius = sz.x / 2.0 + 16.0
+		_rupture_ring_node.add_child(rring)
+
 func _process(delta: float) -> void:
 	if is_dead:
 		return
@@ -161,7 +182,27 @@ func _process(delta: float) -> void:
 		if _slow_timer <= 0.0:
 			_slow_timer = 0.0
 			_slow_factor = 1.0
-			_sprite.modulate = Color.WHITE
+			_update_tint()
+
+	# Tick burn — damages directly each frame, bypasses shield/armor
+	if _burn_timer > 0.0:
+		_burn_timer -= delta
+		_take_burn_damage(_burn_dps * delta)
+		if is_dead:
+			return
+		if _burn_timer <= 0.0:
+			_burn_timer = 0.0
+			_burn_dps = 0.0
+		_update_tint()
+
+	# Tick void rupture
+	if _rupture_timer > 0.0:
+		_rupture_timer -= delta
+		if _rupture_timer <= 0.0:
+			_rupture_timer = 0.0
+			_is_ruptured = false
+			if _rupture_ring_node != null:
+				_rupture_ring_node.visible = false
 
 	var target = _waypoints[_current_waypoint]
 	var dir = (target - position).normalized()
@@ -200,11 +241,42 @@ func _process(delta: float) -> void:
 func apply_slow(factor: float, duration: float) -> void:
 	if is_dead:
 		return
-	# Stack to strongest slow, longest duration
 	_slow_factor = min(_slow_factor, factor)
 	_slow_timer  = max(_slow_timer, duration)
-	# Ice blue tint while slowed
-	_sprite.modulate = Color(0.55, 0.85, 1.0)
+	_update_tint()
+
+func apply_burn(dps: float, duration: float) -> void:
+	if is_dead:
+		return
+	_burn_dps   = max(_burn_dps, dps)
+	_burn_timer = max(_burn_timer, duration)
+	_update_tint()
+
+func apply_rupture(duration: float) -> void:
+	if is_dead or not is_boss:
+		return
+	_is_ruptured = true
+	_rupture_timer = max(_rupture_timer, duration)
+	if _rupture_ring_node != null:
+		_rupture_ring_node.visible = true
+
+func _update_tint() -> void:
+	if is_dead:
+		return
+	if _burn_timer > 0.0:
+		_sprite.modulate = Color(1.0, 0.45, 0.1)   # orange flame
+	elif _slow_timer > 0.0:
+		_sprite.modulate = Color(0.55, 0.85, 1.0)  # ice blue
+	else:
+		_sprite.modulate = _base_tint
+
+func _take_burn_damage(amount: float) -> void:
+	if is_dead:
+		return
+	current_hp -= amount
+	_update_hp_bar()
+	if current_hp <= 0:
+		_on_die()
 
 func take_damage(amount: float) -> void:
 	if is_dead:
@@ -218,6 +290,9 @@ func take_damage(amount: float) -> void:
 		return
 	# Armored phase: absorb 80% of damage
 	var effective := amount * (0.2 if _is_armored else 1.0)
+	# Void Rupture: boss takes 2× damage while ruptured
+	if _is_ruptured:
+		effective *= 2.0
 	current_hp -= effective
 	_update_hp_bar()
 	if _is_armored and current_hp <= _armor_threshold:
@@ -232,8 +307,9 @@ func _break_armor() -> void:
 	if _armor_ring_node != null:
 		_armor_ring_node.queue_free()
 		_armor_ring_node = null
-	# Tint sprite orange-red to show exposed state
-	_sprite.modulate = Color(1.0, 0.3, 0.06)
+	# Permanently tint orange-red to show exposed state
+	_base_tint = Color(1.0, 0.3, 0.06)
+	_update_tint()
 	armor_broken.emit()
 
 func _update_hp_bar() -> void:
@@ -334,3 +410,26 @@ class _ShieldRing extends Node2D:
 		var a := base_alpha + extra
 		draw_arc(Vector2.ZERO, ring_radius, 0, TAU, 32, Color(0.3, 0.6, 1.0, a), 2.5, true)
 		draw_arc(Vector2.ZERO, ring_radius - 4.0, 0, TAU, 32, Color(0.7, 0.9, 1.0, a * 0.4), 1.0, true)
+
+
+## Pulsing magenta rupture ring — visible while Void Ruptured
+class _RuptureRing extends Node2D:
+	var ring_radius: float = 30.0
+	var _t: float = 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		var pulse := 0.6 + 0.4 * sin(_t * 7.0)
+		draw_arc(Vector2.ZERO, ring_radius, 0, TAU, 32, Color(1.0, 0.15, 0.8, pulse), 3.5, true)
+		draw_arc(Vector2.ZERO, ring_radius - 5.0, 0, TAU, 32, Color(1.0, 0.6, 0.9, pulse * 0.45), 1.5, true)
+		# Corner spikes to make it feel volatile
+		for i in 4:
+			var angle := _t * 1.2 + i * TAU / 4.0
+			var tip := Vector2(cos(angle), sin(angle)) * (ring_radius + 5.0)
+			var base1 := Vector2(cos(angle + 0.25), sin(angle + 0.25)) * (ring_radius - 3.0)
+			var base2 := Vector2(cos(angle - 0.25), sin(angle - 0.25)) * (ring_radius - 3.0)
+			draw_colored_polygon(PackedVector2Array([tip, base1, base2]),
+					Color(1.0, 0.2, 0.85, pulse * 0.8))

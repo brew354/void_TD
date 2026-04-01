@@ -208,6 +208,9 @@ func _do_freeze_pulse() -> void:
 		if is_instance_valid(e) and not e.is_dead:
 			if position.distance_to(e.position) <= range_radius:
 				e.apply_slow(slow_f, slow_d)
+				# Void Rupture: bosses take 2× damage while pulsed
+				if e.is_boss:
+					e.apply_rupture(slow_d)
 	# Spawn expanding ice pulse ring at tower position in parent layer
 	if get_parent() != null:
 		var pulse = _FreezePulseRing.new()
@@ -243,7 +246,18 @@ func _spawn_projectile(target: EnemyNode) -> void:
 	var s = TowerDefinition.stats(tower_type)
 	var slow_f: float = float(s.get("slow_factor", 1.0))
 	var slow_d: float = float(s.get("slow_duration", 0.0))
-	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref, int(tower_type), slow_f, slow_d)
+	# Laser L2+: burn DoT on hit. L3: also chain lightning to nearest enemy.
+	var burn_dps: float = 0.0
+	var burn_dur: float = 0.0
+	var chain_dmg: float = 0.0
+	if tower_type == TowerDefinition.TowerType.LASER:
+		if upgrade_level >= 2:
+			burn_dps = 8.0
+			burn_dur = 2.5
+		if upgrade_level == 3:
+			chain_dmg = damage * 0.5
+	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref, int(tower_type),
+			slow_f, slow_d, burn_dps, burn_dur, chain_dmg)
 	# Fire flash — briefly brighten then fade back
 	if _fire_tween:
 		_fire_tween.kill()
