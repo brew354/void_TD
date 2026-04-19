@@ -42,10 +42,10 @@ Tap the base to open its upgrade panel. Each level adds damage reduction, decrea
 |-------|-----|-------|--------|-------|
 | Void Scout | 65 | 200 | $5 | Basic fast enemy |
 | Void Tanker | 600 | 60 | $45 | Heavy, costs 3 lives on exit |
-| Void Herald (Boss) | 2000 | 40 | $90 | Stuns nearby towers every 3.5s, costs 4 lives on exit |
+| Void Herald (Boss) | 2000 | 40 | $90 | Stuns nearby towers every 5s for 1.5s, costs 4 lives on exit |
 | Void Shade | 30 | 400 | $10 | Very fast, low HP |
 | Void Sentinel | 350 | 75 | $70 | Periodically immune to damage |
-| THE VOID (Mega Boss) | 5000 | 30 | $300 | Wave 20 final boss — armored phase, massive stun range |
+| THE VOID (Mega Boss) | 5000 | 30 | $300 | Wave 20 final boss — armored phase, stuns towers every 4s for 1.5s |
 
 Enemy **HP scales** each wave (up to 5.5x by wave 20). Enemy **speed also scales** gently (+2% per wave), so later waves demand tighter coverage.
 
@@ -61,7 +61,7 @@ Enemy **HP scales** each wave (up to 5.5x by wave 20). Enemy **speed also scales
 - **Tap** a tower button, then tap a tile to place
 - **Tap** a placed tower to upgrade or sell
 - **Tap** the base to upgrade it
-- **Cancel** button to deselect a tower type
+- **Tap** a selected tower button again to deselect
 
 ### Common
 - **REPEL ASSAULT** to begin the next wave

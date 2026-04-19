@@ -19,7 +19,7 @@ static func wave_bonus(wave_number: int) -> int:
 # Tile center formula: (col*64+32, GRID_ORIGIN.y + row*64+32) = (col*64+32, row*64+78)
 # Horizontal segments use row center y; vertical segments use col center x
 const PATH_WAYPOINTS: Array = [
-	Vector2(32,   398),   # col 0,  row 5
+	Vector2(74,   398),   # spawn point — just right of rift
 	Vector2(288,  398),   # col 4,  row 5
 	Vector2(288,  590),   # col 4,  row 8
 	Vector2(672,  590),   # col 10, row 8

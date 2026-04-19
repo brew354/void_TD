@@ -54,6 +54,7 @@ var _sfx: Dictionary = {}
 var _tower_counts: Dictionary = {}  # TowerType int key → placed count
 var _path_tile_nodes: Array = []
 var _chevron_tween: Tween = null
+var _rift: Node2D = null
 
 # ── Screen shake ──────────────────────────────────────────────────────────────
 var _camera: Camera2D = null
@@ -128,22 +129,14 @@ func _draw_background() -> void:
 	var vp := get_viewport_rect().size
 	var grad = _HorizGradient.new()
 	background_layer.add_child(grad)
-	# Regular stars
-	for i in range(180):
-		var star = ColorRect.new()
-		var sz := randf_range(1.0, 3.0)
-		star.size = Vector2(sz, sz)
-		star.position = Vector2(randf_range(0, vp.x), randf_range(0, vp.y))
-		star.color = Color(1.0, randf_range(0.85, 1.0), 1.0, randf_range(0.6, 1.0))
-		background_layer.add_child(star)
-	# Bright accent stars
-	for i in range(25):
-		var star = ColorRect.new()
-		var sz := randf_range(3.0, 5.0)
-		star.size = Vector2(sz, sz)
-		star.position = Vector2(randf_range(0, vp.x), randf_range(0, vp.y))
-		star.color = Color(1.0, 1.0, 1.0, 1.0)
-		background_layer.add_child(star)
+	# Twinkling, drifting star field
+	var stars = _StarField.new()
+	stars.field_size = vp
+	background_layer.add_child(stars)
+	# Void rift at enemy spawn point
+	_rift = _VoidRift.new()
+	_rift.position = Vector2(58, GameConfig.PATH_WAYPOINTS[0].y)
+	background_layer.add_child(_rift)
 	# Planet 1 — upper-left, void dark-black/purple gas giant with wide flat ring
 	var p1 = _Planet.new()
 	p1.position = Vector2(110, 95)
@@ -505,6 +498,9 @@ func _on_hud_start_wave() -> void:
 	_lives_at_wave_start = lives
 	_play_file("force_field", -10.0)
 	_show_assault_incoming()
+	# Rift intensity scales with wave progress
+	var wave_pct := float(wave_manager.current_wave_number()) / float(max(wave_manager.total_waves(), 1))
+	_rift.set_intensity(0.5 + wave_pct * 0.5)
 	state_machine.transition_to(GameStateMachine.State.WAVE_IN_PROGRESS)
 	wave_manager.start_wave()
 	hud.update_wave(wave_manager.current_wave_number() - 1, wave_manager.total_waves())
@@ -539,12 +535,14 @@ func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float,
 	if enemy.is_boss:
 		enemy.stun_pulse.connect(_on_boss_stun_pulse)
 	if enemy.enemy_type == EnemyDefinition.EnemyType.BOSS and _boss_bar_enemy == null:
+		_rift.boss_flare()
 		_boss_bar_enemy = enemy
 		hud.show_boss_bar("VOID HERALD")
 		enemy.hp_changed.connect(hud.update_boss_bar)
 		enemy.died.connect(func(_e): _boss_bar_enemy = null; hud.hide_boss_bar())
 		enemy.exited.connect(func(_e): _boss_bar_enemy = null; hud.hide_boss_bar())
 	if enemy.enemy_type == EnemyDefinition.EnemyType.MEGA_BOSS:
+		_rift.boss_flare()
 		enemy.armor_broken.connect(_on_mega_boss_armor_broken)
 		hud.show_boss_bar("THE VOID")
 		enemy.hp_changed.connect(hud.update_boss_bar)
@@ -638,6 +636,7 @@ func _on_state_changed(new_state: GameStateMachine.State) -> void:
 func _on_wave_complete() -> void:
 	if lives <= 0:
 		return
+	_rift.set_intensity(0.3)
 	currency += GameConfig.wave_bonus(wave_manager.current_wave_number() - 1)
 	hud.update_credits(currency)
 
@@ -863,6 +862,254 @@ class _HorizGradient extends Node2D:
 			var t := float(i) / float(steps - 1)
 			var c := Color(0.0, 0.0, 0.0).lerp(Color(0.15, 0.0, 0.25), t)
 			draw_rect(Rect2(i * float(sw) / steps, 0, strip_w, sh), c)
+
+## Animated star field — twinkling + slow parallax drift
+class _StarField extends Node2D:
+	var field_size: Vector2 = Vector2(1334, 750)
+	var _t: float = 0.0
+
+	# Three parallax layers: (count, size_range, speed, alpha_range, twinkle_speed)
+	var _layers: Array = []
+
+	func _ready() -> void:
+		# Back layer: many small dim stars, slow drift
+		_layers.append(_make_layer(140, 1.0, 2.2, 0.3, 0.7, 3.0, Vector2(2.0, 0.8)))
+		# Mid layer: medium stars, moderate drift
+		_layers.append(_make_layer(50, 2.0, 3.5, 0.5, 0.9, 2.0, Vector2(5.0, 1.5)))
+		# Front layer: few bright stars, faster drift
+		_layers.append(_make_layer(20, 3.0, 5.0, 0.8, 1.0, 1.5, Vector2(9.0, 3.0)))
+
+	func _make_layer(count: int, sz_min: float, sz_max: float,
+			a_min: float, a_max: float, twinkle: float,
+			drift: Vector2) -> Dictionary:
+		var stars: Array = []
+		for i in count:
+			stars.append({
+				"pos": Vector2(randf_range(0, field_size.x), randf_range(0, field_size.y)),
+				"sz": randf_range(sz_min, sz_max),
+				"base_a": randf_range(a_min, a_max),
+				"phase": randf_range(0.0, TAU),
+				"rate": randf_range(0.6, 1.4),
+				"warmth": randf_range(0.85, 1.0),
+			})
+		return {"stars": stars, "twinkle": twinkle, "drift": drift}
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		for layer in _layers:
+			var drift: Vector2 = layer["drift"]
+			var twinkle: float = layer["twinkle"]
+			for s in layer["stars"]:
+				# Parallax drift — wrap around edges
+				var px: float = fmod(s["pos"].x + drift.x * _t, field_size.x)
+				var py: float = fmod(s["pos"].y + drift.y * _t, field_size.y)
+				if px < 0.0: px += field_size.x
+				if py < 0.0: py += field_size.y
+				# Twinkle
+				var alpha: float = s["base_a"] + sin(_t * twinkle * s["rate"] + s["phase"]) * 0.3
+				alpha = clampf(alpha, 0.1, 1.0)
+				var col := Color(1.0, s["warmth"], s["warmth"], alpha)
+				var sz: float = s["sz"]
+				draw_rect(Rect2(px, py, sz, sz), col)
+
+## Void Rift — dramatic tear in space at enemy spawn point
+class _VoidRift extends Node2D:
+	var _t: float = 0.0
+	var _intensity: float = 0.35        # 0.0 = invisible, 1.0 = full power
+	var _target_intensity: float = 0.35
+	var _flare_timer: float = 0.0       # boss flare countdown
+
+	# Crack shape — two branching jagged lines
+	var _crack_main: PackedVector2Array = PackedVector2Array()
+	var _crack_branch_l: PackedVector2Array = PackedVector2Array()
+	var _crack_branch_r: PackedVector2Array = PackedVector2Array()
+	# Tendrils
+	var _tendrils: Array = []
+	# Drifting particles
+	var _particles: Array = []
+
+	func _ready() -> void:
+		# Main crack — tall jagged vertical tear
+		var segs := 16
+		var half_h := 140.0
+		for i in segs + 1:
+			var y := lerpf(-half_h, half_h, float(i) / segs)
+			var x := randf_range(-10.0, 10.0) if i > 0 and i < segs else 0.0
+			_crack_main.append(Vector2(x, y))
+
+		# Left branch — forks from upper third
+		var branch_start_l := _crack_main[4]
+		for i in 6:
+			var frac := float(i) / 5.0
+			var x := branch_start_l.x - 15.0 * frac + randf_range(-5.0, 5.0)
+			var y := branch_start_l.y - 40.0 * frac + randf_range(-3.0, 3.0)
+			_crack_branch_l.append(Vector2(x, y))
+
+		# Right branch — forks from lower third
+		var branch_start_r := _crack_main[12]
+		for i in 6:
+			var frac := float(i) / 5.0
+			var x := branch_start_r.x + 18.0 * frac + randf_range(-5.0, 5.0)
+			var y := branch_start_r.y + 35.0 * frac + randf_range(-3.0, 3.0)
+			_crack_branch_r.append(Vector2(x, y))
+
+		# 14 tendrils — long, reaching
+		for i in 14:
+			_tendrils.append({
+				"angle": randf_range(-PI, PI),
+				"length": randf_range(60.0, 160.0),
+				"phase": randf_range(0.0, TAU),
+				"rate": randf_range(0.2, 0.6),
+				"width": randf_range(1.2, 3.0),
+			})
+
+		# 40 particles
+		for i in 40:
+			_particles.append({
+				"angle": randf_range(-PI, PI),
+				"dist": randf_range(15.0, 80.0),
+				"speed": randf_range(10.0, 35.0),
+				"phase": randf_range(0.0, TAU),
+				"sz": randf_range(1.5, 4.5),
+				"max_dist": randf_range(80.0, 200.0),
+			})
+
+	func set_intensity(value: float) -> void:
+		_target_intensity = clampf(value, 0.0, 1.0)
+
+	func boss_flare() -> void:
+		_flare_timer = 2.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		_intensity = lerpf(_intensity, _target_intensity, delta * 2.0)
+		if _flare_timer > 0.0:
+			_flare_timer -= delta
+		queue_redraw()
+
+	func _draw() -> void:
+		if _intensity < 0.01:
+			return
+
+		var flare := 1.0 + (_flare_timer / 2.0) * 2.0 if _flare_timer > 0.0 else 1.0
+		var i := _intensity * flare
+
+		# ── Deep ambient glow — large, visible from anywhere ──────────────────
+		var breathe := sin(_t * 0.6) * 0.3
+		var glow_base := 60.0 + i * 80.0 + breathe * 15.0
+		draw_circle(Vector2.ZERO, glow_base * 1.8,
+			Color(0.3, 0.0, 0.5, 0.04 * i))
+		draw_circle(Vector2.ZERO, glow_base * 1.4,
+			Color(0.4, 0.0, 0.7, 0.07 * i))
+		draw_circle(Vector2.ZERO, glow_base * 1.0,
+			Color(0.5, 0.05, 0.9, 0.12 * i))
+		draw_circle(Vector2.ZERO, glow_base * 0.6,
+			Color(0.65, 0.1, 1.0, 0.18 * i))
+		draw_circle(Vector2.ZERO, glow_base * 0.3,
+			Color(0.8, 0.3, 1.0, 0.25 * i))
+
+		# ── Pulsing rings — concentric energy waves ──────────────────────────
+		for r_idx in 3:
+			var ring_phase := fmod(_t * 0.4 + float(r_idx) * 0.33, 1.0)
+			var ring_r := 20.0 + ring_phase * glow_base * 1.5
+			var ring_a := (1.0 - ring_phase) * 0.2 * i
+			if ring_a > 0.01:
+				draw_arc(Vector2.ZERO, ring_r, 0.0, TAU, 64,
+					Color(0.6, 0.1, 1.0, ring_a), 1.5, true)
+
+		# ── Tendrils — long wispy energy arms ─────────────────────────────────
+		for td in _tendrils:
+			var td_angle: float = float(td["angle"])
+			var td_rate: float = float(td["rate"])
+			var td_phase: float = float(td["phase"])
+			var td_length: float = float(td["length"])
+			var td_width: float = float(td["width"])
+			var angle: float = td_angle + sin(_t * td_rate + td_phase) * 0.5
+			var length: float = td_length * i * (0.6 + sin(_t * td_rate * 1.3 + td_phase) * 0.4)
+			if length < 5.0:
+				continue
+			var segs := 8
+			var prev := Vector2.ZERO
+			for s in segs + 1:
+				var frac := float(s) / segs
+				var wobble := sin(_t * 1.8 + frac * 5.0 + td_phase) * 8.0 * frac
+				var dir := Vector2(cos(angle), sin(angle))
+				var perp := Vector2(-dir.y, dir.x)
+				var pt := dir * length * frac + perp * wobble
+				if s > 0:
+					var alpha := (1.0 - frac * frac) * 0.6 * i
+					# Outer glow line
+					draw_line(prev, pt,
+						Color(0.5, 0.0, 0.8, alpha * 0.3), td_width * 3.0, true)
+					# Core line
+					draw_line(prev, pt,
+						Color(0.75, 0.2, 1.0, alpha), td_width, true)
+				prev = pt
+
+		# ── Crack — main tear + branches ──────────────────────────────────────
+		var crack_scale := 0.7 + i * 0.5
+		var pulse := 0.6 + sin(_t * 2.5) * 0.4
+		_draw_crack(_crack_main, crack_scale, pulse, i, 5.0, 3.0)
+		_draw_crack(_crack_branch_l, crack_scale * 0.8, pulse, i * 0.7, 3.5, 2.0)
+		_draw_crack(_crack_branch_r, crack_scale * 0.8, pulse, i * 0.7, 3.5, 2.0)
+
+		# ── Central eye — bright hot core ─────────────────────────────────────
+		var core_pulse := 0.7 + sin(_t * 1.8) * 0.3
+		var core_r := 8.0 + i * 6.0 + sin(_t * 2.2) * 2.0
+		draw_circle(Vector2.ZERO, core_r * 2.0,
+			Color(0.7, 0.15, 1.0, 0.3 * i * core_pulse))
+		draw_circle(Vector2.ZERO, core_r,
+			Color(0.85, 0.4, 1.0, 0.7 * i * core_pulse))
+		draw_circle(Vector2.ZERO, core_r * 0.5,
+			Color(1.0, 0.85, 1.0, 0.9 * i * core_pulse))
+
+		# ── Drifting particles — void energy leaking out ──────────────────────
+		for p in _particles:
+			var dist: float = fmod(float(p["dist"]) + float(p["speed"]) * _t, float(p["max_dist"]))
+			var angle: float = float(p["angle"]) + sin(_t * 0.3 + float(p["phase"])) * 0.3
+			var pos := Vector2(cos(angle), sin(angle)) * dist
+			var fade: float = (1.0 - dist / float(p["max_dist"])) * i
+			if fade < 0.02:
+				continue
+			var p_sz: float = float(p["sz"]) * i
+			# Particle glow
+			draw_circle(pos, p_sz * 2.0,
+				Color(0.5, 0.0, 0.8, fade * 0.2))
+			draw_circle(pos, p_sz,
+				Color(0.8, 0.3, 1.0, fade * 0.7))
+
+		# ── Boss flare — massive expanding shockwave ──────────────────────────
+		if _flare_timer > 0.0:
+			var progress := 1.0 - _flare_timer / 2.0
+			var ring_r := 30.0 + progress * 180.0
+			var ring_a := (1.0 - progress) * 0.8
+			draw_arc(Vector2.ZERO, ring_r, 0.0, TAU, 64,
+				Color(0.9, 0.3, 1.0, ring_a), 4.0, true)
+			draw_arc(Vector2.ZERO, ring_r * 0.7, 0.0, TAU, 64,
+				Color(1.0, 0.7, 1.0, ring_a * 0.5), 2.5, true)
+			draw_arc(Vector2.ZERO, ring_r * 0.4, 0.0, TAU, 64,
+				Color(1.0, 0.9, 1.0, ring_a * 0.3), 1.5, true)
+			# Flash the core white during flare
+			draw_circle(Vector2.ZERO, 15.0 + (1.0 - progress) * 20.0,
+				Color(1.0, 0.9, 1.0, ring_a * 0.6))
+
+	func _draw_crack(pts: PackedVector2Array, scale: float,
+			pulse: float, intensity: float, outer_w: float, inner_w: float) -> void:
+		for j in pts.size() - 1:
+			var p0 := pts[j] * scale
+			var p1 := pts[j + 1] * scale
+			# Outer void glow
+			draw_line(p0, p1,
+				Color(0.4, 0.0, 0.7, pulse * intensity * 0.4), outer_w * 2.5, true)
+			# Bright purple edge
+			draw_line(p0, p1,
+				Color(0.8, 0.3, 1.0, pulse * intensity), outer_w, true)
+			# White-hot center
+			draw_line(p0, p1,
+				Color(1.0, 0.85, 1.0, pulse * intensity * 0.8), inner_w, true)
 
 # ── Game Over ─────────────────────────────────────────────────────────────────
 func _trigger_game_over(victory: bool) -> void:

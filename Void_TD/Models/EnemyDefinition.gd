@@ -28,6 +28,6 @@ static func stats(type: EnemyType) -> Dictionary:
 			return { "hp": 5000, "speed": 30.0, "reward": 300, "lives_damage": 4,
 					 "color": Color(0.22, 0.22, 0.28), "size": Vector2(70, 70), "label": "THE VOID",
 					 "is_boss": true,
-					 "stun_range": 250.0, "stun_interval": 4.0, "stun_duration": 2.5,
+					 "stun_range": 250.0, "stun_interval": 4.0, "stun_duration": 1.5,
 					 "armor_threshold": 2500.0 }
 	return {}
