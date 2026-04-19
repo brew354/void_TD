@@ -237,13 +237,14 @@ func _build_hud() -> void:
 	hud = HUDNode.new()
 	add_child(hud)
 	hud.tower_selected.connect(_on_hud_tower_selected)
+	hud.tower_deselected.connect(_deselect_tower)
 	hud.start_wave_pressed.connect(_on_hud_start_wave)
 	hud.pause_pressed.connect(_on_hud_pause)
+	hud.menu_pressed.connect(_on_menu_pressed)
 	hud.speed_toggled.connect(_on_speed_toggled)
 	hud.upgrade_pressed.connect(_on_upgrade_pressed)
 	hud.sell_pressed.connect(_on_sell_from_panel)
 	hud.upgrade_panel_closed.connect(_close_upgrade_panel)
-	hud.cancel_placement.connect(_deselect_tower)
 	_refresh_hud()
 	const MilestoneManager = preload("res://Systems/MilestoneManager.gd")
 	_milestone_manager = MilestoneManager.new(hud)
@@ -522,6 +523,11 @@ func _on_hud_pause() -> void:
 		state_machine.transition_to(GameStateMachine.State.PAUSED)
 		get_tree().paused = true
 		hud.set_paused(true)
+
+func _on_menu_pressed() -> void:
+	Engine.time_scale = 1.0
+	get_tree().paused = false
+	get_tree().change_scene_to_file("res://Scenes/MenuScene.tscn")
 
 # ── Enemy Spawning ────────────────────────────────────────────────────────────
 func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float, speed_scale: float) -> void:
