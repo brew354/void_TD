@@ -125,6 +125,7 @@ func _build_layers() -> void:
 	add_child(_camera)
 
 func _draw_background() -> void:
+	var vp := get_viewport_rect().size
 	var grad = _HorizGradient.new()
 	background_layer.add_child(grad)
 	# Regular stars
@@ -132,7 +133,7 @@ func _draw_background() -> void:
 		var star = ColorRect.new()
 		var sz := randf_range(1.0, 3.0)
 		star.size = Vector2(sz, sz)
-		star.position = Vector2(randf_range(0, 1334), randf_range(0, 750))
+		star.position = Vector2(randf_range(0, vp.x), randf_range(0, vp.y))
 		star.color = Color(1.0, randf_range(0.85, 1.0), 1.0, randf_range(0.6, 1.0))
 		background_layer.add_child(star)
 	# Bright accent stars
@@ -140,7 +141,7 @@ func _draw_background() -> void:
 		var star = ColorRect.new()
 		var sz := randf_range(3.0, 5.0)
 		star.size = Vector2(sz, sz)
-		star.position = Vector2(randf_range(0, 1334), randf_range(0, 750))
+		star.position = Vector2(randf_range(0, vp.x), randf_range(0, vp.y))
 		star.color = Color(1.0, 1.0, 1.0, 1.0)
 		background_layer.add_child(star)
 	# Planet 1 — upper-left, void dark-black/purple gas giant with wide flat ring
@@ -844,12 +845,13 @@ class _Planet extends Node2D:
 		draw_circle(Vector2(-planet_radius * 0.3, -planet_radius * 0.3),
 					planet_radius * 0.45, highlight_color)
 
-## Left-to-right gradient: black → dark purple
+## Left-to-right gradient: black → dark purple (fills full viewport)
 class _HorizGradient extends Node2D:
 	func _draw() -> void:
 		var steps := 80
-		var sw := GameConfig.SCENE_WIDTH
-		var sh := GameConfig.SCENE_HEIGHT
+		var vp := get_viewport_rect().size
+		var sw := vp.x
+		var sh := vp.y
 		var strip_w: float = ceil(float(sw) / steps) + 1
 		for i in range(steps):
 			var t := float(i) / float(steps - 1)

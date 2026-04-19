@@ -14,9 +14,9 @@ signal upgrade_panel_closed
 signal cancel_placement
 
 # Top bar:    y=0,   h=36  — info labels only
-# Bottom bar: y=714, h=36  — tower buttons + controls
+# Bottom bar: bottom of viewport, h=36  — tower buttons + controls
 const _TOP_H:  float = 36.0
-const _BOT_Y:  float = 714.0
+var _BOT_Y:  float = 714.0  # computed from viewport in _build_hud
 const _BOT_H:  float = 36.0
 const _BTN_H:  float = 32.0   # button height inside bottom bar
 const _BTN_W:  float = 158.0  # tower button width
@@ -91,10 +91,13 @@ func _ready() -> void:
 	_build_hud()
 
 func _build_hud() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	_BOT_Y = vp.y - _BOT_H
+
 	# ── Top bar — info only ───────────────────────────────────────────────────
 	var top_bg = ColorRect.new()
 	top_bg.color = Color(0, 0, 0, 0.72)
-	top_bg.size = Vector2(1334, _TOP_H)
+	top_bg.size = Vector2(vp.x, _TOP_H)
 	top_bg.position = Vector2.ZERO
 	add_child(top_bg)
 
@@ -116,7 +119,7 @@ func _build_hud() -> void:
 	# ── Bottom bar — actions only ─────────────────────────────────────────────
 	var bot_bg = ColorRect.new()
 	bot_bg.color = Color(0, 0, 0, 0.72)
-	bot_bg.size = Vector2(1334, _BOT_H)
+	bot_bg.size = Vector2(vp.x, _BOT_H)
 	bot_bg.position = Vector2(0, _BOT_Y)
 	add_child(bot_bg)
 
@@ -171,7 +174,7 @@ func _build_hud() -> void:
 	# ── Damage flash overlay (always on top) ──────────────────────────────────
 	_damage_flash = ColorRect.new()
 	_damage_flash.color = Color(1.0, 0.0, 0.0, 0.0)
-	_damage_flash.size = Vector2(1334, 750)
+	_damage_flash.size = get_viewport().get_visible_rect().size
 	_damage_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_damage_flash)
 

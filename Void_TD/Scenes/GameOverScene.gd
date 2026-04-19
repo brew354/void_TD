@@ -12,9 +12,10 @@ var upgrades_done: int = 0
 var credits_spent: int = 0
 
 func _ready() -> void:
+	var vp := get_viewport_rect().size
 	var bg = ColorRect.new()
 	bg.color = Color(0.05, 0.05, 0.15)
-	bg.size = Vector2(1334, 750)
+	bg.size = vp
 	add_child(bg)
 
 	# ── Title ─────────────────────────────────────────────────────────────────

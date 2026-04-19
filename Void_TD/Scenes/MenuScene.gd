@@ -48,10 +48,12 @@ var _doggo_border: ColorRect = null     # selection border for the Doggo button
 func _ready() -> void:
 	TowerSkins.load_from_disk()
 
+	var vp := get_viewport_rect().size
+
 	# Background
 	var bg = ColorRect.new()
 	bg.color = Color(0, 0, 0)
-	bg.size = Vector2(1334, 750)
+	bg.size = vp
 	bg.position = Vector2.ZERO
 	add_child(bg)
 
@@ -60,7 +62,7 @@ func _ready() -> void:
 		var star = ColorRect.new()
 		var sz = randf_range(1.0, 3.0)
 		star.size = Vector2(sz, sz)
-		star.position = Vector2(randf_range(0, 1334), randf_range(0, 750))
+		star.position = Vector2(randf_range(0, vp.x), randf_range(0, vp.y))
 		star.color = Color(randf_range(0.6, 1.0), randf_range(0.2, 0.5), 1.0)
 		add_child(star)
 		_stars.append(star)
@@ -185,7 +187,7 @@ func _build_skin_panel() -> void:
 	# ── Full-screen background ────────────────────────────────────────────────
 	var bg = ColorRect.new()
 	bg.color = Color(0.04, 0.0, 0.08)
-	bg.size = Vector2(1334, 750)
+	bg.size = get_viewport_rect().size
 	bg.position = Vector2.ZERO
 	_skin_panel.add_child(bg)
 
