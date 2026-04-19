@@ -38,10 +38,6 @@ var _shield_ring_node: Node2D = null
 var _slow_factor: float = 1.0   # 1.0 = full speed; 0.45 = heavily slowed
 var _slow_timer: float = 0.0
 
-# Burn (applied by Laser L2+)
-var _burn_dps: float = 0.0
-var _burn_timer: float = 0.0
-
 # Void Rupture (applied by Void Stunner on bosses — take 2× damage)
 var _is_ruptured: bool = false
 var _rupture_timer: float = 0.0
@@ -184,17 +180,6 @@ func _process(delta: float) -> void:
 			_slow_factor = 1.0
 			_update_tint()
 
-	# Tick burn — damages directly each frame, bypasses shield/armor
-	if _burn_timer > 0.0:
-		_burn_timer -= delta
-		_take_burn_damage(_burn_dps * delta)
-		if is_dead:
-			return
-		if _burn_timer <= 0.0:
-			_burn_timer = 0.0
-			_burn_dps = 0.0
-		_update_tint()
-
 	# Tick void rupture
 	if _rupture_timer > 0.0:
 		_rupture_timer -= delta
@@ -245,13 +230,6 @@ func apply_slow(factor: float, duration: float) -> void:
 	_slow_timer  = max(_slow_timer, duration)
 	_update_tint()
 
-func apply_burn(dps: float, duration: float) -> void:
-	if is_dead:
-		return
-	_burn_dps   = max(_burn_dps, dps)
-	_burn_timer = max(_burn_timer, duration)
-	_update_tint()
-
 func apply_rupture(duration: float) -> void:
 	if is_dead or not is_boss:
 		return
@@ -263,20 +241,10 @@ func apply_rupture(duration: float) -> void:
 func _update_tint() -> void:
 	if is_dead:
 		return
-	if _burn_timer > 0.0:
-		_sprite.modulate = Color(1.0, 0.45, 0.1)   # orange flame
-	elif _slow_timer > 0.0:
+	if _slow_timer > 0.0:
 		_sprite.modulate = Color(0.55, 0.85, 1.0)  # ice blue
 	else:
 		_sprite.modulate = _base_tint
-
-func _take_burn_damage(amount: float) -> void:
-	if is_dead:
-		return
-	current_hp -= amount
-	_update_hp_bar()
-	if current_hp <= 0:
-		_on_die()
 
 func take_damage(amount: float) -> void:
 	if is_dead:

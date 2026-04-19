@@ -71,9 +71,10 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 
 	var ti: int = int(type)
 	# Color.WHITE = show natural sprite; any override = tint the sprite that color
-	# Void Stunner defaults to ice blue unless a skin override is set
-	var freeze_default := Color(0.35, 0.78, 1.0) if type == TowerDefinition.TowerType.FREEZE else Color.WHITE
-	_normal_modulate = TowerSkins.overrides.get(ti, freeze_default)
+	var default_tint := Color.WHITE
+	if type == TowerDefinition.TowerType.FREEZE:
+		default_tint = Color(0.35, 0.78, 1.0)   # ice blue
+	_normal_modulate = TowerSkins.overrides.get(ti, default_tint)
 
 	# Base sprite (stationary)
 	_base_sprite = Sprite2D.new()
@@ -246,18 +247,8 @@ func _spawn_projectile(target: EnemyNode) -> void:
 	var s = TowerDefinition.stats(tower_type)
 	var slow_f: float = float(s.get("slow_factor", 1.0))
 	var slow_d: float = float(s.get("slow_duration", 0.0))
-	# Laser L2+: burn DoT on hit. L3: also chain lightning to nearest enemy.
-	var burn_dps: float = 0.0
-	var burn_dur: float = 0.0
-	var chain_dmg: float = 0.0
-	if tower_type == TowerDefinition.TowerType.LASER:
-		if upgrade_level >= 2:
-			burn_dps = 8.0
-			burn_dur = 2.5
-		if upgrade_level == 3:
-			chain_dmg = damage * 0.5
 	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref, int(tower_type),
-			slow_f, slow_d, burn_dps, burn_dur, chain_dmg)
+			slow_f, slow_d)
 	# Fire flash — briefly brighten then fade back
 	if _fire_tween:
 		_fire_tween.kill()

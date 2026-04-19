@@ -16,15 +16,11 @@ var _enemies_ref: Array  # Reference to GameScene's enemies array for splash
 var _tower_type: int = 0  # int of TowerDefinition.TowerType
 var _slow_factor: float = 1.0
 var _slow_duration: float = 0.0
-var _burn_dps: float = 0.0
-var _burn_duration: float = 0.0
-var _chain_damage: float = 0.0  # > 0 = arc to nearest other enemy on hit (Laser L3)
 
 var _visual: _ProjectileVisual
 
 func setup(t: EnemyNode, dmg: float, spd: float, splash: float, enemies: Array, ttype: int = 0,
-		slow_factor: float = 1.0, slow_duration: float = 0.0,
-		burn_dps: float = 0.0, burn_duration: float = 0.0, chain_damage: float = 0.0) -> void:
+		slow_factor: float = 1.0, slow_duration: float = 0.0) -> void:
 	target = t
 	damage = dmg
 	projectile_speed = spd
@@ -33,9 +29,6 @@ func setup(t: EnemyNode, dmg: float, spd: float, splash: float, enemies: Array, 
 	_tower_type = ttype
 	_slow_factor = slow_factor
 	_slow_duration = slow_duration
-	_burn_dps = burn_dps
-	_burn_duration = burn_duration
-	_chain_damage = chain_damage
 
 	_visual = _ProjectileVisual.new()
 	_visual.tower_type = ttype
@@ -70,31 +63,9 @@ func _on_hit() -> void:
 			target.take_damage(damage)
 			if _slow_duration > 0.0:
 				target.apply_slow(_slow_factor, _slow_duration)
-			if _burn_dps > 0.0:
-				target.apply_burn(_burn_dps, _burn_duration)
-			if _chain_damage > 0.0:
-				_do_chain_lightning()
 
 	hit_target.emit()
 	queue_free()
-
-func _do_chain_lightning() -> void:
-	var best: EnemyNode = null
-	var best_dist: float = 160.0  # max arc range
-	for e in _enemies_ref:
-		if not is_instance_valid(e) or e.is_dead or e == target:
-			continue
-		var d := position.distance_to(e.position)
-		if d < best_dist:
-			best_dist = d
-			best = e
-	if best == null:
-		return
-	best.take_damage(_chain_damage)
-	if get_parent() != null:
-		var arc := _LightningArc.new()
-		arc.setup_arc(position, best.position)
-		get_parent().add_child(arc)
 
 func _spawn_splash_ring() -> void:
 	var ring = _SplashRing.new()
@@ -200,37 +171,3 @@ class _SplashRing extends Node2D:
 			draw_arc(Vector2.ZERO, r * 0.7, 0, TAU, 32, Color(1.0, 0.8, 0.2, alpha * 0.5), 1.5)
 
 
-## Laser L3 chain lightning arc — spawned at the projectile layer origin
-class _LightningArc extends Node2D:
-	var _from: Vector2
-	var _to: Vector2
-	var _t: float = 0.0
-	var _jitter: Array = []  # pre-computed perpendicular offsets, one per interior point
-	const DURATION: float = 0.22
-	const SEGMENTS: int = 6
-
-	func setup_arc(from_pos: Vector2, to_pos: Vector2) -> void:
-		_from = from_pos
-		_to   = to_pos
-		var perp := (_to - _from).orthogonal().normalized()
-		_jitter.clear()
-		for i in range(SEGMENTS - 1):
-			_jitter.append(perp * randf_range(-16.0, 16.0))
-
-	func _process(delta: float) -> void:
-		_t += delta
-		if _t >= DURATION:
-			queue_free()
-			return
-		queue_redraw()
-
-	func _draw() -> void:
-		var alpha := (1.0 - _t / DURATION) * 0.95
-		var pts: Array = [_from]
-		for i in range(SEGMENTS - 1):
-			var frac := float(i + 1) / SEGMENTS
-			pts.append(_from.lerp(_to, frac) + _jitter[i])
-		pts.append(_to)
-		for i in range(pts.size() - 1):
-			draw_line(pts[i], pts[i + 1], Color(0.55, 0.92, 1.0, alpha), 2.5)
-			draw_line(pts[i], pts[i + 1], Color(1.0, 1.0, 1.0, alpha * 0.55), 1.0)

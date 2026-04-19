@@ -383,6 +383,15 @@ func _process(delta: float) -> void:
 			_ambient_pb.push_frame(Vector2(sample, sample))
 
 func _start_ambient_music() -> void:
+	# Use Kevin MacLeod OGG if present, otherwise fall back to synthesized ambient
+	var music_path := "res://Assets/audio/music/menu.mp3"
+	if ResourceLoader.exists(music_path):
+		_ambient_player = AudioStreamPlayer.new()
+		_ambient_player.stream = load(music_path)
+		_ambient_player.volume_db = -10.0
+		add_child(_ambient_player)
+		_ambient_player.play()
+		return
 	var gen := AudioStreamGenerator.new()
 	gen.mix_rate = _MIX_RATE
 	gen.buffer_length = 0.3

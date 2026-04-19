@@ -75,11 +75,18 @@ var _credits_spent: int = 0
 var _endless: bool = false
 var _milestone_manager = null
 
+# ── Music ─────────────────────────────────────────────────────────────────────
+var _music_player: AudioStreamPlayer = null
+
+# ── Boss bar tracking ─────────────────────────────────────────────────────────
+var _boss_bar_enemy: Node = null  # Void Herald currently shown in the top bar
+
 # ─────────────────────────────────────────────────────────────────────────────
 func _ready() -> void:
 	TowerSkins.load_from_disk()
 	_endless = GameMode.endless
 	_load_audio()
+	_start_music()
 	_build_layers()
 	_init_systems()
 	_build_grid()
@@ -524,6 +531,12 @@ func _on_enemy_spawned(enemy_type: EnemyDefinition.EnemyType, wave_scale: float,
 	enemy.exited.connect(_on_enemy_exited)
 	if enemy.is_boss:
 		enemy.stun_pulse.connect(_on_boss_stun_pulse)
+	if enemy.enemy_type == EnemyDefinition.EnemyType.BOSS and _boss_bar_enemy == null:
+		_boss_bar_enemy = enemy
+		hud.show_boss_bar("VOID HERALD")
+		enemy.hp_changed.connect(hud.update_boss_bar)
+		enemy.died.connect(func(_e): _boss_bar_enemy = null; hud.hide_boss_bar())
+		enemy.exited.connect(func(_e): _boss_bar_enemy = null; hud.hide_boss_bar())
 	if enemy.enemy_type == EnemyDefinition.EnemyType.MEGA_BOSS:
 		enemy.armor_broken.connect(_on_mega_boss_armor_broken)
 		hud.show_boss_bar("THE VOID")
@@ -664,6 +677,16 @@ func _on_wave_complete() -> void:
 	_show_wave_preview()
 
 # ── Audio ─────────────────────────────────────────────────────────────────────
+func _start_music() -> void:
+	var music_path := "res://Assets/audio/music/game.mp3"
+	if not ResourceLoader.exists(music_path):
+		return
+	_music_player = AudioStreamPlayer.new()
+	_music_player.stream = load(music_path)
+	_music_player.volume_db = -12.0
+	add_child(_music_player)
+	_music_player.play()
+
 func _load_audio() -> void:
 	var sf := "res://Assets/audio/kenney_sci-fi-sounds/Audio/"
 	var im := "res://Assets/audio/kenney_impact-sounds/Audio/"

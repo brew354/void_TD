@@ -7,13 +7,13 @@ const GRID_ROWS: int = 11
 # Scene size: 1334 x 750 (landscape)
 const SCENE_WIDTH: float = 1334.0
 const SCENE_HEIGHT: float = 750.0
-const STARTING_LIVES: int = 5
-const STARTING_CREDITS: int = 300
+const STARTING_LIVES: int = 8
+const STARTING_CREDITS: int = 450
 const TOWER_MAX_TOTAL: int = 30
 
 ## Wave-clear bonus scales with wave number so late-game survival is rewarded.
 static func wave_bonus(wave_number: int) -> int:
-	return wave_number * 8
+	return wave_number * 15
 
 # Path waypoints in scene coordinates — centered on path tiles
 # Tile center formula: (col*64+32, GRID_ORIGIN.y + row*64+32) = (col*64+32, row*64+78)

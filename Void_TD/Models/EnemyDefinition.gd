@@ -16,7 +16,7 @@ static func stats(type: EnemyType) -> Dictionary:
 			return { "hp": 2000, "speed": 40.0, "reward": 90, "lives_damage": 0,
 					 "color": Color(0.2, 0.0, 0.35), "size": Vector2(52, 52), "label": "Void Herald",
 					 "is_boss": true,
-					 "stun_range": 200.0, "stun_interval": 3.5, "stun_duration": 2.0 }
+					 "stun_range": 200.0, "stun_interval": 5.0, "stun_duration": 1.5 }
 		EnemyType.SPEEDER:
 			return { "hp": 30, "speed": 400.0, "reward": 10, "lives_damage": 1,
 					 "color": Color(0.0, 0.95, 1.0), "size": Vector2(14, 14), "label": "Void Shade" }
