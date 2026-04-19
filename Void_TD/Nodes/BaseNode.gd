@@ -10,10 +10,10 @@ var _level_label: Label
 func setup(pos: Vector2) -> void:
 	position = pos
 	var sprite = Sprite2D.new()
-	sprite.texture = load("res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/base_bunker.png")
+	sprite.texture = load("res://Assets/towers/kenney_sci-fi-rts/PNG/Default size/Structure/scifiStructure_01.png")
 	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	# scifiStructure_01 is 64x64; scale to ~60px display size
-	sprite.scale = Vector2(0.94, 0.94)
+	# kenney structures are 64x64; scale up so base reads larger than towers
+	sprite.scale = Vector2(1.8, 1.8)
 	add_child(sprite)
 
 	_level_label = Label.new()
