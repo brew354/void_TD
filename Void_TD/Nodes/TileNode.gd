@@ -31,7 +31,7 @@ var _overlay: ColorRect
 func setup(c: int, r: int, state: GridManager.TileState) -> void:
 	col = c
 	row = r
-	size = Vector2(GameConfig.TILE_SIZE - 1, GameConfig.TILE_SIZE - 1)
+	size = Vector2(GameConfig.TILE_SIZE, GameConfig.TILE_SIZE)
 	position = GameConfig.GRID_ORIGIN + Vector2(c * GameConfig.TILE_SIZE, r * GameConfig.TILE_SIZE)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	gui_input.connect(_on_gui_input)
