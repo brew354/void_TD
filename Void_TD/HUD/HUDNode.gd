@@ -11,6 +11,7 @@ signal speed_toggled(fast: bool)
 signal upgrade_pressed
 signal sell_pressed
 signal upgrade_panel_closed
+signal cancel_placement
 
 # Top bar:    y=0,   h=36  — info labels only
 # Bottom bar: y=714, h=36  — tower buttons + controls
@@ -135,6 +136,14 @@ func _build_hud() -> void:
 		)
 		add_child(btn)
 		_tower_btns.append(btn)
+
+	# Cancel placement button — appears after tower buttons
+	var cancel_x: float = _BTN_GAP + _TOWER_TYPES.size() * (_BTN_W + _BTN_GAP)
+	var cancel_btn = _make_button("Cancel", Vector2(cancel_x, btn_y), Vector2(76, _BTN_H))
+	cancel_btn.add_theme_font_size_override("font_size", 12)
+	cancel_btn.add_theme_color_override("font_color", Color(1.0, 0.55, 0.55))
+	cancel_btn.pressed.connect(func(): cancel_placement.emit())
+	add_child(cancel_btn)
 
 	# Right-side controls — laid out right-to-left so REPEL is flush with edge
 	# REPEL ASSAULT button
@@ -358,6 +367,10 @@ func set_start_wave_enabled(enabled: bool) -> void:
 func set_selected_tower(type: TowerDefinition.TowerType) -> void:
 	for i in _tower_btns.size():
 		_tower_btns[i].modulate = Color(0.4, 1.0, 0.4) if i == int(type) else Color(1, 1, 1)
+
+func clear_selected_tower() -> void:
+	for btn in _tower_btns:
+		btn.modulate = Color(1, 1, 1)
 
 func show_milestone_popup(text: String, accent_color: Color) -> void:
 	# Find first free slot

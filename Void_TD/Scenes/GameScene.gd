@@ -243,6 +243,7 @@ func _build_hud() -> void:
 	hud.upgrade_pressed.connect(_on_upgrade_pressed)
 	hud.sell_pressed.connect(_on_sell_from_panel)
 	hud.upgrade_panel_closed.connect(_close_upgrade_panel)
+	hud.cancel_placement.connect(_deselect_tower)
 	_refresh_hud()
 	const MilestoneManager = preload("res://Systems/MilestoneManager.gd")
 	_milestone_manager = MilestoneManager.new(hud)
@@ -327,8 +328,10 @@ func _input(event: InputEvent) -> void:
 		return
 	if not (event is InputEventMouseButton) or not event.pressed:
 		return
-	# Base double-click (base sits outside the tile grid)
-	if event.button_index == MOUSE_BUTTON_LEFT and event.double_click:
+	if event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	# Base double-tap (base sits outside the tile grid)
+	if event.double_click:
 		if event.position.distance_to(GameConfig.PATH_WAYPOINTS[-1]) <= 35.0:
 			if state_machine.can_upgrade_tower():
 				_open_base_panel()
@@ -336,13 +339,9 @@ func _input(event: InputEvent) -> void:
 	var coord = GameConfig.grid_coord(event.position)
 	if coord == null:
 		return
-	if event.button_index == MOUSE_BUTTON_RIGHT:
-		_sell_tower(coord.x, coord.y)
-		_close_upgrade_panel()
-	elif event.button_index == MOUSE_BUTTON_LEFT and event.double_click:
-		if state_machine.can_upgrade_tower() \
-				and grid_manager.get_state(coord.x, coord.y) == GridManager.TileState.OCCUPIED:
-			_open_upgrade_panel(coord.x, coord.y)
+	if event.double_click and state_machine.can_upgrade_tower() \
+			and grid_manager.get_state(coord.x, coord.y) == GridManager.TileState.OCCUPIED:
+		_open_upgrade_panel(coord.x, coord.y)
 
 func _sell_tower(col: int, row: int) -> void:
 	if not state_machine.can_place_tower():
@@ -491,6 +490,10 @@ func _select_tower_type(type: TowerDefinition.TowerType) -> void:
 
 func _on_hud_tower_selected(type: TowerDefinition.TowerType) -> void:
 	_select_tower_type(type)
+
+func _deselect_tower() -> void:
+	_selected_type_set = false
+	hud.clear_selected_tower()
 
 func _on_hud_start_wave() -> void:
 	if not state_machine.can_start_wave():
