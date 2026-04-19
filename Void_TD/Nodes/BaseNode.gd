@@ -39,7 +39,8 @@ class _BaseVisual extends Node2D:
 		# ── Outer platform octagon ────────────────────────────────────────────
 		var oct := _poly(8, 34.0, 0.0)
 		draw_colored_polygon(oct, Color(0.10, 0.04, 0.18))
-		draw_polyline(oct + [oct[0]], Color(0.50, 0.18, 0.80, 0.9), 2.0, true)
+		var oct_c := PackedVector2Array(oct); oct_c.append(oct[0])
+		draw_polyline(oct_c, Color(0.50, 0.18, 0.80, 0.9), 2.0, true)
 
 		# Accent notches at the four cardinal vertices of the octagon
 		for i in [0, 2, 4, 6]:
@@ -50,7 +51,8 @@ class _BaseVisual extends Node2D:
 		# ── Inner hull hexagon ────────────────────────────────────────────────
 		var hex := _poly(6, 20.0, PI / 6.0)
 		draw_colored_polygon(hex, Color(0.06, 0.02, 0.14))
-		draw_polyline(hex + [hex[0]], Color(0.65, 0.25, 1.0, 0.95), 1.5, true)
+		var hex_c := PackedVector2Array(hex); hex_c.append(hex[0])
+		draw_polyline(hex_c, Color(0.65, 0.25, 1.0, 0.95), 1.5, true)
 
 		# ── Shield ring (slow pulse, always present) ──────────────────────────
 		var shield_a := 0.22 + sin(_t * 1.4) * 0.08
