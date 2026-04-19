@@ -21,7 +21,6 @@ const TowerSkins      = preload("res://Models/TowerSkins.gd")
 # ── Game State ──────────────────────────────────────────────────────────────
 var lives: int = GameConfig.STARTING_LIVES
 var currency: int = GameConfig.STARTING_CREDITS
-var current_wave: int = 0
 var score: int = 0
 
 # ── Systems ──────────────────────────────────────────────────────────────────
@@ -330,18 +329,11 @@ func _input(event: InputEvent) -> void:
 		return
 	if event.button_index != MOUSE_BUTTON_LEFT:
 		return
-	# Base double-tap (base sits outside the tile grid)
-	if event.double_click:
-		if event.position.distance_to(GameConfig.PATH_WAYPOINTS[-1]) <= 35.0:
-			if state_machine.can_upgrade_tower():
-				_open_base_panel()
-			return
-	var coord = GameConfig.grid_coord(event.position)
-	if coord == null:
+	# Base tap (base sits outside the tile grid)
+	if event.position.distance_to(GameConfig.PATH_WAYPOINTS[-1]) <= 35.0:
+		if state_machine.can_upgrade_tower():
+			_open_base_panel()
 		return
-	if event.double_click and state_machine.can_upgrade_tower() \
-			and grid_manager.get_state(coord.x, coord.y) == GridManager.TileState.OCCUPIED:
-		_open_upgrade_panel(coord.x, coord.y)
 
 func _sell_tower(col: int, row: int) -> void:
 	if not state_machine.can_place_tower():
@@ -364,9 +356,11 @@ func _sell_tower(col: int, row: int) -> void:
 			break
 
 func _on_tile_clicked(col: int, row: int) -> void:
-	if not state_machine.can_place_tower():
-		return
 	if grid_manager.get_state(col, row) == GridManager.TileState.OCCUPIED:
+		if state_machine.can_upgrade_tower():
+			_open_upgrade_panel(col, row)
+		return
+	if not state_machine.can_place_tower():
 		return
 	if not _selected_type_set:
 		return
@@ -408,6 +402,7 @@ func _place_tower(col: int, row: int, type: TowerDefinition.TowerType) -> void:
 func _open_upgrade_panel(col: int, row: int) -> void:
 	_panel_col = col
 	_panel_row = row
+	_panel_target = "tower"
 	var pos = GameConfig.scene_position(col, row)
 	for tower in tower_manager.towers:
 		if is_instance_valid(tower) and tower.position.distance_to(pos) < 1.0:
@@ -478,6 +473,8 @@ func _upgrade_base() -> void:
 
 func _on_sell_from_panel() -> void:
 	if _panel_col < 0:
+		return
+	if not state_machine.can_place_tower():
 		return
 	_sell_tower(_panel_col, _panel_row)
 	_close_upgrade_panel()
@@ -616,7 +613,8 @@ func _on_boss_stun_pulse(pos: Vector2, radius: float, duration: float) -> void:
 
 func _on_enemy_exited(enemy: EnemyNode) -> void:
 	wave_manager.on_enemy_resolved()
-	var damage: int = 4 if enemy.is_boss else max(enemy.lives_damage - _base.damage_reduction, 1)
+	var raw: int = 4 if enemy.is_boss else enemy.lives_damage
+	var damage: int = max(raw - _base.damage_reduction, 1)
 	lives -= damage
 	lives = max(lives, 0)
 	hud.flash_damage()
@@ -633,7 +631,7 @@ func _on_state_changed(new_state: GameStateMachine.State) -> void:
 func _on_wave_complete() -> void:
 	if lives <= 0:
 		return
-	currency += GameConfig.wave_bonus(current_wave)
+	currency += GameConfig.wave_bonus(wave_manager.current_wave_number() - 1)
 	hud.update_credits(currency)
 
 	# Streak bonus: +$25 per consecutive clean wave
