@@ -1,6 +1,6 @@
-## TileNode.gd — Visual tile on the grid (ColorRect-based)
+## TileNode.gd — Visual tile on the grid (textured + color overlay)
 class_name TileNode
-extends ColorRect
+extends Control
 
 const GameConfig  = preload("res://Models/GameConfig.gd")
 const GridManager = preload("res://Systems/GridManager.gd")
@@ -12,47 +12,77 @@ var row: int = 0
 var tile_state: GridManager.TileState = GridManager.TileState.EMPTY
 
 const COLOR_EMPTY    = Color(0.04, 0.0, 0.06, 0.35)
-const COLOR_PATH     = Color(1.0, 1.0, 1.0, 0.8)
-const COLOR_OCCUPIED = Color(0.10, 0.30, 0.10, 0.8)
+const COLOR_PATH     = Color(1.0, 1.0, 1.0, 0.38)
+const COLOR_OCCUPIED = Color(0.10, 0.30, 0.10, 0.45)
 const COLOR_HOVER    = Color(0.20, 0.50, 0.80, 0.7)
 const COLOR_INVALID  = Color(0.80, 0.10, 0.10, 0.7)
+
+const _TILE_TEX_EMPTY    = "res://Assets/towers/kenney_sci-fi-rts/PNG/Default size/Tile/scifiTile_08.png"
+const _TILE_TEX_PATH     = "res://Assets/towers/kenney_sci-fi-rts/PNG/Default size/Tile/scifiTile_13.png"
 
 var _flash_timer: float = 0.0
 var _flashing_invalid: bool = false
 var _base_color: Color = COLOR_EMPTY
 var _path_chevron: Node2D = null
 
+var _tile_bg: TextureRect
+var _overlay: ColorRect
+
 func setup(c: int, r: int, state: GridManager.TileState) -> void:
 	col = c
 	row = r
-	set_state(state)
 	size = Vector2(GameConfig.TILE_SIZE - 1, GameConfig.TILE_SIZE - 1)
 	position = GameConfig.GRID_ORIGIN + Vector2(c * GameConfig.TILE_SIZE, r * GameConfig.TILE_SIZE)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	gui_input.connect(_on_gui_input)
+
+	# Base texture (drawn first, below overlay)
+	_tile_bg = TextureRect.new()
+	_tile_bg.size = size
+	_tile_bg.stretch_mode = TextureRect.STRETCH_SCALE
+	_tile_bg.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	_tile_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_tile_bg)
+
+	# Color overlay (drawn on top of texture)
+	_overlay = ColorRect.new()
+	_overlay.size = size
+	_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_overlay)
+
+	set_state(state)
 
 func set_state(state: GridManager.TileState) -> void:
 	tile_state = state
 	match state:
 		GridManager.TileState.EMPTY:
 			_base_color = COLOR_EMPTY
+			if _tile_bg != null:
+				_tile_bg.texture = load(_TILE_TEX_EMPTY)
 		GridManager.TileState.PATH:
 			_base_color = COLOR_PATH
+			if _tile_bg != null:
+				_tile_bg.texture = load(_TILE_TEX_PATH)
 		GridManager.TileState.OCCUPIED:
 			_base_color = COLOR_OCCUPIED
-	color = _base_color
+			if _tile_bg != null:
+				_tile_bg.texture = load(_TILE_TEX_EMPTY)
+	if _overlay != null:
+		_overlay.color = _base_color
 
 func flash_invalid() -> void:
 	_flashing_invalid = true
 	_flash_timer = 0.4
-	color = COLOR_INVALID
+	if _overlay != null:
+		_overlay.color = COLOR_INVALID
 
 func _process(delta: float) -> void:
 	if _flashing_invalid:
 		_flash_timer -= delta
 		if _flash_timer <= 0.0:
 			_flashing_invalid = false
-			color = _base_color
+			if _overlay != null:
+				_overlay.color = _base_color
 
 func _on_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
