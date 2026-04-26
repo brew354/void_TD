@@ -25,7 +25,7 @@ static func stats(type: EnemyType) -> Dictionary:
 					 "color": Color(0.4, 0.6, 1.0), "size": Vector2(30, 30), "label": "Void Sentinel",
 					 "shield_interval": 5.0, "shield_duration": 2.0 }
 		EnemyType.MEGA_BOSS:
-			return { "hp": 5000, "speed": 30.0, "reward": 300, "lives_damage": 4,
+			return { "hp": 4250, "speed": 30.0, "reward": 300, "lives_damage": 4,
 					 "color": Color(0.22, 0.22, 0.28), "size": Vector2(70, 70), "label": "THE VOID",
 					 "is_boss": true,
 					 "stun_range": 250.0, "stun_interval": 4.0, "stun_duration": 1.5,

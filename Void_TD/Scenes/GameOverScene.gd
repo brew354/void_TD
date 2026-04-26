@@ -2,7 +2,9 @@
 class_name GameOverScene
 extends Node2D
 
-const SAVE_PATH = "user://void_td_save.cfg"
+const SAVE_PATH       = "user://void_td_save.cfg"
+const TowerSkins      = preload("res://Models/TowerSkins.gd")
+const GameMode        = preload("res://Models/GameMode.gd")
 
 var won: bool = false
 var final_score: int = 0
@@ -12,6 +14,14 @@ var upgrades_done: int = 0
 var credits_spent: int = 0
 
 func _ready() -> void:
+	TowerSkins.load_from_disk()
+
+	# Award coins for campaign games
+	var coins_earned: int = 0
+	if not GameMode.endless:
+		coins_earned = TowerSkins.COIN_REWARD_WIN if won else TowerSkins.COIN_REWARD_LOSE
+		TowerSkins.add_coins(coins_earned)
+
 	var vp := get_viewport_rect().size
 	var bg = ColorRect.new()
 	bg.color = Color(0.05, 0.05, 0.15)
@@ -110,6 +120,17 @@ func _ready() -> void:
 		val_lbl.add_theme_font_size_override("font_size", 28)
 		val_lbl.add_theme_color_override("font_color", Color.WHITE)
 		add_child(val_lbl)
+
+	# ── Coins Earned (campaign only) ──────────────────────────────────────────
+	if coins_earned > 0:
+		var coin_lbl = Label.new()
+		coin_lbl.text = "+%d coins earned!  (Total: %d)" % [coins_earned, TowerSkins.coins]
+		coin_lbl.position = Vector2(0, 448)
+		coin_lbl.size = Vector2(1334, 32)
+		coin_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		coin_lbl.add_theme_font_size_override("font_size", 20)
+		coin_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
+		add_child(coin_lbl)
 
 	# ── Return Button ─────────────────────────────────────────────────────────
 	var btn = Button.new()

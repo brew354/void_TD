@@ -25,12 +25,22 @@ const _DEFAULT_COLORS: Array = [
 	Color(1.0, 1.0, 1.0),  # Plasma Cannon — natural sprite (no tint)
 	Color(1.0, 1.0, 1.0),  # Void-Seeker   — natural sprite (no tint)
 	Color(1.0, 1.0, 1.0),  # Titan Mech    — natural sprite (no tint)
+	Color(1.0, 1.0, 1.0),  # Void Stunner  — natural sprite (no tint)
 ]
 
 var _title: Label
 var _stars: Array = []
 var _time: float = 0.0
 var _skin_panel: Node2D = null
+var _codes_panel: Node2D = null
+var _codes_input: LineEdit = null
+var _codes_msg: Label = null
+var _codes_submit_btn: Button = null
+var _http_request: HTTPRequest = null
+var _void_buttons: Array = []         # Array[Button] one per tower row (null if not applicable)
+var _ducky_buttons: Array = []        # Array[Button] one per tower row (null if not applicable)
+var _shop_panel: Node2D = null
+var _shop_coins_lbl: Label = null
 
 # ── Ambient music synthesis ───────────────────────────────────────────────────
 const _MIX_RATE   := 22050.0
@@ -43,7 +53,6 @@ var _osc_phase: Array = [0.0, 0.0, 0.0, 0.0, 0.0]
 var _lfo_t: float = 0.0
 var _skin_previews: Array = []        # Array[ColorRect]  one per tower row
 var _swatch_borders: Array = []       # Array[Array[ColorRect]]  [tower][palette]
-var _doggo_border: ColorRect = null     # selection border for the Doggo button
 
 func _ready() -> void:
 	TowerSkins.load_from_disk()
@@ -139,15 +148,33 @@ func _ready() -> void:
 	lbl_e.modulate.a = 0.0
 	add_child(lbl_e)
 
-	# Skins button
+	# Skins / Shop / Codes buttons — side by side
 	var btn_skins = Button.new()
 	btn_skins.text = "SKINS"
-	btn_skins.size = Vector2(160, 44)
-	btn_skins.position = Vector2(1334 / 2.0 - 80, 528)
+	btn_skins.size = Vector2(140, 44)
+	btn_skins.position = Vector2(1334 / 2.0 - 225, 528)
 	btn_skins.add_theme_font_size_override("font_size", 20)
 	btn_skins.modulate.a = 0.0
 	btn_skins.pressed.connect(_on_skins_btn)
 	add_child(btn_skins)
+
+	var btn_shop = Button.new()
+	btn_shop.text = "SHOP"
+	btn_shop.size = Vector2(140, 44)
+	btn_shop.position = Vector2(1334 / 2.0 - 70, 528)
+	btn_shop.add_theme_font_size_override("font_size", 20)
+	btn_shop.modulate.a = 0.0
+	btn_shop.pressed.connect(_on_shop_btn)
+	add_child(btn_shop)
+
+	var btn_codes = Button.new()
+	btn_codes.text = "CODES"
+	btn_codes.size = Vector2(140, 44)
+	btn_codes.position = Vector2(1334 / 2.0 + 85, 528)
+	btn_codes.add_theme_font_size_override("font_size", 20)
+	btn_codes.modulate.a = 0.0
+	btn_codes.pressed.connect(_on_codes_btn)
+	add_child(btn_codes)
 
 	# High score display
 	var cfg = ConfigFile.new()
@@ -163,11 +190,13 @@ func _ready() -> void:
 	tween.tween_property(lbl_c,        "modulate:a", 1.0, 0.8).set_delay(1.8)
 	tween.tween_property(lbl_e,        "modulate:a", 1.0, 0.8).set_delay(1.8)
 	tween.tween_property(btn_skins,    "modulate:a", 1.0, 0.8).set_delay(2.0)
+	tween.tween_property(btn_shop,     "modulate:a", 1.0, 0.8).set_delay(2.0)
+	tween.tween_property(btn_codes,    "modulate:a", 1.0, 0.8).set_delay(2.0)
 
 	if hs > 0:
 		var hs_lbl = Label.new()
 		hs_lbl.text = "Best Score: %d" % hs
-		hs_lbl.position = Vector2(0, 584)
+		hs_lbl.position = Vector2(0, 588)
 		hs_lbl.size = Vector2(1334, 36)
 		hs_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		hs_lbl.add_theme_font_size_override("font_size", 22)
@@ -177,6 +206,8 @@ func _ready() -> void:
 		tween.tween_property(hs_lbl, "modulate:a", 1.0, 0.8).set_delay(2.2)
 
 	_build_skin_panel()
+	_build_shop_panel()
+	_build_codes_panel()
 	_start_ambient_music()
 
 func _build_skin_panel() -> void:
@@ -229,12 +260,14 @@ func _build_skin_panel() -> void:
 	const DEF_W:    float = 102.0
 
 	# Vertically center the 4 rows in the space below the header
-	var rows_total: float = ROW_H * 4.0
+	var rows_total: float = ROW_H * 5.0
 	var row_start_y: float = HEADER_H + (750.0 - HEADER_H - rows_total) / 2.0
 
-	var tower_labels = ["Laser Turret", "Plasma Cannon", "Void-Seeker", "Titan Mech"]
+	var tower_labels = ["Laser Turret", "Plasma Cannon", "Void-Seeker", "Titan Mech", "Void Stunner"]
 
-	for ti in 4:
+	_void_buttons.clear()
+	_ducky_buttons.clear()
+	for ti in 5:
 		var row_y: float = row_start_y + ti * ROW_H
 		var item_y: float = row_y + (ROW_H - SW_SZ) / 2.0   # vertically center items in row
 
@@ -297,29 +330,6 @@ func _build_skin_panel() -> void:
 		# Special named skin buttons
 		var sp_x: float = sw_start_x + 9.0 * (SW_SZ + SW_GAP) + 10.0
 
-		if ti == 2:  # Void-Seeker — Doggo
-			_doggo_border = ColorRect.new()
-			_doggo_border.color = Color(1.0, 1.0, 0.3)
-			_doggo_border.size = Vector2(SP_W + 4, SW_SZ + 4)
-			_doggo_border.position = Vector2(sp_x - 2, item_y - 2)
-			_doggo_border.visible = (TowerSkins.overrides.get(2, Color(-1,-1,-1)) == TowerSkins.DOGGO_COLOR)
-			_skin_panel.add_child(_doggo_border)
-
-			var dog_btn = Button.new()
-			dog_btn.text = "Doggo"
-			dog_btn.size = Vector2(SP_W, SW_SZ)
-			dog_btn.position = Vector2(sp_x, item_y)
-			dog_btn.add_theme_font_size_override("font_size", 14)
-			var dog_flat = StyleBoxFlat.new()
-			dog_flat.bg_color = TowerSkins.DOGGO_COLOR
-			dog_btn.add_theme_stylebox_override("normal",  dog_flat)
-			dog_btn.add_theme_stylebox_override("hover",   dog_flat)
-			dog_btn.add_theme_stylebox_override("pressed", dog_flat)
-			dog_btn.add_theme_stylebox_override("focus",   dog_flat)
-			dog_btn.add_theme_color_override("font_color", Color.WHITE)
-			dog_btn.pressed.connect(_on_doggo_pressed)
-			_skin_panel.add_child(dog_btn)
-
 		# Default button — fixed x so it lines up across all rows
 		var reset_btn = Button.new()
 		reset_btn.text = "Default"
@@ -330,32 +340,388 @@ func _build_skin_panel() -> void:
 		reset_btn.pressed.connect(func(): _on_reset_skin(cap_ti2))
 		_skin_panel.add_child(reset_btn)
 
+		# Special skin buttons — placed after Default, spaced by SP_W + 8
+		var next_sp_x: float = DEF_X + DEF_W + 8.0
+
+		# Void skin button (only for eligible towers, only when code unlocked)
+		if ti in TowerSkins.VOID_TOWERS:
+			var void_btn = Button.new()
+			void_btn.text = "Void"
+			void_btn.size = Vector2(SP_W, 38)
+			void_btn.position = Vector2(next_sp_x, row_y + (ROW_H - 38) / 2.0)
+			void_btn.add_theme_font_size_override("font_size", 14)
+			var void_flat = StyleBoxFlat.new()
+			void_flat.bg_color = Color(0.12, 0.0, 0.22)
+			void_flat.border_color = Color(0.5, 0.0, 0.8)
+			void_flat.border_width_bottom = 2
+			void_flat.border_width_top = 2
+			void_flat.border_width_left = 2
+			void_flat.border_width_right = 2
+			void_btn.add_theme_stylebox_override("normal", void_flat)
+			var void_hover = void_flat.duplicate()
+			void_hover.bg_color = Color(0.2, 0.0, 0.35)
+			void_btn.add_theme_stylebox_override("hover", void_hover)
+			void_btn.add_theme_stylebox_override("pressed", void_flat)
+			void_btn.add_theme_color_override("font_color", Color(0.7, 0.3, 1.0))
+			var cap_ti3 = ti
+			void_btn.pressed.connect(func(): _on_void_skin(cap_ti3))
+			void_btn.visible = TowerSkins.is_code_unlocked("friendvoid")
+			_skin_panel.add_child(void_btn)
+			_void_buttons.append(void_btn)
+			next_sp_x += SP_W + 8.0
+		else:
+			_void_buttons.append(null)
+
+		# Ducky skin button (only for eligible towers, only when purchased)
+		if ti in TowerSkins.DUCKY_TOWERS:
+			var ducky_btn = Button.new()
+			ducky_btn.text = "Ducky"
+			ducky_btn.size = Vector2(SP_W, 38)
+			ducky_btn.position = Vector2(next_sp_x, row_y + (ROW_H - 38) / 2.0)
+			ducky_btn.add_theme_font_size_override("font_size", 14)
+			var ducky_flat = StyleBoxFlat.new()
+			ducky_flat.bg_color = Color(0.35, 0.28, 0.0)
+			ducky_flat.border_color = Color(1.0, 0.85, 0.0)
+			ducky_flat.border_width_bottom = 2
+			ducky_flat.border_width_top = 2
+			ducky_flat.border_width_left = 2
+			ducky_flat.border_width_right = 2
+			ducky_btn.add_theme_stylebox_override("normal", ducky_flat)
+			var ducky_hover = ducky_flat.duplicate()
+			ducky_hover.bg_color = Color(0.45, 0.38, 0.0)
+			ducky_btn.add_theme_stylebox_override("hover", ducky_hover)
+			ducky_btn.add_theme_stylebox_override("pressed", ducky_flat)
+			ducky_btn.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
+			var cap_ti4 = ti
+			ducky_btn.pressed.connect(func(): _on_ducky_skin(cap_ti4))
+			ducky_btn.visible = TowerSkins.has_skin("ducky_0")
+			_skin_panel.add_child(ducky_btn)
+			_ducky_buttons.append(ducky_btn)
+		else:
+			_ducky_buttons.append(null)
+
 func _on_swatch_pressed(tower_idx: int, color_idx: int) -> void:
 	var color: Color = _PALETTE[color_idx]
 	TowerSkins.set_color(tower_idx, color)
 	_skin_previews[tower_idx].color = color
 	for ci in _swatch_borders[tower_idx].size():
 		_swatch_borders[tower_idx][ci].visible = (ci == color_idx)
-	if tower_idx == 2 and _doggo_border != null:
-		_doggo_border.visible = false
-func _on_doggo_pressed() -> void:
-	TowerSkins.set_color(2, TowerSkins.DOGGO_COLOR)
-	_skin_previews[2].color = TowerSkins.DOGGO_COLOR
-	for border in _swatch_borders[2]:
-		border.visible = false
-	if _doggo_border != null:
-		_doggo_border.visible = true
 
 func _on_reset_skin(tower_idx: int) -> void:
 	TowerSkins.reset_color(tower_idx)
 	_skin_previews[tower_idx].color = _DEFAULT_COLORS[tower_idx]
 	for border in _swatch_borders[tower_idx]:
 		border.visible = false
-	if tower_idx == 2 and _doggo_border != null:
-		_doggo_border.visible = false
+
+func _on_void_skin(tower_idx: int) -> void:
+	TowerSkins.set_named_skin(tower_idx, "void")
+	_skin_previews[tower_idx].color = TowerSkins.VOID_COLOR
+	for border in _swatch_borders[tower_idx]:
+		border.visible = false
+
+func _on_ducky_skin(tower_idx: int) -> void:
+	TowerSkins.set_named_skin(tower_idx, "ducky")
+	_skin_previews[tower_idx].color = TowerSkins.DUCKY_COLOR
+	for border in _swatch_borders[tower_idx]:
+		border.visible = false
 
 func _on_skins_btn() -> void:
+	_refresh_void_buttons()
+	_refresh_ducky_buttons()
 	_skin_panel.visible = true
+
+func _on_shop_btn() -> void:
+	_shop_coins_lbl.text = "Coins: %d" % TowerSkins.coins
+	_refresh_shop_items()
+	_shop_panel.visible = true
+
+func _on_codes_btn() -> void:
+	_codes_input.text = ""
+	_codes_msg.text = ""
+	_codes_panel.visible = true
+
+func _build_codes_panel() -> void:
+	_codes_panel = Node2D.new()
+	_codes_panel.visible = false
+	add_child(_codes_panel)
+
+	_http_request = HTTPRequest.new()
+	_http_request.request_completed.connect(_on_redeem_response)
+	add_child(_http_request)
+
+	var vp := get_viewport_rect().size
+
+	# Dim overlay
+	var overlay = ColorRect.new()
+	overlay.color = Color(0.0, 0.0, 0.0, 0.7)
+	overlay.size = vp
+	overlay.position = Vector2.ZERO
+	_codes_panel.add_child(overlay)
+
+	# Center box
+	var box_w: float = 420.0
+	var box_h: float = 240.0
+	var box_x: float = (vp.x - box_w) / 2.0
+	var box_y: float = (vp.y - box_h) / 2.0
+
+	var box = ColorRect.new()
+	box.color = Color(0.06, 0.0, 0.12)
+	box.size = Vector2(box_w, box_h)
+	box.position = Vector2(box_x, box_y)
+	_codes_panel.add_child(box)
+
+	var border = ColorRect.new()
+	border.color = Color(0.4, 0.0, 0.7)
+	border.size = Vector2(box_w + 4, box_h + 4)
+	border.position = Vector2(box_x - 2, box_y - 2)
+	border.z_index = -1
+	_codes_panel.add_child(border)
+
+	var title_lbl = Label.new()
+	title_lbl.text = "Enter Code"
+	title_lbl.position = Vector2(box_x, box_y + 20)
+	title_lbl.size = Vector2(box_w, 30)
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 24)
+	title_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 1.0))
+	_codes_panel.add_child(title_lbl)
+
+	_codes_input = LineEdit.new()
+	_codes_input.placeholder_text = "type code here..."
+	_codes_input.size = Vector2(box_w - 60, 40)
+	_codes_input.position = Vector2(box_x + 30, box_y + 70)
+	_codes_input.add_theme_font_size_override("font_size", 18)
+	_codes_input.text_submitted.connect(func(_t): _on_code_submit())
+	_codes_panel.add_child(_codes_input)
+
+	_codes_submit_btn = Button.new()
+	_codes_submit_btn.text = "REDEEM"
+	_codes_submit_btn.size = Vector2(140, 42)
+	_codes_submit_btn.position = Vector2(box_x + (box_w - 140) / 2.0, box_y + 126)
+	_codes_submit_btn.add_theme_font_size_override("font_size", 18)
+	_codes_submit_btn.pressed.connect(_on_code_submit)
+	_codes_panel.add_child(_codes_submit_btn)
+
+	_codes_msg = Label.new()
+	_codes_msg.text = ""
+	_codes_msg.position = Vector2(box_x, box_y + 180)
+	_codes_msg.size = Vector2(box_w, 28)
+	_codes_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_codes_msg.add_theme_font_size_override("font_size", 16)
+	_codes_panel.add_child(_codes_msg)
+
+	var close_btn = Button.new()
+	close_btn.text = "X"
+	close_btn.size = Vector2(36, 36)
+	close_btn.position = Vector2(box_x + box_w - 42, box_y + 6)
+	close_btn.add_theme_font_size_override("font_size", 16)
+	close_btn.pressed.connect(func(): _codes_panel.visible = false)
+	_codes_panel.add_child(close_btn)
+
+func _on_code_submit() -> void:
+	var code := _codes_input.text.strip_edges().to_lower()
+	if code.is_empty():
+		return
+	# Infinite-use coin codes — handled locally, no server needed
+	if code == "savanfo":
+		TowerSkins.add_coins(400)
+		_codes_msg.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+		_codes_msg.text = "+400 coins! (Total: %d)" % TowerSkins.coins
+		return
+	if TowerSkins.is_code_unlocked(code):
+		_codes_msg.add_theme_color_override("font_color", Color(0.8, 0.8, 0.3))
+		_codes_msg.text = "Code already redeemed!"
+		return
+	_codes_submit_btn.disabled = true
+	_codes_msg.add_theme_color_override("font_color", Color(0.7, 0.7, 0.7))
+	_codes_msg.text = "Checking..."
+	var body := JSON.stringify({"code": code})
+	var headers := ["Content-Type: application/json"]
+	_http_request.request(TowerSkins.CODE_SERVER_URL + "/redeem", headers, HTTPClient.METHOD_POST, body)
+
+func _on_redeem_response(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
+	_codes_submit_btn.disabled = false
+	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
+		_codes_msg.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		_codes_msg.text = "Server unreachable. Try again later."
+		return
+	var json = JSON.parse_string(body.get_string_from_utf8())
+	if json == null:
+		_codes_msg.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		_codes_msg.text = "Server error. Try again later."
+		return
+	if json.get("ok", false):
+		var code := _codes_input.text.strip_edges().to_lower()
+		TowerSkins.unlock_code_local(code)
+		_codes_msg.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+		var uses: int = json.get("uses", 0)
+		var limit: int = json.get("limit", 0)
+		_codes_msg.text = "Void skin set unlocked! (%d/%d used)" % [uses, limit]
+		_refresh_void_buttons()
+	else:
+		var err: String = json.get("error", "")
+		if err == "max_uses":
+			_codes_msg.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+			_codes_msg.text = "Code expired! All %d uses claimed." % json.get("limit", 23)
+		else:
+			_codes_msg.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+			_codes_msg.text = "Invalid code."
+
+func _refresh_void_buttons() -> void:
+	var unlocked := TowerSkins.is_code_unlocked("friendvoid")
+	for btn in _void_buttons:
+		if btn != null:
+			btn.visible = unlocked
+
+func _refresh_ducky_buttons() -> void:
+	var owned := TowerSkins.has_skin("ducky_0")
+	for btn in _ducky_buttons:
+		if btn != null:
+			btn.visible = owned
+
+var _shop_ducky_btn: Button = null
+var _shop_ducky_status: Label = null
+
+func _build_shop_panel() -> void:
+	_shop_panel = Node2D.new()
+	_shop_panel.visible = false
+	add_child(_shop_panel)
+
+	var vp := get_viewport_rect().size
+
+	# Dim overlay
+	var overlay = ColorRect.new()
+	overlay.color = Color(0.0, 0.0, 0.0, 0.75)
+	overlay.size = vp
+	overlay.position = Vector2.ZERO
+	_shop_panel.add_child(overlay)
+
+	# Panel box
+	var box_w: float = 500.0
+	var box_h: float = 340.0
+	var box_x: float = (vp.x - box_w) / 2.0
+	var box_y: float = (vp.y - box_h) / 2.0
+
+	var border = ColorRect.new()
+	border.color = Color(0.6, 0.5, 0.0)
+	border.size = Vector2(box_w + 4, box_h + 4)
+	border.position = Vector2(box_x - 2, box_y - 2)
+	_shop_panel.add_child(border)
+
+	var box = ColorRect.new()
+	box.color = Color(0.06, 0.04, 0.1)
+	box.size = Vector2(box_w, box_h)
+	box.position = Vector2(box_x, box_y)
+	_shop_panel.add_child(box)
+
+	# Header
+	var title_lbl = Label.new()
+	title_lbl.text = "Shop"
+	title_lbl.position = Vector2(box_x, box_y + 16)
+	title_lbl.size = Vector2(box_w, 32)
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 28)
+	title_lbl.add_theme_color_override("font_color", Color(1.0, 0.85, 0.0))
+	_shop_panel.add_child(title_lbl)
+
+	# Coins display
+	_shop_coins_lbl = Label.new()
+	_shop_coins_lbl.text = "Coins: %d" % TowerSkins.coins
+	_shop_coins_lbl.position = Vector2(box_x, box_y + 54)
+	_shop_coins_lbl.size = Vector2(box_w, 24)
+	_shop_coins_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_shop_coins_lbl.add_theme_font_size_override("font_size", 18)
+	_shop_coins_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 0.3))
+	_shop_panel.add_child(_shop_coins_lbl)
+
+	# ── Ducky Skin Item ────────────────────────────────────��──────────────────
+	var item_y: float = box_y + 100
+	var item_x: float = box_x + 30
+
+	# Color preview swatch
+	var swatch = ColorRect.new()
+	swatch.color = TowerSkins.DUCKY_COLOR
+	swatch.size = Vector2(48, 48)
+	swatch.position = Vector2(item_x, item_y)
+	_shop_panel.add_child(swatch)
+
+	# Item name
+	var name_lbl = Label.new()
+	name_lbl.text = "Ducky"
+	name_lbl.position = Vector2(item_x + 62, item_y + 2)
+	name_lbl.size = Vector2(200, 24)
+	name_lbl.add_theme_font_size_override("font_size", 20)
+	name_lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
+	_shop_panel.add_child(name_lbl)
+
+	# Item description
+	var desc_lbl = Label.new()
+	desc_lbl.text = "Laser Turret skin — golden rubber ducky tint"
+	desc_lbl.position = Vector2(item_x + 62, item_y + 28)
+	desc_lbl.size = Vector2(300, 20)
+	desc_lbl.add_theme_font_size_override("font_size", 13)
+	desc_lbl.add_theme_color_override("font_color", Color(0.7, 0.65, 0.5))
+	_shop_panel.add_child(desc_lbl)
+
+	# Buy button
+	_shop_ducky_btn = Button.new()
+	_shop_ducky_btn.text = "200 coins"
+	_shop_ducky_btn.size = Vector2(120, 38)
+	_shop_ducky_btn.position = Vector2(box_x + box_w - 155, item_y + 5)
+	_shop_ducky_btn.add_theme_font_size_override("font_size", 15)
+	_shop_ducky_btn.pressed.connect(_on_buy_ducky)
+	_shop_panel.add_child(_shop_ducky_btn)
+
+	# Status label (shows "Owned" or "Not enough coins")
+	_shop_ducky_status = Label.new()
+	_shop_ducky_status.text = ""
+	_shop_ducky_status.position = Vector2(item_x, item_y + 60)
+	_shop_ducky_status.size = Vector2(box_w - 60, 20)
+	_shop_ducky_status.add_theme_font_size_override("font_size", 14)
+	_shop_panel.add_child(_shop_ducky_status)
+
+	# How to earn coins info
+	var info_lbl = Label.new()
+	info_lbl.text = "Earn coins from Campaign:  Win = 150 coins  ·  Defeat = 50 coins"
+	info_lbl.position = Vector2(box_x, box_y + box_h - 60)
+	info_lbl.size = Vector2(box_w, 20)
+	info_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	info_lbl.add_theme_font_size_override("font_size", 14)
+	info_lbl.add_theme_color_override("font_color", Color(0.5, 0.5, 0.65))
+	_shop_panel.add_child(info_lbl)
+
+	# Close button
+	var close_btn = Button.new()
+	close_btn.text = "X"
+	close_btn.size = Vector2(36, 36)
+	close_btn.position = Vector2(box_x + box_w - 42, box_y + 6)
+	close_btn.add_theme_font_size_override("font_size", 16)
+	close_btn.pressed.connect(func(): _shop_panel.visible = false)
+	_shop_panel.add_child(close_btn)
+
+func _on_buy_ducky() -> void:
+	if TowerSkins.has_skin("ducky_0"):
+		return
+	if TowerSkins.purchase_skin("ducky_0", 200):
+		_shop_coins_lbl.text = "Coins: %d" % TowerSkins.coins
+		_shop_ducky_status.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+		_shop_ducky_status.text = "Purchased!"
+		_shop_ducky_btn.text = "Owned"
+		_shop_ducky_btn.disabled = true
+		_refresh_ducky_buttons()
+	else:
+		_shop_ducky_status.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		_shop_ducky_status.text = "Not enough coins!"
+
+func _refresh_shop_items() -> void:
+	if TowerSkins.has_skin("ducky_0"):
+		_shop_ducky_btn.text = "Owned"
+		_shop_ducky_btn.disabled = true
+		_shop_ducky_status.text = ""
+	else:
+		_shop_ducky_btn.text = "200 coins"
+		_shop_ducky_btn.disabled = false
+		_shop_ducky_status.text = ""
 
 func _process(delta: float) -> void:
 	_time += delta

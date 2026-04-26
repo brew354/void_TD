@@ -74,7 +74,7 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	var default_tint := Color.WHITE
 	if type == TowerDefinition.TowerType.FREEZE:
 		default_tint = Color(0.35, 0.78, 1.0)   # ice blue
-	_normal_modulate = TowerSkins.overrides.get(ti, default_tint)
+	_normal_modulate = TowerSkins.get_color(ti, default_tint)
 
 	# Base sprite (stationary)
 	_base_sprite = Sprite2D.new()
@@ -212,10 +212,12 @@ func _do_freeze_pulse() -> void:
 				# Void Rupture: bosses take 2× damage while pulsed
 				if e.is_boss:
 					e.apply_rupture(slow_d)
-	# Spawn expanding ice pulse ring at tower position in parent layer
+	# Spawn expanding pulse ring at tower position in parent layer
 	if get_parent() != null:
+		var is_void: bool = TowerSkins.named_skins.get(int(tower_type), "") == "void"
 		var pulse = _FreezePulseRing.new()
 		pulse.radius = range_radius
+		pulse.is_void = is_void
 		pulse.position = position
 		get_parent().add_child(pulse)
 	# Brief white flash on the tower body
@@ -275,22 +277,31 @@ class _RangeRing extends Node2D:
 		else:
 			draw_arc(Vector2.ZERO, radius, 0, TAU, 64, Color(1, 1, 1, 0.15), 1.0)
 
-## Expanding ice pulse ring spawned at pulse time
+## Expanding pulse ring spawned at pulse time — uses tween instead of per-frame redraw
 class _FreezePulseRing extends Node2D:
 	var radius: float = 100.0
-	var _t: float = 0.0
+	var is_void: bool = false
+	var _progress: float = 0.0
 	const DURATION: float = 0.6
 
-	func _process(delta: float) -> void:
-		_t += delta
-		if _t >= DURATION:
-			queue_free()
-			return
+	func _ready() -> void:
+		var tw = create_tween()
+		tw.tween_property(self, "_progress", 1.0, DURATION)
+		tw.tween_callback(queue_free)
+
+	func _process(_delta: float) -> void:
 		queue_redraw()
 
 	func _draw() -> void:
-		var progress := _t / DURATION
-		var alpha := (1.0 - progress) * 0.7
-		var r := radius * (0.15 + progress * 0.85)
-		draw_arc(Vector2.ZERO, r, 0, TAU, 64, Color(0.4, 0.85, 1.0, alpha), 3.0)
-		draw_arc(Vector2.ZERO, r * 0.75, 0, TAU, 48, Color(0.8, 0.96, 1.0, alpha * 0.5), 1.5)
+		var alpha := (1.0 - _progress) * 0.7
+		var r := radius * (0.15 + _progress * 0.85)
+		var col_outer: Color
+		var col_inner: Color
+		if is_void:
+			col_outer = Color(0.45, 0.0, 0.8, alpha)
+			col_inner = Color(0.2, 0.0, 0.4, alpha * 0.5)
+		else:
+			col_outer = Color(0.4, 0.85, 1.0, alpha)
+			col_inner = Color(0.8, 0.96, 1.0, alpha * 0.5)
+		draw_arc(Vector2.ZERO, r, 0, TAU, 48, col_outer, 3.0)
+		draw_arc(Vector2.ZERO, r * 0.75, 0, TAU, 32, col_inner, 1.5)
