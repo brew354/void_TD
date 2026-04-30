@@ -4,6 +4,13 @@ extends Node2D
 
 const EnemyNode = preload("res://Nodes/EnemyNode.gd")
 
+const TOWER_LASER   := 0
+const TOWER_CANNON  := 1
+const TOWER_MISSILE := 2
+const TOWER_MECHA   := 3
+const TOWER_FREEZE  := 4
+const TOWER_TESLA   := 5
+
 signal hit_target
 
 var target: EnemyNode = null
@@ -50,7 +57,7 @@ func _process(delta: float) -> void:
 	position += dir * projectile_speed * delta
 
 	# Direction-sensitive visuals face travel direction
-	if _tower_type == 0 or _tower_type == 2:  # LASER or MISSILE
+	if _tower_type == TOWER_LASER or _tower_type == TOWER_MISSILE:
 		_visual.rotation = dir.angle()
 
 	if position.distance_to(target.position) < hit_radius:
@@ -86,7 +93,7 @@ func _spawn_splash_ring() -> void:
 	var ring = _SplashRing.new()
 	ring.radius = splash_radius
 	ring.position = position
-	ring.tower_type = _tower_type  # 1=Cannon, 3=Mecha, 4=Freeze
+	ring.tower_type = _tower_type
 	if get_parent() != null:
 		get_parent().add_child(ring)
 
@@ -100,26 +107,18 @@ class _ProjectileVisual extends Node2D:
 
 	func _draw() -> void:
 		match tower_type:
-			0:  # LASER — thin elongated cyan bolt (node rotated to face direction)
-				# Outer glow
+			TOWER_LASER:
 				draw_rect(Rect2(0, -3.0, 20, 6), Color(0.15, 0.6, 1.0, 0.35))
-				# Mid bolt
 				draw_rect(Rect2(0, -1.5, 20, 3), Color(0.35, 0.85, 1.0, 0.85))
-				# Bright white core
 				draw_rect(Rect2(0, -0.6, 20, 1.2), Color(0.9, 0.98, 1.0, 1.0))
-				# Leading tip flare
 				draw_circle(Vector2(21, 0), 1.8, Color(1.0, 1.0, 1.0, 0.9))
 
-			1:  # CANNON — dark iron cannonball with orange fire ring
-				# Iron core
+			TOWER_CANNON:
 				draw_circle(Vector2.ZERO, 7.0, Color(0.10, 0.09, 0.07))
-				# Glowing orange ring
 				draw_arc(Vector2.ZERO, 7.0, 0, TAU, 24, Color(0.95, 0.48, 0.08), 2.5)
-				# Hot specular highlight
 				draw_circle(Vector2(-2.5, -2.5), 2.5, Color(1.0, 0.72, 0.25, 0.65))
 
-			2:  # MISSILE — silver body, purple nose, orange flame tail (node rotated)
-				# Flame trail behind
+			TOWER_MISSILE:
 				var flame = PackedVector2Array([
 					Vector2(-10, 0), Vector2(-16, -3.5), Vector2(-16, 3.5)
 				])
@@ -141,7 +140,7 @@ class _ProjectileVisual extends Node2D:
 				# Nose tip highlight
 				draw_circle(Vector2(15, 0), 1.2, Color(0.9, 0.6, 1.0, 0.8))
 
-			3:  # MECHA SOLDIER — spinning red plasma cross with bright core
+			TOWER_MECHA:
 				var t := Time.get_ticks_msec() * 0.007
 				# Outer slow-spinning halo
 				draw_arc(Vector2.ZERO, 9.5, t, t + TAU * 0.65, 24,
@@ -155,7 +154,7 @@ class _ProjectileVisual extends Node2D:
 				draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.85, 0.3))
 				draw_circle(Vector2.ZERO, 2.0, Color(1.0, 1.0, 0.9))
 
-			5:  # TESLA — crackling blue electric orb with arc tendrils
+			TOWER_TESLA:
 				var t := Time.get_ticks_msec() * 0.008
 				# Outer electric glow
 				draw_circle(Vector2.ZERO, 11.0, Color(0.15, 0.4, 1.0, 0.2))
@@ -174,7 +173,7 @@ class _ProjectileVisual extends Node2D:
 ## Expanding AoE impact ring
 class _SplashRing extends Node2D:
 	var radius: float = 60.0
-	var tower_type: int = 1  # 1=Cannon, 3=Mecha, 4=Freeze
+	var tower_type: int = TOWER_CANNON
 	var _t: float = 0.0
 	const DURATION: float = 0.35
 
@@ -189,13 +188,13 @@ class _SplashRing extends Node2D:
 		var progress := _t / DURATION
 		var alpha := (1.0 - progress) * 0.75
 		var r := radius * (0.4 + progress * 0.6)
-		if tower_type == 5:  # Tesla — electric blue
+		if tower_type == TOWER_TESLA:
 			draw_arc(Vector2.ZERO, r, 0, TAU, 32, Color(0.2, 0.5, 1.0, alpha), 3.0)
 			draw_arc(Vector2.ZERO, r * 0.7, 0, TAU, 32, Color(0.5, 0.8, 1.0, alpha * 0.5), 1.5)
-		elif tower_type == 3:  # Mecha — red
+		elif tower_type == TOWER_MECHA:
 			draw_arc(Vector2.ZERO, r, 0, TAU, 32, Color(1.0, 0.15, 0.0, alpha), 3.0)
 			draw_arc(Vector2.ZERO, r * 0.7, 0, TAU, 32, Color(1.0, 0.5, 0.2, alpha * 0.5), 1.5)
-		elif tower_type == 4:  # Freeze — ice blue, slower expand
+		elif tower_type == TOWER_FREEZE:
 			var rf := radius * (0.3 + progress * 0.7)
 			draw_arc(Vector2.ZERO, rf, 0, TAU, 32, Color(0.4, 0.85, 1.0, alpha), 3.0)
 			draw_arc(Vector2.ZERO, rf * 0.65, 0, TAU, 32, Color(0.8, 0.96, 1.0, alpha * 0.6), 1.5)

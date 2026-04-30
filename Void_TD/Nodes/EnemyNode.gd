@@ -200,6 +200,8 @@ func _process(delta: float) -> void:
 	if _burn_timer > 0.0:
 		_burn_timer -= delta
 		take_damage(_burn_dps * delta)
+		if is_dead:
+			return
 		if _burn_timer <= 0.0:
 			_burn_timer = 0.0
 			_burn_dps = 0.0
@@ -211,34 +213,35 @@ func _process(delta: float) -> void:
 		if _stun_timer <= 0.0:
 			_stun_timer = 0.0
 			_update_tint()
-		return
 
-	var target = _waypoints[_current_waypoint]
-	var dir = (target - position).normalized()
-	var dist_to_target = position.distance_to(target)
-	var move_dist = speed * _slow_factor * delta
+	# Movement (skipped while stunned)
+	if _stun_timer <= 0.0:
+		var target = _waypoints[_current_waypoint]
+		var dir = (target - position).normalized()
+		var dist_to_target = position.distance_to(target)
+		var move_dist = speed * _slow_factor * delta
 
-	# Rotate sprite to face movement direction (sprites point up by default)
-	_sprite.rotation = dir.angle() + PI / 2.0
+		_sprite.rotation = dir.angle() + PI / 2.0
 
-	if move_dist >= dist_to_target:
-		position = target
-		_distance_traveled += dist_to_target
-		_current_waypoint += 1
-	else:
-		position += dir * move_dist
-		_distance_traveled += move_dist
+		if move_dist >= dist_to_target:
+			position = target
+			_distance_traveled += dist_to_target
+			_current_waypoint += 1
+		else:
+			position += dir * move_dist
+			_distance_traveled += move_dist
 
-	path_progress = _distance_traveled / _total_path_length if _total_path_length > 0 else 0.0
-	path_progress = clamp(path_progress, 0.0, 1.0)
+		path_progress = _distance_traveled / _total_path_length if _total_path_length > 0 else 0.0
+		path_progress = clamp(path_progress, 0.0, 1.0)
 
+	# Boss stun pulse (always ticks, even while stunned)
 	if is_boss:
 		_stun_pulse_timer -= delta
 		if _stun_pulse_timer <= 0.0:
 			stun_pulse.emit(position, _stun_range, _stun_duration)
 			_stun_pulse_timer = _stun_interval
 
-	# Shield phase cycling
+	# Shield phase cycling (always ticks)
 	if _shield_interval_val > 0.0:
 		_shield_phase_timer -= delta
 		if _shield_phase_timer <= 0.0:

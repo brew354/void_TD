@@ -526,6 +526,7 @@ func _on_hud_pause() -> void:
 		hud.set_paused(true)
 
 func _on_menu_pressed() -> void:
+	TowerSkins.save_if_dirty()
 	Engine.time_scale = 1.0
 	get_tree().paused = false
 	get_tree().change_scene_to_file("res://Scenes/MenuScene.tscn")

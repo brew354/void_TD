@@ -1032,6 +1032,7 @@ func _start_ambient_music() -> void:
 	_ambient_pb = _ambient_player.get_stream_playback()
 
 func _cleanup_and_switch(scene_path: String) -> void:
+	TowerSkins.save_if_dirty()
 	if _ambient_player:
 		_ambient_player.stop()
 		_ambient_pb = null
