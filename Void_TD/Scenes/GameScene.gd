@@ -318,12 +318,25 @@ func _process(delta: float) -> void:
 # ── Input ─────────────────────────────────────────────────────────────────────
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
+		var equipped := TowerSkins.get_equipped_types()
+		var slot := -1
 		match event.keycode:
-			KEY_1: _select_tower_type(TowerDefinition.TowerType.LASER)
-			KEY_2: _select_tower_type(TowerDefinition.TowerType.CANNON)
-			KEY_3: _select_tower_type(TowerDefinition.TowerType.MISSILE)
-			KEY_4: _select_tower_type(TowerDefinition.TowerType.MECHA_SOLDIER)
+			KEY_1: slot = 0
+			KEY_2: slot = 1
+			KEY_3: slot = 2
+			KEY_4: slot = 3
+			KEY_5: slot = 4
 			KEY_SPACE: _on_hud_start_wave()
+		if slot >= 0 and slot < equipped.size():
+			var tower_types := [
+				TowerDefinition.TowerType.LASER,
+				TowerDefinition.TowerType.CANNON,
+				TowerDefinition.TowerType.MISSILE,
+				TowerDefinition.TowerType.MECHA_SOLDIER,
+				TowerDefinition.TowerType.FREEZE,
+				TowerDefinition.TowerType.TESLA,
+			]
+			_select_tower_type(tower_types[equipped[slot]])
 		return
 	if not (event is InputEventMouseButton) or not event.pressed:
 		return

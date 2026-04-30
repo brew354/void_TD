@@ -17,6 +17,7 @@ signal upgrade_panel_closed
 
 # HUD sizing — scaled up on iOS (viewport > 750 height)
 var _ui_scale: float = 1.0    # computed from viewport in _build_hud
+var _mobile: bool = false
 var _TOP_H:  float = 36.0
 var _BOT_Y:  float = 714.0
 var _BOT_H:  float = 36.0
@@ -134,65 +135,131 @@ func _build_hud() -> void:
 	_towers_label = _make_label("Towers: 0/30", Vector2(980, lbl_y))
 	add_child(_towers_label)
 
-	# ── Bottom bar — actions only ─────────────────────────────────────────────
-	var bot_bg = ColorRect.new()
-	bot_bg.color = Color(0, 0, 0, 0.72)
-	bot_bg.size = Vector2(vp.x, _BOT_H)
-	bot_bg.position = Vector2(0, _BOT_Y)
-	add_child(bot_bg)
-
-	var btn_y: float = _BOT_Y + (_BOT_H - _BTN_H) / 2.0  # vertically centered in bar
-
-	# Tower buttons — only show equipped towers from loadout
+	# ── Bottom bar(s) ────────────────────────────────────────────────────────
+	_mobile = _ui_scale > 1.0
 	var equipped := TowerSkins.get_equipped_types()
-	for i in equipped.size():
-		var ti: int = equipped[i]
-		var t = _TOWER_TYPES[ti]
-		var s = TowerDefinition.stats(t)
-		var bx: float = _BTN_GAP + i * (_BTN_W + _BTN_GAP)
-		var btn = _make_button(s["label"], Vector2(bx, btn_y), Vector2(_BTN_W, _BTN_H))
-		btn.add_theme_font_size_override("font_size", btn_fs)
-		var captured_type = t
-		var captured_idx = i
-		btn.pressed.connect(func():
-			if _selected_tower_idx == captured_idx:
-				_selected_tower_idx = -1
-				tower_deselected.emit()
-				clear_selected_tower()
-			else:
-				_selected_tower_idx = captured_idx
-				tower_selected.emit(captured_type)
-				set_selected_tower(captured_type)
-		)
-		add_child(btn)
-		_tower_btns.append(btn)
-		_tower_btn_types.append(t)
 
-	# Right-side controls — laid out right-to-left so REPEL is flush with edge
-	# REPEL ASSAULT button
-	_start_wave_btn = _make_button("REPEL ASSAULT", Vector2(1160, btn_y), Vector2(170, _BTN_H))
-	_start_wave_btn.add_theme_font_size_override("font_size", int(13 * _ui_scale))
-	_start_wave_btn.pressed.connect(func(): start_wave_pressed.emit())
-	add_child(_start_wave_btn)
+	if _mobile:
+		# Two rows: tower row above, controls row below
+		var tower_row_y: float = _BOT_Y - _BOT_H
+		_BOT_Y = tower_row_y
 
-	# Pause button
-	_pause_btn = _make_button("Pause", Vector2(1080, btn_y), Vector2(76, _BTN_H))
-	_pause_btn.add_theme_font_size_override("font_size", btn_fs)
-	_pause_btn.pressed.connect(func(): pause_pressed.emit())
-	add_child(_pause_btn)
+		var tower_bg = ColorRect.new()
+		tower_bg.color = Color(0, 0, 0, 0.72)
+		tower_bg.size = Vector2(vp.x, _BOT_H)
+		tower_bg.position = Vector2(0, tower_row_y)
+		add_child(tower_bg)
 
-	# Menu button — only visible when paused
-	_menu_btn = _make_button("Menu", Vector2(988, btn_y), Vector2(88, _BTN_H))
-	_menu_btn.add_theme_font_size_override("font_size", btn_fs)
-	_menu_btn.pressed.connect(func(): menu_pressed.emit())
-	_menu_btn.visible = false
-	add_child(_menu_btn)
+		var ctrl_bg = ColorRect.new()
+		ctrl_bg.color = Color(0, 0, 0, 0.72)
+		ctrl_bg.size = Vector2(vp.x, _BOT_H)
+		ctrl_bg.position = Vector2(0, tower_row_y + _BOT_H)
+		add_child(ctrl_bg)
 
-	# Speed button
-	_speed_btn = _make_button("Speed: 1x", Vector2(988, btn_y), Vector2(88, _BTN_H))
-	_speed_btn.add_theme_font_size_override("font_size", btn_fs)
-	_speed_btn.pressed.connect(_on_speed_btn_pressed)
-	add_child(_speed_btn)
+		# Tower buttons — evenly spaced across full width
+		var tw_btn_w: float = (vp.x - _BTN_GAP * float(equipped.size() + 1)) / float(equipped.size())
+		var tw_btn_y: float = tower_row_y + (_BOT_H - _BTN_H) / 2.0
+		for i in equipped.size():
+			var ti: int = equipped[i]
+			var t = _TOWER_TYPES[ti]
+			var s = TowerDefinition.stats(t)
+			var bx: float = _BTN_GAP + i * (tw_btn_w + _BTN_GAP)
+			var short_label: String = s["label"].split(" ")[0]
+			var btn = _make_button(short_label, Vector2(bx, tw_btn_y), Vector2(tw_btn_w, _BTN_H))
+			btn.add_theme_font_size_override("font_size", btn_fs)
+			var captured_type = t
+			var captured_idx = i
+			btn.pressed.connect(func():
+				if _selected_tower_idx == captured_idx:
+					_selected_tower_idx = -1
+					tower_deselected.emit()
+					clear_selected_tower()
+				else:
+					_selected_tower_idx = captured_idx
+					tower_selected.emit(captured_type)
+					set_selected_tower(captured_type)
+			)
+			add_child(btn)
+			_tower_btns.append(btn)
+			_tower_btn_types.append(t)
+
+		# Controls row
+		var ctrl_y: float = tower_row_y + _BOT_H + (_BOT_H - _BTN_H) / 2.0
+
+		_start_wave_btn = _make_button("REPEL", Vector2(vp.x - _BTN_GAP - 140, ctrl_y), Vector2(140, _BTN_H))
+		_start_wave_btn.add_theme_font_size_override("font_size", int(13 * _ui_scale))
+		_start_wave_btn.pressed.connect(func(): start_wave_pressed.emit())
+		add_child(_start_wave_btn)
+
+		_pause_btn = _make_button("Pause", Vector2(vp.x - _BTN_GAP - 140 - _BTN_GAP - 76, ctrl_y), Vector2(76, _BTN_H))
+		_pause_btn.add_theme_font_size_override("font_size", btn_fs)
+		_pause_btn.pressed.connect(func(): pause_pressed.emit())
+		add_child(_pause_btn)
+
+		var speed_x: float = vp.x - _BTN_GAP - 140 - _BTN_GAP - 76 - _BTN_GAP - 88
+		_menu_btn = _make_button("Menu", Vector2(speed_x, ctrl_y), Vector2(88, _BTN_H))
+		_menu_btn.add_theme_font_size_override("font_size", btn_fs)
+		_menu_btn.pressed.connect(func(): menu_pressed.emit())
+		_menu_btn.visible = false
+		add_child(_menu_btn)
+
+		_speed_btn = _make_button("Speed: 1x", Vector2(speed_x, ctrl_y), Vector2(88, _BTN_H))
+		_speed_btn.add_theme_font_size_override("font_size", btn_fs)
+		_speed_btn.pressed.connect(_on_speed_btn_pressed)
+		add_child(_speed_btn)
+	else:
+		# Single-row desktop layout
+		var bot_bg = ColorRect.new()
+		bot_bg.color = Color(0, 0, 0, 0.72)
+		bot_bg.size = Vector2(vp.x, _BOT_H)
+		bot_bg.position = Vector2(0, _BOT_Y)
+		add_child(bot_bg)
+
+		var btn_y: float = _BOT_Y + (_BOT_H - _BTN_H) / 2.0
+
+		for i in equipped.size():
+			var ti: int = equipped[i]
+			var t = _TOWER_TYPES[ti]
+			var s = TowerDefinition.stats(t)
+			var bx: float = _BTN_GAP + i * (_BTN_W + _BTN_GAP)
+			var btn = _make_button(s["label"], Vector2(bx, btn_y), Vector2(_BTN_W, _BTN_H))
+			btn.add_theme_font_size_override("font_size", btn_fs)
+			var captured_type = t
+			var captured_idx = i
+			btn.pressed.connect(func():
+				if _selected_tower_idx == captured_idx:
+					_selected_tower_idx = -1
+					tower_deselected.emit()
+					clear_selected_tower()
+				else:
+					_selected_tower_idx = captured_idx
+					tower_selected.emit(captured_type)
+					set_selected_tower(captured_type)
+			)
+			add_child(btn)
+			_tower_btns.append(btn)
+			_tower_btn_types.append(t)
+
+		_start_wave_btn = _make_button("REPEL ASSAULT", Vector2(1160, btn_y), Vector2(170, _BTN_H))
+		_start_wave_btn.add_theme_font_size_override("font_size", int(13 * _ui_scale))
+		_start_wave_btn.pressed.connect(func(): start_wave_pressed.emit())
+		add_child(_start_wave_btn)
+
+		_pause_btn = _make_button("Pause", Vector2(1080, btn_y), Vector2(76, _BTN_H))
+		_pause_btn.add_theme_font_size_override("font_size", btn_fs)
+		_pause_btn.pressed.connect(func(): pause_pressed.emit())
+		add_child(_pause_btn)
+
+		_menu_btn = _make_button("Menu", Vector2(988, btn_y), Vector2(88, _BTN_H))
+		_menu_btn.add_theme_font_size_override("font_size", btn_fs)
+		_menu_btn.pressed.connect(func(): menu_pressed.emit())
+		_menu_btn.visible = false
+		add_child(_menu_btn)
+
+		_speed_btn = _make_button("Speed: 1x", Vector2(988, btn_y), Vector2(88, _BTN_H))
+		_speed_btn.add_theme_font_size_override("font_size", btn_fs)
+		_speed_btn.pressed.connect(_on_speed_btn_pressed)
+		add_child(_speed_btn)
 
 	_build_upgrade_panel()
 	_build_boss_bar()
@@ -386,10 +453,11 @@ func _refresh_tower_buttons() -> void:
 		var cnt: int = _tower_counts.get(int(t), 0)
 		var at_limit: bool = max_c > 0 and cnt >= max_c
 		_tower_btns[i].disabled = _last_credits < cost or at_limit
+		var lbl: String = s["label"].split(" ")[0] if _mobile else s["label"]
 		if max_c > 0:
-			_tower_btns[i].text = "%s  %d⚡  %d/%d" % [s["label"], cost, cnt, max_c]
+			_tower_btns[i].text = "%s %d⚡ %d/%d" % [lbl, cost, cnt, max_c]
 		else:
-			_tower_btns[i].text = "%s  %d⚡" % [s["label"], cost]
+			_tower_btns[i].text = "%s %d⚡" % [lbl, cost]
 
 func flash_damage() -> void:
 	_damage_flash.color.a = 0.35
@@ -406,12 +474,22 @@ func set_start_wave_enabled(enabled: bool) -> void:
 
 func set_selected_tower(type: TowerDefinition.TowerType) -> void:
 	for i in _tower_btns.size():
-		_tower_btns[i].modulate = Color(0.4, 1.0, 0.4) if _tower_btn_types[i] == type else Color(1, 1, 1)
+		if _tower_btn_types[i] == type:
+			_tower_btns[i].modulate = Color(0.4, 1.0, 0.4)
+			var sel_style = StyleBoxFlat.new()
+			sel_style.bg_color = Color(0.08, 0.2, 0.08, 0.9)
+			sel_style.border_color = Color(0.3, 1.0, 0.3)
+			sel_style.border_width_bottom = 3
+			_tower_btns[i].add_theme_stylebox_override("normal", sel_style)
+		else:
+			_tower_btns[i].modulate = Color(1, 1, 1)
+			_tower_btns[i].remove_theme_stylebox_override("normal")
 
 func clear_selected_tower() -> void:
 	_selected_tower_idx = -1
 	for btn in _tower_btns:
 		btn.modulate = Color(1, 1, 1)
+		btn.remove_theme_stylebox_override("normal")
 
 func show_milestone_popup(text: String, accent_color: Color) -> void:
 	# Find first free slot

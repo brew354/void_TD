@@ -590,18 +590,6 @@ func _on_code_submit() -> void:
 	var code := _codes_input.text.strip_edges().to_lower()
 	if code.is_empty():
 		return
-	# Cheat code — jump straight to wave 20 campaign
-	if code == "cheatcode":
-		GameMode.endless = false
-		GameMode.start_wave = 20
-		_cleanup_and_switch("res://Scenes/GameScene.tscn")
-		return
-	# Infinite-use coin codes — handled locally, no server needed
-	if code == "savanfo":
-		TowerSkins.add_coins(800)
-		_codes_msg.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
-		_codes_msg.text = "+800 coins! (Total: %d)" % TowerSkins.coins
-		return
 	if TowerSkins.is_code_unlocked(code):
 		_codes_msg.add_theme_color_override("font_color", Color(0.8, 0.8, 0.3))
 		_codes_msg.text = "Code already redeemed!"
@@ -617,29 +605,62 @@ func _on_redeem_response(result: int, response_code: int, _headers: PackedString
 	_codes_submit_btn.disabled = false
 	if result != HTTPRequest.RESULT_SUCCESS or response_code != 200:
 		_codes_msg.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
-		_codes_msg.text = "Server unreachable. Try again later."
+		_codes_msg.text = "No connection — try again later."
 		return
 	var json = JSON.parse_string(body.get_string_from_utf8())
 	if json == null:
 		_codes_msg.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
 		_codes_msg.text = "Server error. Try again later."
 		return
-	if json.get("ok", false):
-		var code := _codes_input.text.strip_edges().to_lower()
-		TowerSkins.unlock_code_local(code)
-		_codes_msg.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
-		var uses: int = json.get("uses", 0)
-		var limit: int = json.get("limit", 0)
-		_codes_msg.text = "Void skin set unlocked! (%d/%d used)" % [uses, limit]
-		_refresh_void_buttons()
-	else:
+	if not json.get("ok", false):
 		var err: String = json.get("error", "")
 		if err == "max_uses":
 			_codes_msg.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
-			_codes_msg.text = "Code expired! All %d uses claimed." % json.get("limit", 23)
+			_codes_msg.text = "Code expired! All %d uses claimed." % json.get("limit", 0)
+		elif err == "already_redeemed":
+			_codes_msg.add_theme_color_override("font_color", Color(0.8, 0.8, 0.3))
+			_codes_msg.text = "Code already redeemed!"
 		else:
 			_codes_msg.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
 			_codes_msg.text = "Invalid code."
+		return
+	var code := _codes_input.text.strip_edges().to_lower()
+	TowerSkins.unlock_code_local(code)
+	_apply_reward(json)
+
+func _apply_reward(json: Dictionary) -> void:
+	var reward: String = json.get("reward", "")
+	match reward:
+		"coins":
+			var amount: int = json.get("amount", 0)
+			TowerSkins.add_coins(amount)
+			_codes_msg.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+			_codes_msg.text = "+%d coins! (Total: %d)" % [amount, TowerSkins.coins]
+		"skin":
+			var skin_key: String = json.get("skin_key", "")
+			var towers: Array = json.get("towers", [])
+			for ti in towers:
+				TowerSkins.set_named_skin(int(ti), skin_key)
+			_codes_msg.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+			_codes_msg.text = "Skin unlocked!"
+			_refresh_void_buttons()
+			_refresh_ducky_buttons()
+		"purchase":
+			var skin_key: String = json.get("skin_key", "")
+			if not TowerSkins.has_skin(skin_key):
+				TowerSkins.purchased_skins[skin_key] = true
+				TowerSkins.save_if_dirty()
+			_codes_msg.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+			_codes_msg.text = "Item unlocked! Check your inventory."
+			_rebuild_inventory_tabs()
+		"start_wave":
+			var wave: int = json.get("wave", 1)
+			GameMode.endless = false
+			GameMode.start_wave = wave
+			_cleanup_and_switch("res://Scenes/GameScene.tscn")
+		_:
+			_codes_msg.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+			_codes_msg.text = "Code redeemed!"
 
 func _refresh_void_buttons() -> void:
 	var unlocked := TowerSkins.is_code_unlocked("friendvoid")
@@ -717,7 +738,8 @@ func _build_towers_tab_content(scroll_h: float) -> void:
 		_tower_equip_btns.append(equip_btn)
 
 func _on_toggle_equip(tower_idx: int) -> void:
-	if TowerSkins.is_tower_equipped(tower_idx) and not TowerSkins.loadout.is_empty():
+	TowerSkins.materialize_loadout()
+	if TowerSkins.is_tower_equipped(tower_idx):
 		if TowerSkins.loadout.size() <= 1:
 			return
 		TowerSkins.unequip_tower(tower_idx)
@@ -726,7 +748,7 @@ func _on_toggle_equip(tower_idx: int) -> void:
 	_refresh_tower_equip_btns()
 
 func _refresh_tower_equip_btns() -> void:
-	var count: int = TowerSkins.loadout.size() if not TowerSkins.loadout.is_empty() else 4
+	var count: int = TowerSkins.get_equipped_types().size()
 	_loadout_count_lbl.text = "Equipped: %d / %d" % [count, TowerSkins.MAX_LOADOUT]
 	for ti in _tower_equip_btns.size():
 		var btn: Button = _tower_equip_btns[ti]
@@ -955,14 +977,14 @@ func _on_buy_tesla() -> void:
 
 func _rebuild_inventory_tabs() -> void:
 	for child in _inv_skins_tab.get_children():
-		child.queue_free()
+		child.free()
 	_skin_previews.clear()
 	_swatch_borders.clear()
 	_void_buttons.clear()
 	_ducky_buttons.clear()
 	_build_skins_tab_content(_inv_skins_scroll.size.y)
 	for child in _inv_towers_tab.get_children():
-		child.queue_free()
+		child.free()
 	_tower_equip_btns.clear()
 	_build_towers_tab_content(_inv_towers_scroll.size.y)
 
