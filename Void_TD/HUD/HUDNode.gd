@@ -3,6 +3,7 @@ class_name HUDNode
 extends CanvasLayer
 
 const TowerDefinition = preload("res://Models/TowerDefinition.gd")
+const TowerSkins      = preload("res://Models/TowerSkins.gd")
 
 signal tower_selected(tower_type)
 signal tower_deselected
@@ -54,6 +55,7 @@ var _panel_stats: Label
 var _panel_upgrade_btn: Button
 var _panel_sell_btn: Button
 var _tower_btns: Array = []
+var _tower_btn_types: Array = []  # TowerType for each button
 var _menu_btn: Button
 var _selected_tower_idx: int = -1
 
@@ -87,6 +89,7 @@ const _TOWER_TYPES: Array = [
 	TowerDefinition.TowerType.MISSILE,
 	TowerDefinition.TowerType.MECHA_SOLDIER,
 	TowerDefinition.TowerType.FREEZE,
+	TowerDefinition.TowerType.TESLA,
 ]
 
 func _ready() -> void:
@@ -140,9 +143,11 @@ func _build_hud() -> void:
 
 	var btn_y: float = _BOT_Y + (_BOT_H - _BTN_H) / 2.0  # vertically centered in bar
 
-	# Tower buttons — left-aligned (tap again to deselect)
-	for i in _TOWER_TYPES.size():
-		var t = _TOWER_TYPES[i]
+	# Tower buttons — only show equipped towers from loadout
+	var equipped := TowerSkins.get_equipped_types()
+	for i in equipped.size():
+		var ti: int = equipped[i]
+		var t = _TOWER_TYPES[ti]
 		var s = TowerDefinition.stats(t)
 		var bx: float = _BTN_GAP + i * (_BTN_W + _BTN_GAP)
 		var btn = _make_button(s["label"], Vector2(bx, btn_y), Vector2(_BTN_W, _BTN_H))
@@ -161,6 +166,7 @@ func _build_hud() -> void:
 		)
 		add_child(btn)
 		_tower_btns.append(btn)
+		_tower_btn_types.append(t)
 
 	# Right-side controls — laid out right-to-left so REPEL is flush with edge
 	# REPEL ASSAULT button
@@ -372,8 +378,8 @@ func update_tower_limits(counts: Dictionary) -> void:
 	_refresh_tower_buttons()
 
 func _refresh_tower_buttons() -> void:
-	for i in min(_tower_btns.size(), _TOWER_TYPES.size()):
-		var t = _TOWER_TYPES[i]
+	for i in _tower_btns.size():
+		var t = _tower_btn_types[i]
 		var s: Dictionary = TowerDefinition.stats(t)
 		var cost: int = s["cost"]
 		var max_c: int = TowerDefinition.max_count(t)
@@ -400,7 +406,7 @@ func set_start_wave_enabled(enabled: bool) -> void:
 
 func set_selected_tower(type: TowerDefinition.TowerType) -> void:
 	for i in _tower_btns.size():
-		_tower_btns[i].modulate = Color(0.4, 1.0, 0.4) if i == int(type) else Color(1, 1, 1)
+		_tower_btns[i].modulate = Color(0.4, 1.0, 0.4) if _tower_btn_types[i] == type else Color(1, 1, 1)
 
 func clear_selected_tower() -> void:
 	_selected_tower_idx = -1

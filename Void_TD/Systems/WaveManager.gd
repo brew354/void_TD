@@ -19,7 +19,7 @@ var _endless_wave_count: int = 0
 var _current_speed_scale: float = 1.0
 var _total_waves_started: int = 0
 
-func _init(scene: Node, endless: bool = false) -> void:
+func _init(scene: Node, endless: bool = false, skip_to_wave: int = 0) -> void:
 	_scene = scene
 	is_endless = endless
 	# Campaign: 19 scripted waves + Final Boss (wave 20)
@@ -27,6 +27,9 @@ func _init(scene: Node, endless: bool = false) -> void:
 	_waves = WaveDefinition.all_waves()
 	if not endless:
 		_waves.append(WaveDefinition.final_boss_wave())
+	if skip_to_wave > 1:
+		_current_wave_index = min(skip_to_wave - 1, _waves.size() - 1)
+		_total_waves_started = _current_wave_index
 
 func current_wave_number() -> int:
 	return _current_wave_index + 1

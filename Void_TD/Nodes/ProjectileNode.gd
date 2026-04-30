@@ -16,11 +16,15 @@ var _enemies_ref: Array  # Reference to GameScene's enemies array for splash
 var _tower_type: int = 0  # int of TowerDefinition.TowerType
 var _slow_factor: float = 1.0
 var _slow_duration: float = 0.0
+var _burn_dps: float = 0.0
+var _burn_duration: float = 0.0
+var _stun_duration: float = 0.0
 
 var _visual: _ProjectileVisual
 
 func setup(t: EnemyNode, dmg: float, spd: float, splash: float, enemies: Array, ttype: int = 0,
-		slow_factor: float = 1.0, slow_duration: float = 0.0) -> void:
+		slow_factor: float = 1.0, slow_duration: float = 0.0,
+		burn_dps: float = 0.0, burn_duration: float = 0.0, stun_duration: float = 0.0) -> void:
 	target = t
 	damage = dmg
 	projectile_speed = spd
@@ -29,6 +33,9 @@ func setup(t: EnemyNode, dmg: float, spd: float, splash: float, enemies: Array, 
 	_tower_type = ttype
 	_slow_factor = slow_factor
 	_slow_duration = slow_duration
+	_burn_dps = burn_dps
+	_burn_duration = burn_duration
+	_stun_duration = stun_duration
 
 	_visual = _ProjectileVisual.new()
 	_visual.tower_type = ttype
@@ -58,11 +65,19 @@ func _on_hit() -> void:
 					enemy.take_damage(damage)
 					if _slow_duration > 0.0:
 						enemy.apply_slow(_slow_factor, _slow_duration)
+					if _burn_dps > 0.0:
+						enemy.apply_burn(_burn_dps, _burn_duration)
+					if _stun_duration > 0.0:
+						enemy.apply_stun(_stun_duration)
 	else:
 		if is_instance_valid(target) and not target.is_dead:
 			target.take_damage(damage)
 			if _slow_duration > 0.0:
 				target.apply_slow(_slow_factor, _slow_duration)
+			if _burn_dps > 0.0:
+				target.apply_burn(_burn_dps, _burn_duration)
+			if _stun_duration > 0.0:
+				target.apply_stun(_stun_duration)
 
 	hit_target.emit()
 	queue_free()
@@ -140,6 +155,21 @@ class _ProjectileVisual extends Node2D:
 				draw_circle(Vector2.ZERO, 4.0, Color(1.0, 0.85, 0.3))
 				draw_circle(Vector2.ZERO, 2.0, Color(1.0, 1.0, 0.9))
 
+			5:  # TESLA — crackling blue electric orb with arc tendrils
+				var t := Time.get_ticks_msec() * 0.008
+				# Outer electric glow
+				draw_circle(Vector2.ZERO, 11.0, Color(0.15, 0.4, 1.0, 0.2))
+				# Spinning arc tendrils (4 arms)
+				for arm in 4:
+					var angle := t * 2.0 + float(arm) * TAU / 4.0
+					var end := Vector2(cos(angle), sin(angle)) * (8.0 + sin(t * 3.0 + float(arm)) * 3.0)
+					draw_line(Vector2.ZERO, end, Color(0.3, 0.6, 1.0, 0.7), 2.0)
+					var spark := end + Vector2(cos(angle + 0.8), sin(angle + 0.8)) * 4.0
+					draw_line(end, spark, Color(0.5, 0.8, 1.0, 0.5), 1.2)
+				# Bright blue core
+				draw_circle(Vector2.ZERO, 5.0, Color(0.3, 0.65, 1.0, 0.9))
+				draw_circle(Vector2.ZERO, 2.5, Color(0.7, 0.9, 1.0, 1.0))
+
 
 ## Expanding AoE impact ring
 class _SplashRing extends Node2D:
@@ -159,7 +189,10 @@ class _SplashRing extends Node2D:
 		var progress := _t / DURATION
 		var alpha := (1.0 - progress) * 0.75
 		var r := radius * (0.4 + progress * 0.6)
-		if tower_type == 3:  # Mecha — red
+		if tower_type == 5:  # Tesla — electric blue
+			draw_arc(Vector2.ZERO, r, 0, TAU, 32, Color(0.2, 0.5, 1.0, alpha), 3.0)
+			draw_arc(Vector2.ZERO, r * 0.7, 0, TAU, 32, Color(0.5, 0.8, 1.0, alpha * 0.5), 1.5)
+		elif tower_type == 3:  # Mecha — red
 			draw_arc(Vector2.ZERO, r, 0, TAU, 32, Color(1.0, 0.15, 0.0, alpha), 3.0)
 			draw_arc(Vector2.ZERO, r * 0.7, 0, TAU, 32, Color(1.0, 0.5, 0.2, alpha * 0.5), 1.5)
 		elif tower_type == 4:  # Freeze — ice blue, slower expand

@@ -41,18 +41,19 @@ const _BASE_PATHS = {
 	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/missile_launcher_base.png",
 	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/autocannon/autocannon2.png",
 	4: "res://Assets/towers/kenney_sci-fi-rts/PNG/Default size/Environment/scifiEnvironment_04.png",
+	5: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/flak_cannon/flak_turret.png",
 }
 const _BARREL_PATHS = {
 	0: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_barrel.png",
 	1: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon_barrel.png",
 	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/autocannon/autocannon_barrel.png",
 	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/mecha_soldier_base.png",
+	5: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/flak_cannon/flak_barrel.png",
 }
 # Uniform scale applied to both base and barrel to reach ~48 px display size
-const _BASE_SCALE   = {0: 1.5,  1: 1.5, 2: 0.75, 3: 1.5, 4: 2.0}
-const _BARREL_SCALE = {0: 0.8,  1: 1.5, 2: 2.0,  3: 0.85}
-# Barrel offset.y (local, pre-scale) so the barrel's bottom aligns with the node origin
-const _BARREL_OFFSET_Y = {0: -16.0, 1: -16.0, 2: -8.0, 3: 0.0}
+const _BASE_SCALE   = {0: 1.5,  1: 1.5, 2: 0.75, 3: 1.5, 4: 2.0, 5: 1.5}
+const _BARREL_SCALE = {0: 0.8,  1: 1.5, 2: 2.0,  3: 0.85, 5: 1.0}
+const _BARREL_OFFSET_Y = {0: -16.0, 1: -16.0, 2: -8.0, 3: 0.0, 5: -16.0}
 
 func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) -> void:
 	tower_type = type
@@ -74,6 +75,8 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	var default_tint := Color.WHITE
 	if type == TowerDefinition.TowerType.FREEZE:
 		default_tint = Color(0.35, 0.78, 1.0)   # ice blue
+	elif type == TowerDefinition.TowerType.TESLA:
+		default_tint = Color(0.3, 0.7, 1.0)     # electric blue
 	_normal_modulate = TowerSkins.get_color(ti, default_tint)
 
 	# Base sprite (stationary)
@@ -110,6 +113,11 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 	ring.radius = range_radius
 	ring.is_freeze = (type == TowerDefinition.TowerType.FREEZE)
 	_range_ring.add_child(ring)
+
+	# Ducky face overlay (only for Laser Turret with ducky skin)
+	if type == TowerDefinition.TowerType.LASER and TowerSkins.named_skins.get(ti, "") == "ducky":
+		var ducky = _DuckyOverlay.new()
+		_base_sprite.add_child(ducky)
 
 	# Level label (bottom-right, hidden at L1)
 	_level_label = Label.new()
@@ -249,8 +257,11 @@ func _spawn_projectile(target: EnemyNode) -> void:
 	var s = TowerDefinition.stats(tower_type)
 	var slow_f: float = float(s.get("slow_factor", 1.0))
 	var slow_d: float = float(s.get("slow_duration", 0.0))
+	var burn_dps: float = float(s.get("burn_dps", 0.0)) if upgrade_level >= 2 else 0.0
+	var burn_dur: float = float(s.get("burn_duration", 0.0)) if upgrade_level >= 2 else 0.0
+	var stun_dur: float = float(s.get("stun_duration", 0.0)) if upgrade_level >= 3 else 0.0
 	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref, int(tower_type),
-			slow_f, slow_d)
+			slow_f, slow_d, burn_dps, burn_dur, stun_dur)
 	# Fire flash — briefly brighten then fade back
 	if _fire_tween:
 		_fire_tween.kill()
@@ -305,3 +316,17 @@ class _FreezePulseRing extends Node2D:
 			col_inner = Color(0.8, 0.96, 1.0, alpha * 0.5)
 		draw_arc(Vector2.ZERO, r, 0, TAU, 48, col_outer, 3.0)
 		draw_arc(Vector2.ZERO, r * 0.75, 0, TAU, 32, col_inner, 1.5)
+
+## Ducky face overlay — draws eyes and beak on top of the tower base sprite
+class _DuckyOverlay extends Node2D:
+	func _draw() -> void:
+		draw_circle(Vector2(-5.0, -5.0), 3.5, Color.WHITE)
+		draw_circle(Vector2(-5.0, -5.0), 1.8, Color.BLACK)
+		draw_circle(Vector2(5.0, -5.0), 3.5, Color.WHITE)
+		draw_circle(Vector2(5.0, -5.0), 1.8, Color.BLACK)
+		var beak = PackedVector2Array([
+			Vector2(-4.0, 1.0),
+			Vector2(4.0, 1.0),
+			Vector2(0.0, 6.0),
+		])
+		draw_colored_polygon(beak, Color(1.0, 0.55, 0.0))

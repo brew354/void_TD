@@ -1,7 +1,7 @@
 ## TowerDefinition.gd — Tower types and stats
 class_name TowerDefinition
 
-enum TowerType { LASER, CANNON, MISSILE, MECHA_SOLDIER, FREEZE }
+enum TowerType { LASER, CANNON, MISSILE, MECHA_SOLDIER, FREEZE, TESLA }
 
 # Returns a dict with: cost, damage, range, fire_rate (seconds), splash_radius, projectile_speed
 static func stats(type: TowerType) -> Dictionary:
@@ -22,6 +22,10 @@ static func stats(type: TowerType) -> Dictionary:
 			return { "cost": 125, "damage": 0, "range": 160.0, "fire_rate": 7.0,
 					 "splash_radius": 0.0, "projectile_speed": 0.0, "label": "Void Stunner",
 					 "slow_factor": 0.40, "slow_duration": 2.0 }
+		TowerType.TESLA:
+			return { "cost": 200, "damage": 45, "range": 180.0, "fire_rate": 1.8,
+					 "splash_radius": 50.0, "projectile_speed": 500.0, "label": "Tesla Tower",
+					 "burn_dps": 15.0, "burn_duration": 2.0, "stun_duration": 1.0 }
 	return {}
 
 ## Returns the maximum number of this tower that can be placed. 0 = unlimited.
@@ -31,6 +35,7 @@ static func max_count(type: TowerType) -> int:
 		TowerType.MISSILE:       return 4
 		TowerType.MECHA_SOLDIER: return 4
 		TowerType.FREEZE:        return 5
+		TowerType.TESLA:         return 3
 	return 0
 
 static func upgrade_cost(type: TowerType, to_level: int) -> int:

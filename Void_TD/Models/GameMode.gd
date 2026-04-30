@@ -2,3 +2,4 @@
 class_name GameMode
 
 static var endless: bool = false
+static var start_wave: int = 0

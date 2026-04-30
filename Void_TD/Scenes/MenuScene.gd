@@ -26,12 +26,19 @@ const _DEFAULT_COLORS: Array = [
 	Color(1.0, 1.0, 1.0),  # Void-Seeker   — natural sprite (no tint)
 	Color(1.0, 1.0, 1.0),  # Titan Mech    — natural sprite (no tint)
 	Color(1.0, 1.0, 1.0),  # Void Stunner  — natural sprite (no tint)
+	Color(0.3, 0.7, 1.0),  # Tesla Tower   — electric blue tint
 ]
 
 var _title: Label
 var _stars: Array = []
 var _time: float = 0.0
-var _skin_panel: Node2D = null
+var _inv_panel: Node2D = null
+var _inv_skins_tab: Control = null
+var _inv_towers_tab: Control = null
+var _inv_skins_scroll: ScrollContainer = null
+var _inv_towers_scroll: ScrollContainer = null
+var _inv_tab_btn_skins: Button = null
+var _inv_tab_btn_towers: Button = null
 var _codes_panel: Node2D = null
 var _codes_input: LineEdit = null
 var _codes_msg: Label = null
@@ -41,6 +48,8 @@ var _void_buttons: Array = []         # Array[Button] one per tower row (null if
 var _ducky_buttons: Array = []        # Array[Button] one per tower row (null if not applicable)
 var _shop_panel: Node2D = null
 var _shop_coins_lbl: Label = null
+var _tower_equip_btns: Array = []     # Array[Button] one per tower type
+var _loadout_count_lbl: Label = null
 
 # ── Ambient music synthesis ───────────────────────────────────────────────────
 const _MIX_RATE   := 22050.0
@@ -148,15 +157,15 @@ func _ready() -> void:
 	lbl_e.modulate.a = 0.0
 	add_child(lbl_e)
 
-	# Skins / Shop / Codes buttons — side by side
-	var btn_skins = Button.new()
-	btn_skins.text = "SKINS"
-	btn_skins.size = Vector2(140, 44)
-	btn_skins.position = Vector2(1334 / 2.0 - 225, 528)
-	btn_skins.add_theme_font_size_override("font_size", 20)
-	btn_skins.modulate.a = 0.0
-	btn_skins.pressed.connect(_on_skins_btn)
-	add_child(btn_skins)
+	# Inventory / Shop / Codes buttons — side by side
+	var btn_inv = Button.new()
+	btn_inv.text = "INVENTORY"
+	btn_inv.size = Vector2(140, 44)
+	btn_inv.position = Vector2(1334 / 2.0 - 225, 528)
+	btn_inv.add_theme_font_size_override("font_size", 20)
+	btn_inv.modulate.a = 0.0
+	btn_inv.pressed.connect(_on_inventory_btn)
+	add_child(btn_inv)
 
 	var btn_shop = Button.new()
 	btn_shop.text = "SHOP"
@@ -189,7 +198,7 @@ func _ready() -> void:
 	tween.tween_property(btn_endless,  "modulate:a", 1.0, 0.8).set_delay(1.6)
 	tween.tween_property(lbl_c,        "modulate:a", 1.0, 0.8).set_delay(1.8)
 	tween.tween_property(lbl_e,        "modulate:a", 1.0, 0.8).set_delay(1.8)
-	tween.tween_property(btn_skins,    "modulate:a", 1.0, 0.8).set_delay(2.0)
+	tween.tween_property(btn_inv,      "modulate:a", 1.0, 0.8).set_delay(2.0)
 	tween.tween_property(btn_shop,     "modulate:a", 1.0, 0.8).set_delay(2.0)
 	tween.tween_property(btn_codes,    "modulate:a", 1.0, 0.8).set_delay(2.0)
 
@@ -205,22 +214,24 @@ func _ready() -> void:
 		add_child(hs_lbl)
 		tween.tween_property(hs_lbl, "modulate:a", 1.0, 0.8).set_delay(2.2)
 
-	_build_skin_panel()
+	_build_inventory_panel()
 	_build_shop_panel()
 	_build_codes_panel()
 	_start_ambient_music()
 
-func _build_skin_panel() -> void:
-	_skin_panel = Node2D.new()
-	_skin_panel.visible = false
-	add_child(_skin_panel)
+func _build_inventory_panel() -> void:
+	_inv_panel = Node2D.new()
+	_inv_panel.visible = false
+	add_child(_inv_panel)
+
+	var vp := get_viewport_rect().size
 
 	# ── Full-screen background ────────────────────────────────────────────────
 	var bg = ColorRect.new()
 	bg.color = Color(0.04, 0.0, 0.08)
-	bg.size = get_viewport_rect().size
+	bg.size = vp
 	bg.position = Vector2.ZERO
-	_skin_panel.add_child(bg)
+	_inv_panel.add_child(bg)
 
 	# ── Header ────────────────────────────────────────────────────────────────
 	const HEADER_H: float = 68.0
@@ -228,46 +239,102 @@ func _build_skin_panel() -> void:
 	header.color = Color(0.15, 0.0, 0.26)
 	header.size = Vector2(1334, HEADER_H)
 	header.position = Vector2.ZERO
-	_skin_panel.add_child(header)
+	_inv_panel.add_child(header)
 
 	var title_lbl = Label.new()
-	title_lbl.text = "Tower Skins"
+	title_lbl.text = "Inventory"
 	title_lbl.size = Vector2(1334, HEADER_H)
 	title_lbl.position = Vector2.ZERO
 	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	title_lbl.add_theme_font_size_override("font_size", 30)
 	title_lbl.add_theme_color_override("font_color", Color.WHITE)
-	_skin_panel.add_child(title_lbl)
+	_inv_panel.add_child(title_lbl)
 
 	var close_btn = Button.new()
 	close_btn.text = "X"
 	close_btn.size = Vector2(44, 44)
 	close_btn.position = Vector2(1334 - 52, 12)
 	close_btn.add_theme_font_size_override("font_size", 18)
-	close_btn.pressed.connect(func(): _skin_panel.visible = false)
-	_skin_panel.add_child(close_btn)
+	close_btn.pressed.connect(func(): _inv_panel.visible = false)
+	_inv_panel.add_child(close_btn)
 
+	# ── Tab buttons ───────────────────────────────────────────────────────────
+	const TAB_Y: float = 68.0
+	const TAB_H: float = 40.0
+	const TAB_W: float = 160.0
+
+	_inv_tab_btn_skins = Button.new()
+	_inv_tab_btn_skins.text = "Skins"
+	_inv_tab_btn_skins.size = Vector2(TAB_W, TAB_H)
+	_inv_tab_btn_skins.position = Vector2(1334 / 2.0 - TAB_W - 4, TAB_Y)
+	_inv_tab_btn_skins.add_theme_font_size_override("font_size", 18)
+	_inv_tab_btn_skins.pressed.connect(func(): _switch_inv_tab("skins"))
+	_inv_panel.add_child(_inv_tab_btn_skins)
+
+	_inv_tab_btn_towers = Button.new()
+	_inv_tab_btn_towers.text = "Towers"
+	_inv_tab_btn_towers.size = Vector2(TAB_W, TAB_H)
+	_inv_tab_btn_towers.position = Vector2(1334 / 2.0 + 4, TAB_Y)
+	_inv_tab_btn_towers.add_theme_font_size_override("font_size", 18)
+	_inv_tab_btn_towers.pressed.connect(func(): _switch_inv_tab("towers"))
+	_inv_panel.add_child(_inv_tab_btn_towers)
+
+	# ── Scrollable tab area ───────────────────────────────────────────────────
+	var content_top: float = HEADER_H + TAB_H + 8.0
+	var scroll_h: float = vp.y - content_top
+
+	# Skins tab
+	var skins_scroll = ScrollContainer.new()
+	skins_scroll.position = Vector2(0, content_top)
+	skins_scroll.size = Vector2(vp.x, scroll_h)
+	skins_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_inv_panel.add_child(skins_scroll)
+	_inv_skins_tab = Control.new()
+	skins_scroll.add_child(_inv_skins_tab)
+	_inv_skins_scroll = skins_scroll
+	_build_skins_tab_content(scroll_h)
+
+	# Towers tab
+	var towers_scroll = ScrollContainer.new()
+	towers_scroll.position = Vector2(0, content_top)
+	towers_scroll.size = Vector2(vp.x, scroll_h)
+	towers_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	towers_scroll.visible = false
+	_inv_panel.add_child(towers_scroll)
+	_inv_towers_tab = Control.new()
+	towers_scroll.add_child(_inv_towers_tab)
+	_inv_towers_scroll = towers_scroll
+	_build_towers_tab_content(scroll_h)
+
+func _switch_inv_tab(tab: String) -> void:
+	_inv_skins_scroll.visible = (tab == "skins")
+	_inv_towers_scroll.visible = (tab == "towers")
+	if tab == "towers":
+		_refresh_tower_equip_btns()
+
+func _build_skins_tab_content(scroll_h: float) -> void:
 	# ── Layout constants ──────────────────────────────────────────────────────
-	const ROW_H:    float = 130.0
-	const SW_SZ:    float = 52.0   # swatch size
+	const ROW_H:    float = 115.0
+	const SW_SZ:    float = 52.0
 	const SW_GAP:   float = 8.0
-	const LM:       float = 173.0  # left margin (symmetric with right)
+	const LM:       float = 173.0
 	const NAME_W:   float = 180.0
 	const PREV_SZ:  float = 52.0
-	const SP_W:     float = 90.0   # special skin button width
-	const DEF_X:    float = 1059.0 # Default button x (fixed for all rows)
+	const SP_W:     float = 90.0
+	const DEF_X:    float = 1059.0
 	const DEF_W:    float = 102.0
 
-	# Vertically center the 4 rows in the space below the header
-	var rows_total: float = ROW_H * 5.0
-	var row_start_y: float = HEADER_H + (750.0 - HEADER_H - rows_total) / 2.0
-
-	var tower_labels = ["Laser Turret", "Plasma Cannon", "Void-Seeker", "Titan Mech", "Void Stunner"]
+	var tower_labels = ["Laser Turret", "Plasma Cannon", "Void-Seeker", "Titan Mech", "Void Stunner", "Tesla Tower"]
+	var tower_count: int = 5 + (1 if TowerSkins.has_skin("tesla_tower") else 0)
+	var rows_total: float = ROW_H * float(tower_count)
+	var content_h: float = maxf(rows_total + 20.0, scroll_h)
+	_inv_skins_tab.custom_minimum_size = Vector2(1334, content_h)
+	var row_start_y: float = 10.0
 
 	_void_buttons.clear()
 	_ducky_buttons.clear()
-	for ti in 5:
+	for ti in tower_count:
 		var row_y: float = row_start_y + ti * ROW_H
 		var item_y: float = row_y + (ROW_H - SW_SZ) / 2.0   # vertically center items in row
 
@@ -277,7 +344,7 @@ func _build_skin_panel() -> void:
 			sep.color = Color(0.2, 0.0, 0.35, 0.4)
 			sep.size = Vector2(1334, 1)
 			sep.position = Vector2(0, row_y)
-			_skin_panel.add_child(sep)
+			_inv_skins_tab.add_child(sep)
 
 		# Tower name label
 		var name_lbl = Label.new()
@@ -286,14 +353,14 @@ func _build_skin_panel() -> void:
 		name_lbl.size = Vector2(NAME_W, 24)
 		name_lbl.add_theme_font_size_override("font_size", 16)
 		name_lbl.add_theme_color_override("font_color", Color(0.85, 0.75, 1.0))
-		_skin_panel.add_child(name_lbl)
+		_inv_skins_tab.add_child(name_lbl)
 
 		# Current color preview square
 		var preview = ColorRect.new()
 		preview.size = Vector2(PREV_SZ, PREV_SZ)
 		preview.position = Vector2(LM + NAME_W + 10.0, item_y)
 		preview.color = TowerSkins.get_color(ti, _DEFAULT_COLORS[ti])
-		_skin_panel.add_child(preview)
+		_inv_skins_tab.add_child(preview)
 		_skin_previews.append(preview)
 
 		# Palette swatches
@@ -308,7 +375,7 @@ func _build_skin_panel() -> void:
 			border.position = Vector2(sx - 2, item_y - 2)
 			var current = TowerSkins.overrides.get(ti, Color(-1, -1, -1))
 			border.visible = (current == _PALETTE[ci])
-			_skin_panel.add_child(border)
+			_inv_skins_tab.add_child(border)
 			row_borders.append(border)
 
 			var swatch = Button.new()
@@ -323,7 +390,7 @@ func _build_skin_panel() -> void:
 			var cap_ti = ti
 			var cap_ci = ci
 			swatch.pressed.connect(func(): _on_swatch_pressed(cap_ti, cap_ci))
-			_skin_panel.add_child(swatch)
+			_inv_skins_tab.add_child(swatch)
 
 		_swatch_borders.append(row_borders)
 
@@ -338,7 +405,7 @@ func _build_skin_panel() -> void:
 		reset_btn.add_theme_font_size_override("font_size", 14)
 		var cap_ti2 = ti
 		reset_btn.pressed.connect(func(): _on_reset_skin(cap_ti2))
-		_skin_panel.add_child(reset_btn)
+		_inv_skins_tab.add_child(reset_btn)
 
 		# Special skin buttons — placed after Default, spaced by SP_W + 8
 		var next_sp_x: float = DEF_X + DEF_W + 8.0
@@ -366,7 +433,7 @@ func _build_skin_panel() -> void:
 			var cap_ti3 = ti
 			void_btn.pressed.connect(func(): _on_void_skin(cap_ti3))
 			void_btn.visible = TowerSkins.is_code_unlocked("friendvoid")
-			_skin_panel.add_child(void_btn)
+			_inv_skins_tab.add_child(void_btn)
 			_void_buttons.append(void_btn)
 			next_sp_x += SP_W + 8.0
 		else:
@@ -395,7 +462,7 @@ func _build_skin_panel() -> void:
 			var cap_ti4 = ti
 			ducky_btn.pressed.connect(func(): _on_ducky_skin(cap_ti4))
 			ducky_btn.visible = TowerSkins.has_skin("ducky_0")
-			_skin_panel.add_child(ducky_btn)
+			_inv_skins_tab.add_child(ducky_btn)
 			_ducky_buttons.append(ducky_btn)
 		else:
 			_ducky_buttons.append(null)
@@ -425,10 +492,11 @@ func _on_ducky_skin(tower_idx: int) -> void:
 	for border in _swatch_borders[tower_idx]:
 		border.visible = false
 
-func _on_skins_btn() -> void:
+func _on_inventory_btn() -> void:
 	_refresh_void_buttons()
 	_refresh_ducky_buttons()
-	_skin_panel.visible = true
+	_switch_inv_tab("skins")
+	_inv_panel.visible = true
 
 func _on_shop_btn() -> void:
 	_shop_coins_lbl.text = "Coins: %d" % TowerSkins.coins
@@ -522,11 +590,17 @@ func _on_code_submit() -> void:
 	var code := _codes_input.text.strip_edges().to_lower()
 	if code.is_empty():
 		return
+	# Cheat code — jump straight to wave 20 campaign
+	if code == "cheatcode":
+		GameMode.endless = false
+		GameMode.start_wave = 20
+		_cleanup_and_switch("res://Scenes/GameScene.tscn")
+		return
 	# Infinite-use coin codes — handled locally, no server needed
 	if code == "savanfo":
-		TowerSkins.add_coins(400)
+		TowerSkins.add_coins(800)
 		_codes_msg.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
-		_codes_msg.text = "+400 coins! (Total: %d)" % TowerSkins.coins
+		_codes_msg.text = "+800 coins! (Total: %d)" % TowerSkins.coins
 		return
 	if TowerSkins.is_code_unlocked(code):
 		_codes_msg.add_theme_color_override("font_color", Color(0.8, 0.8, 0.3))
@@ -579,8 +653,120 @@ func _refresh_ducky_buttons() -> void:
 		if btn != null:
 			btn.visible = owned
 
+func _build_towers_tab_content(scroll_h: float) -> void:
+	var tower_labels = ["Laser Turret", "Plasma Cannon", "Void-Seeker", "Titan Mech", "Void Stunner", "Tesla Tower"]
+	var tower_descs = [
+		"Fast single-target laser — $50",
+		"AoE splash cannon — $100",
+		"Long-range missile — $150",
+		"Heavy AoE mech — $300",
+		"Area slow pulse — $125",
+		"AoE electric + burn + stun — $200",
+	]
+	const ROW_H: float = 90.0
+	const LM: float = 300.0
+	var tower_count: int = 5 + (1 if TowerSkins.has_skin("tesla_tower") else 0)
+	var rows_total: float = ROW_H * float(tower_count) + 50.0
+	var content_h: float = maxf(rows_total + 20.0, scroll_h)
+	_inv_towers_tab.custom_minimum_size = Vector2(1334, content_h)
+	var start_y: float = 10.0
+
+	# Loadout counter
+	_loadout_count_lbl = Label.new()
+	_loadout_count_lbl.position = Vector2(0, start_y)
+	_loadout_count_lbl.size = Vector2(1334, 28)
+	_loadout_count_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_loadout_count_lbl.add_theme_font_size_override("font_size", 18)
+	_loadout_count_lbl.add_theme_color_override("font_color", Color(0.7, 0.6, 0.9))
+	_inv_towers_tab.add_child(_loadout_count_lbl)
+
+	_tower_equip_btns.clear()
+	for ti in tower_count:
+		var row_y: float = start_y + 40.0 + ti * ROW_H
+
+		if ti > 0:
+			var sep = ColorRect.new()
+			sep.color = Color(0.2, 0.0, 0.35, 0.3)
+			sep.size = Vector2(734, 1)
+			sep.position = Vector2(LM, row_y)
+			_inv_towers_tab.add_child(sep)
+
+		var name_lbl = Label.new()
+		name_lbl.text = tower_labels[ti]
+		name_lbl.position = Vector2(LM, row_y + 16)
+		name_lbl.size = Vector2(240, 24)
+		name_lbl.add_theme_font_size_override("font_size", 20)
+		name_lbl.add_theme_color_override("font_color", Color(0.9, 0.8, 1.0))
+		_inv_towers_tab.add_child(name_lbl)
+
+		var desc_lbl = Label.new()
+		desc_lbl.text = tower_descs[ti]
+		desc_lbl.position = Vector2(LM, row_y + 44)
+		desc_lbl.size = Vector2(340, 20)
+		desc_lbl.add_theme_font_size_override("font_size", 14)
+		desc_lbl.add_theme_color_override("font_color", Color(0.6, 0.55, 0.75))
+		_inv_towers_tab.add_child(desc_lbl)
+
+		var equip_btn = Button.new()
+		equip_btn.size = Vector2(120, 38)
+		equip_btn.position = Vector2(LM + 420, row_y + 22)
+		equip_btn.add_theme_font_size_override("font_size", 15)
+		var cap_ti = ti
+		equip_btn.pressed.connect(func(): _on_toggle_equip(cap_ti))
+		_inv_towers_tab.add_child(equip_btn)
+		_tower_equip_btns.append(equip_btn)
+
+func _on_toggle_equip(tower_idx: int) -> void:
+	if TowerSkins.is_tower_equipped(tower_idx) and not TowerSkins.loadout.is_empty():
+		if TowerSkins.loadout.size() <= 1:
+			return
+		TowerSkins.unequip_tower(tower_idx)
+	else:
+		TowerSkins.equip_tower(tower_idx)
+	_refresh_tower_equip_btns()
+
+func _refresh_tower_equip_btns() -> void:
+	var count: int = TowerSkins.loadout.size() if not TowerSkins.loadout.is_empty() else 4
+	_loadout_count_lbl.text = "Equipped: %d / %d" % [count, TowerSkins.MAX_LOADOUT]
+	for ti in _tower_equip_btns.size():
+		var btn: Button = _tower_equip_btns[ti]
+		var equipped: bool = TowerSkins.is_tower_equipped(ti)
+		if equipped:
+			btn.text = "Equipped"
+			btn.disabled = false
+			var flat = StyleBoxFlat.new()
+			flat.bg_color = Color(0.1, 0.3, 0.15)
+			flat.border_color = Color(0.2, 0.8, 0.3)
+			flat.border_width_bottom = 2
+			flat.border_width_top = 2
+			flat.border_width_left = 2
+			flat.border_width_right = 2
+			btn.add_theme_stylebox_override("normal", flat)
+			var hover = flat.duplicate()
+			hover.bg_color = Color(0.15, 0.4, 0.2)
+			btn.add_theme_stylebox_override("hover", hover)
+			btn.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+		else:
+			btn.text = "Equip"
+			var can_equip: bool = TowerSkins.loadout.size() < TowerSkins.MAX_LOADOUT
+			btn.disabled = not can_equip
+			var flat = StyleBoxFlat.new()
+			flat.bg_color = Color(0.15, 0.08, 0.25)
+			flat.border_color = Color(0.4, 0.2, 0.6)
+			flat.border_width_bottom = 2
+			flat.border_width_top = 2
+			flat.border_width_left = 2
+			flat.border_width_right = 2
+			btn.add_theme_stylebox_override("normal", flat)
+			var hover = flat.duplicate()
+			hover.bg_color = Color(0.2, 0.12, 0.35)
+			btn.add_theme_stylebox_override("hover", hover)
+			btn.add_theme_color_override("font_color", Color(0.7, 0.5, 0.9))
+
 var _shop_ducky_btn: Button = null
 var _shop_ducky_status: Label = null
+var _shop_tesla_btn: Button = null
+var _shop_tesla_status: Label = null
 
 func _build_shop_panel() -> void:
 	_shop_panel = Node2D.new()
@@ -598,7 +784,7 @@ func _build_shop_panel() -> void:
 
 	# Panel box
 	var box_w: float = 500.0
-	var box_h: float = 340.0
+	var box_h: float = 440.0
 	var box_x: float = (vp.x - box_w) / 2.0
 	var box_y: float = (vp.y - box_h) / 2.0
 
@@ -680,6 +866,46 @@ func _build_shop_panel() -> void:
 	_shop_ducky_status.add_theme_font_size_override("font_size", 14)
 	_shop_panel.add_child(_shop_ducky_status)
 
+	# ── Tesla Tower Item ──────────────────────────────────────────────────────
+	var tesla_y: float = box_y + 190
+
+	var tesla_swatch = ColorRect.new()
+	tesla_swatch.color = Color(0.3, 0.7, 1.0)
+	tesla_swatch.size = Vector2(48, 48)
+	tesla_swatch.position = Vector2(item_x, tesla_y)
+	_shop_panel.add_child(tesla_swatch)
+
+	var tesla_name = Label.new()
+	tesla_name.text = "Tesla Tower"
+	tesla_name.position = Vector2(item_x + 62, tesla_y + 2)
+	tesla_name.size = Vector2(200, 24)
+	tesla_name.add_theme_font_size_override("font_size", 20)
+	tesla_name.add_theme_color_override("font_color", Color(0.4, 0.8, 1.0))
+	_shop_panel.add_child(tesla_name)
+
+	var tesla_desc = Label.new()
+	tesla_desc.text = "AoE electric tower — burn & stun at higher levels"
+	tesla_desc.position = Vector2(item_x + 62, tesla_y + 28)
+	tesla_desc.size = Vector2(300, 20)
+	tesla_desc.add_theme_font_size_override("font_size", 13)
+	tesla_desc.add_theme_color_override("font_color", Color(0.5, 0.65, 0.7))
+	_shop_panel.add_child(tesla_desc)
+
+	_shop_tesla_btn = Button.new()
+	_shop_tesla_btn.text = "800 coins"
+	_shop_tesla_btn.size = Vector2(120, 38)
+	_shop_tesla_btn.position = Vector2(box_x + box_w - 155, tesla_y + 5)
+	_shop_tesla_btn.add_theme_font_size_override("font_size", 15)
+	_shop_tesla_btn.pressed.connect(_on_buy_tesla)
+	_shop_panel.add_child(_shop_tesla_btn)
+
+	_shop_tesla_status = Label.new()
+	_shop_tesla_status.text = ""
+	_shop_tesla_status.position = Vector2(item_x, tesla_y + 60)
+	_shop_tesla_status.size = Vector2(box_w - 60, 20)
+	_shop_tesla_status.add_theme_font_size_override("font_size", 14)
+	_shop_panel.add_child(_shop_tesla_status)
+
 	# How to earn coins info
 	var info_lbl = Label.new()
 	info_lbl.text = "Earn coins from Campaign:  Win = 150 coins  ·  Defeat = 50 coins"
@@ -713,6 +939,33 @@ func _on_buy_ducky() -> void:
 		_shop_ducky_status.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
 		_shop_ducky_status.text = "Not enough coins!"
 
+func _on_buy_tesla() -> void:
+	if TowerSkins.has_skin("tesla_tower"):
+		return
+	if TowerSkins.purchase_skin("tesla_tower", 800):
+		_shop_coins_lbl.text = "Coins: %d" % TowerSkins.coins
+		_shop_tesla_status.add_theme_color_override("font_color", Color(0.3, 1.0, 0.4))
+		_shop_tesla_status.text = "Purchased! Equip it in Inventory > Towers."
+		_shop_tesla_btn.text = "Owned"
+		_shop_tesla_btn.disabled = true
+		_rebuild_inventory_tabs()
+	else:
+		_shop_tesla_status.add_theme_color_override("font_color", Color(1.0, 0.3, 0.3))
+		_shop_tesla_status.text = "Not enough coins!"
+
+func _rebuild_inventory_tabs() -> void:
+	for child in _inv_skins_tab.get_children():
+		child.queue_free()
+	_skin_previews.clear()
+	_swatch_borders.clear()
+	_void_buttons.clear()
+	_ducky_buttons.clear()
+	_build_skins_tab_content(_inv_skins_scroll.size.y)
+	for child in _inv_towers_tab.get_children():
+		child.queue_free()
+	_tower_equip_btns.clear()
+	_build_towers_tab_content(_inv_towers_scroll.size.y)
+
 func _refresh_shop_items() -> void:
 	if TowerSkins.has_skin("ducky_0"):
 		_shop_ducky_btn.text = "Owned"
@@ -722,6 +975,14 @@ func _refresh_shop_items() -> void:
 		_shop_ducky_btn.text = "200 coins"
 		_shop_ducky_btn.disabled = false
 		_shop_ducky_status.text = ""
+	if TowerSkins.has_skin("tesla_tower"):
+		_shop_tesla_btn.text = "Owned"
+		_shop_tesla_btn.disabled = true
+		_shop_tesla_status.text = ""
+	else:
+		_shop_tesla_btn.text = "800 coins"
+		_shop_tesla_btn.disabled = false
+		_shop_tesla_status.text = ""
 
 func _process(delta: float) -> void:
 	_time += delta
@@ -770,10 +1031,18 @@ func _start_ambient_music() -> void:
 	_ambient_player.play()
 	_ambient_pb = _ambient_player.get_stream_playback()
 
+func _cleanup_and_switch(scene_path: String) -> void:
+	if _ambient_player:
+		_ambient_player.stop()
+		_ambient_pb = null
+	if _http_request:
+		_http_request.cancel_request()
+	get_tree().change_scene_to_file.call_deferred(scene_path)
+
 func _on_start_campaign() -> void:
 	GameMode.endless = false
-	get_tree().change_scene_to_file("res://Scenes/GameScene.tscn")
+	_cleanup_and_switch("res://Scenes/GameScene.tscn")
 
 func _on_start_endless() -> void:
 	GameMode.endless = true
-	get_tree().change_scene_to_file("res://Scenes/GameScene.tscn")
+	_cleanup_and_switch("res://Scenes/GameScene.tscn")

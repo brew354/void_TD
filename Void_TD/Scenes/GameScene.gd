@@ -73,6 +73,7 @@ var _credits_spent: int = 0
 
 # ── Game mode ─────────────────────────────────────────────────────────────────
 var _endless: bool = false
+var _start_wave: int = 0
 var _milestone_manager = null
 
 # ── Music ─────────────────────────────────────────────────────────────────────
@@ -85,10 +86,14 @@ var _boss_bar_enemy: Node = null  # Void Herald currently shown in the top bar
 func _ready() -> void:
 	TowerSkins.load_from_disk()
 	_endless = GameMode.endless
+	_start_wave = GameMode.start_wave
+	GameMode.start_wave = 0
 	_load_audio()
 	_start_music()
 	_build_layers()
 	_init_systems()
+	if _start_wave > 1:
+		currency = 5000
 	_build_grid()
 	_spawn_base()
 	_build_hud()
@@ -162,7 +167,7 @@ func _draw_background() -> void:
 func _init_systems() -> void:
 	grid_manager = GridManager.new()
 	tower_manager = TowerManager.new()
-	wave_manager = WaveManager.new(self, _endless)
+	wave_manager = WaveManager.new(self, _endless, _start_wave)
 	state_machine = GameStateMachine.new()
 
 	wave_manager.enemy_spawned.connect(_on_enemy_spawned)
@@ -566,6 +571,9 @@ func _on_tower_fired(tower_type: TowerDefinition.TowerType) -> void:
 			_play_file("explosion", 6.0)
 			_play_file("explosion_crunch", 2.0)
 			_screen_shake(5.0, 0.25)
+		TowerDefinition.TowerType.TESLA:
+			_play_file("laser_large", -4.0)
+			_screen_shake(2.0, 0.12)
 	_fire_sfx_cooldowns[key] = 0.15
 
 func _spawn_reward_label(pos: Vector2, amount: int) -> void:
@@ -591,7 +599,7 @@ func _on_enemy_died(enemy: EnemyNode) -> void:
 	_spawn_reward_label(enemy.position, enemy.reward)
 	match enemy.enemy_type:
 		EnemyDefinition.EnemyType.SCOUT:
-			_play_file("metal_light", -6.0)
+			pass
 		EnemyDefinition.EnemyType.TANK:
 			_play_file("explosion_crunch", -4.0)
 		EnemyDefinition.EnemyType.BOSS:

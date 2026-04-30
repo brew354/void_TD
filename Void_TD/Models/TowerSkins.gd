@@ -11,12 +11,16 @@ static var unlocked_codes: Dictionary = {}
 static var purchased_skins: Dictionary = {}
 # Player coin balance
 static var coins: int = 0
+# Equipped tower loadout — array of TowerType ints, max 5.  Empty = all towers.
+static var loadout: Array = []
 
-const _SAVE_PATH  = "user://void_td_save.cfg"
-const _SECTION    = "skins"
-const _CODES_SEC  = "codes"
-const _NAMED_SEC  = "named_skins"
-const _SHOP_SEC   = "shop"
+const _SAVE_PATH   = "user://void_td_save.cfg"
+const _SECTION     = "skins"
+const _CODES_SEC   = "codes"
+const _NAMED_SEC   = "named_skins"
+const _SHOP_SEC    = "shop"
+const _LOADOUT_SEC = "loadout"
+const MAX_LOADOUT  := 4
 
 const VOID_COLOR := Color(0.25, 0.0, 0.5)
 const VOID_TOWERS: Array = [0, 2, 4]
@@ -35,6 +39,7 @@ static func load_from_disk() -> void:
 	named_skins.clear()
 	unlocked_codes.clear()
 	purchased_skins.clear()
+	loadout.clear()
 	if cfg.has_section(_SECTION):
 		for key in cfg.get_section_keys(_SECTION):
 			var val = cfg.get_value(_SECTION, key)
@@ -54,6 +59,12 @@ static func load_from_disk() -> void:
 				coins = cfg.get_value(_SHOP_SEC, key, 0)
 			else:
 				purchased_skins[key] = true
+	if cfg.has_section(_LOADOUT_SEC):
+		var count: int = cfg.get_value(_LOADOUT_SEC, "count", 0)
+		for li in count:
+			var val = cfg.get_value(_LOADOUT_SEC, str(li), -1)
+			if val >= 0:
+				loadout.append(int(val))
 
 static func set_color(tower_idx: int, color: Color) -> void:
 	overrides[tower_idx] = color
@@ -107,6 +118,29 @@ static func purchase_skin(skin_key: String, cost: int) -> bool:
 static func has_skin(skin_key: String) -> bool:
 	return purchased_skins.has(skin_key)
 
+static func equip_tower(tower_idx: int) -> bool:
+	if tower_idx in loadout:
+		return false
+	if loadout.size() >= MAX_LOADOUT:
+		return false
+	loadout.append(tower_idx)
+	_save()
+	return true
+
+static func unequip_tower(tower_idx: int) -> void:
+	loadout.erase(tower_idx)
+	_save()
+
+static func is_tower_equipped(tower_idx: int) -> bool:
+	if loadout.is_empty():
+		return true
+	return tower_idx in loadout
+
+static func get_equipped_types() -> Array:
+	if loadout.is_empty():
+		return [0, 1, 2, 3]
+	return loadout.duplicate()
+
 static func _save() -> void:
 	var cfg = ConfigFile.new()
 	cfg.load(_SAVE_PATH)          # preserve existing data (high score, etc.)
@@ -131,4 +165,11 @@ static func _save() -> void:
 	cfg.set_value(_SHOP_SEC, "coins", coins)
 	for skin_key in purchased_skins:
 		cfg.set_value(_SHOP_SEC, skin_key, true)
+	# Save loadout
+	if cfg.has_section(_LOADOUT_SEC):
+		for key in cfg.get_section_keys(_LOADOUT_SEC):
+			cfg.erase_section_key(_LOADOUT_SEC, key)
+	cfg.set_value(_LOADOUT_SEC, "count", loadout.size())
+	for li in loadout.size():
+		cfg.set_value(_LOADOUT_SEC, str(li), loadout[li])
 	cfg.save(_SAVE_PATH)

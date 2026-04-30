@@ -43,6 +43,13 @@ var _is_ruptured: bool = false
 var _rupture_timer: float = 0.0
 var _rupture_ring_node: Node2D = null
 
+# Burn (applied by Tesla Tower L2+)
+var _burn_dps: float = 0.0
+var _burn_timer: float = 0.0
+
+# Stun (applied by Tesla Tower L3)
+var _stun_timer: float = 0.0
+
 # Base sprite tint — changes permanently on armor break
 var _base_tint: Color = Color.WHITE
 
@@ -189,6 +196,23 @@ func _process(delta: float) -> void:
 			if _rupture_ring_node != null:
 				_rupture_ring_node.visible = false
 
+	# Tick burn damage
+	if _burn_timer > 0.0:
+		_burn_timer -= delta
+		take_damage(_burn_dps * delta)
+		if _burn_timer <= 0.0:
+			_burn_timer = 0.0
+			_burn_dps = 0.0
+			_update_tint()
+
+	# Tick stun
+	if _stun_timer > 0.0:
+		_stun_timer -= delta
+		if _stun_timer <= 0.0:
+			_stun_timer = 0.0
+			_update_tint()
+		return
+
 	var target = _waypoints[_current_waypoint]
 	var dir = (target - position).normalized()
 	var dist_to_target = position.distance_to(target)
@@ -238,11 +262,28 @@ func apply_rupture(duration: float) -> void:
 	if _rupture_ring_node != null:
 		_rupture_ring_node.visible = true
 
+func apply_burn(dps: float, duration: float) -> void:
+	if is_dead:
+		return
+	_burn_dps = max(_burn_dps, dps)
+	_burn_timer = max(_burn_timer, duration)
+	_update_tint()
+
+func apply_stun(duration: float) -> void:
+	if is_dead or is_boss:
+		return
+	_stun_timer = max(_stun_timer, duration)
+	_update_tint()
+
 func _update_tint() -> void:
 	if is_dead:
 		return
-	if _slow_timer > 0.0:
-		_sprite.modulate = Color(0.55, 0.85, 1.0)  # ice blue
+	if _stun_timer > 0.0:
+		_sprite.modulate = Color(0.3, 0.6, 1.0)
+	elif _burn_timer > 0.0:
+		_sprite.modulate = Color(1.0, 0.5, 0.15)
+	elif _slow_timer > 0.0:
+		_sprite.modulate = Color(0.55, 0.85, 1.0)
 	else:
 		_sprite.modulate = _base_tint
 

@@ -142,4 +142,4 @@ func _ready() -> void:
 	add_child(btn)
 
 func _on_return() -> void:
-	get_tree().change_scene_to_file("res://Scenes/MenuScene.tscn")
+	get_tree().change_scene_to_file.call_deferred("res://Scenes/MenuScene.tscn")
