@@ -1,0 +1,8 @@
+# Godot
+.godot/
+
+# Asset pack archives
+*.zip
+
+# Cloudflare
+server/.wrangler/

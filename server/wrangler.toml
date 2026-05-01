@@ -1,4 +1,4 @@
-account_id = "25958412f73ac9ede32fc3bda314c338"
+account_id = "" # set via CLOUDFLARE_ACCOUNT_ID env var or `wrangler whoami`
 name = "void-td-codes"
 main = "worker.js"
 compatibility_date = "2024-01-01"
