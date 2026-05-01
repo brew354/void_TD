@@ -1,7 +1,8 @@
+account_id = "25958412f73ac9ede32fc3bda314c338"
 name = "void-td-codes"
 main = "worker.js"
 compatibility_date = "2024-01-01"
 
 [[kv_namespaces]]
 binding = "CODES"
-id = "YOUR_KV_NAMESPACE_ID"
+id = "14db469853ef4937899bdc182a78b60c"

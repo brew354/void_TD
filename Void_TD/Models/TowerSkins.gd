@@ -36,7 +36,7 @@ const COIN_REWARD_WIN  := 150
 const COIN_REWARD_LOSE := 50
 
 # Replace with your deployed Cloudflare Worker URL before release
-const CODE_SERVER_URL := "https://void-td-codes.YOUR_SUBDOMAIN.workers.dev"
+const CODE_SERVER_URL := "https://void-td-codes.brew354.workers.dev"
 
 static var _dirty: bool = false
 
