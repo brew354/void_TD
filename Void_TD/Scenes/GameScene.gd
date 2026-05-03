@@ -640,10 +640,13 @@ func _on_boss_stun_pulse(pos: Vector2, radius: float, duration: float) -> void:
 
 func _on_enemy_exited(enemy: EnemyNode) -> void:
 	wave_manager.on_enemy_resolved()
-	var raw: int = 4 if enemy.is_boss else enemy.lives_damage
-	var damage: int = max(raw - _base.damage_reduction, 1)
-	lives -= damage
-	lives = max(lives, 0)
+	if enemy.enemy_type == EnemyDefinition.EnemyType.MEGA_BOSS:
+		lives = 0
+	else:
+		var raw: int = 4 if enemy.is_boss else enemy.lives_damage
+		var damage: int = max(raw - _base.damage_reduction, 1)
+		lives -= damage
+		lives = max(lives, 0)
 	hud.flash_damage()
 	hud.update_lives(lives)
 	if enemy.is_boss:

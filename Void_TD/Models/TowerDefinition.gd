@@ -23,10 +23,10 @@ static func stats(type: TowerType) -> Dictionary:
 					 "splash_radius": 0.0, "projectile_speed": 0.0, "label": "Void Stunner",
 					 "slow_factor": 0.40, "slow_duration": 2.0 }
 		TowerType.TESLA:
-			return { "cost": 200, "damage": 60, "range": 200.0, "fire_rate": 1.5,
-					 "splash_radius": 60.0, "projectile_speed": 550.0, "label": "Tesla Tower",
-					 "burn_dps": 20.0, "burn_duration": 2.5, "stun_duration": 1.2,
-					 "smite_pct": 0.08 }
+			return { "cost": 200, "damage": 85, "range": 210.0, "fire_rate": 1.2,
+					 "splash_radius": 70.0, "projectile_speed": 550.0, "label": "Tesla Tower",
+					 "burn_dps": 25.0, "burn_duration": 3.0, "stun_duration": 1.5,
+					 "smite_pct": 0.10 }
 	return {}
 
 ## Returns the maximum number of this tower that can be placed. 0 = unlimited.
@@ -36,7 +36,7 @@ static func max_count(type: TowerType) -> int:
 		TowerType.MISSILE:       return 4
 		TowerType.MECHA_SOLDIER: return 4
 		TowerType.FREEZE:        return 5
-		TowerType.TESLA:         return 3
+		TowerType.TESLA:         return 4
 	return 0
 
 static func upgrade_cost(type: TowerType, to_level: int) -> int:

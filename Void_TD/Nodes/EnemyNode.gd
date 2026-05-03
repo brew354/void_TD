@@ -64,7 +64,7 @@ var _current_waypoint: int = 1
 var _total_path_length: float = 0.0
 var _distance_traveled: float = 0.0
 
-var _sprite: Sprite2D
+var _sprite: Node2D
 var _hp_bar_bg: ColorRect
 var _hp_bar_fg: ColorRect
 var _shard_color: Color = Color.WHITE
@@ -123,13 +123,18 @@ func setup(type: EnemyDefinition.EnemyType, wave_scale: float = 1.0, speed_scale
 	# Build sprite
 	var sz: Vector2 = s["size"]
 	var ti: int = int(type)
-	var natural_px: float = float(_NATURAL_PX[ti])
-	var sf: float = sz.x / natural_px
 
-	_sprite = Sprite2D.new()
-	_sprite.texture = load(_SPRITE_PATHS[ti])
-	_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	_sprite.scale = Vector2(sf, sf)
+	if type == EnemyDefinition.EnemyType.MEGA_BOSS:
+		var vb_sprite = _VoidBossSprite.new()
+		vb_sprite.radius = sz.x / 2.0
+		_sprite = vb_sprite
+	else:
+		var natural_px: float = float(_NATURAL_PX[ti])
+		var sf: float = sz.x / natural_px
+		_sprite = Sprite2D.new()
+		_sprite.texture = load(_SPRITE_PATHS[ti])
+		_sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_sprite.scale = Vector2(sf, sf)
 	add_child(_sprite)
 
 	# HP bar background
@@ -451,3 +456,66 @@ class _RuptureRing extends Node2D:
 			var base2 := Vector2(cos(angle - 0.25), sin(angle - 0.25)) * (ring_radius - 3.0)
 			draw_colored_polygon(PackedVector2Array([tip, base1, base2]),
 					Color(1.0, 0.2, 0.85, pulse * 0.8))
+
+
+## Black circle with pulsing purple diamond + ancient symbols — THE VOID boss sprite
+class _VoidBossSprite extends Node2D:
+	var radius: float = 35.0
+	var _t: float = 0.0
+
+	func _process(delta: float) -> void:
+		_t += delta
+		queue_redraw()
+
+	func _draw() -> void:
+		draw_circle(Vector2.ZERO, radius, Color(0.0, 0.0, 0.0))
+		draw_arc(Vector2.ZERO, radius, 0, TAU, 48, Color(0.25, 0.0, 0.4), 2.0, true)
+		var pulse := 0.7 + 0.3 * sin(_t * 3.0)
+		var d_sz := radius * 0.55
+		var pts := PackedVector2Array([
+			Vector2(0, -d_sz),
+			Vector2(d_sz, 0),
+			Vector2(0, d_sz),
+			Vector2(-d_sz, 0),
+		])
+		draw_colored_polygon(pts, Color(0.45, 0.0, 0.75, pulse))
+		draw_polyline(pts + PackedVector2Array([pts[0]]), Color(0.7, 0.2, 1.0, pulse), 2.0, true)
+		_draw_symbols(pulse)
+
+	func _draw_symbols(pulse: float) -> void:
+		var sym_color := Color(0.85, 0.4, 1.0, pulse * 0.7)
+		var d_sz := radius * 0.55
+		var sc := d_sz * 0.35
+		# Symbol 1: Eye of void (top) — horizontal line with arcs
+		var ey := -d_sz * 0.3
+		draw_line(Vector2(-sc * 0.6, ey), Vector2(sc * 0.6, ey), sym_color, 1.2, true)
+		draw_arc(Vector2(0, ey), sc * 0.35, PI * 0.15, PI * 0.85, 8, sym_color, 1.0, true)
+		draw_arc(Vector2(0, ey), sc * 0.35, PI * 1.15, PI * 1.85, 8, sym_color, 1.0, true)
+		draw_circle(Vector2(0, ey), 1.5, sym_color)
+		# Symbol 2: Void rune (center) — overlapping triangles
+		var cy := 0.0
+		var tri_r := sc * 0.4
+		var tri_up := PackedVector2Array([
+			Vector2(0, cy - tri_r),
+			Vector2(-tri_r * 0.87, cy + tri_r * 0.5),
+			Vector2(tri_r * 0.87, cy + tri_r * 0.5),
+			Vector2(0, cy - tri_r),
+		])
+		var tri_down := PackedVector2Array([
+			Vector2(0, cy + tri_r),
+			Vector2(-tri_r * 0.87, cy - tri_r * 0.5),
+			Vector2(tri_r * 0.87, cy - tri_r * 0.5),
+			Vector2(0, cy + tri_r),
+		])
+		draw_polyline(tri_up, sym_color, 1.0, true)
+		draw_polyline(tri_down, sym_color, 1.0, true)
+		# Symbol 3: Ancient spiral (bottom)
+		var sy := d_sz * 0.35
+		for i in range(12):
+			var angle := _t * 0.8 + i * 0.55
+			var r := sc * 0.1 + i * sc * 0.025
+			var p1 := Vector2(cos(angle) * r, sy + sin(angle) * r)
+			var angle2 := _t * 0.8 + (i + 1) * 0.55
+			var r2 := sc * 0.1 + (i + 1) * sc * 0.025
+			var p2 := Vector2(cos(angle2) * r2, sy + sin(angle2) * r2)
+			draw_line(p1, p2, sym_color, 1.0, true)

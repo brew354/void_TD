@@ -14,6 +14,8 @@ config/description="Sci-Fi Tower Defense"
 run/main_scene="res://Scenes/MenuScene.tscn"
 config/features=PackedStringArray("4.3", "Mobile")
 config/icon="res://Void_TD_icon.png"
+boot_splash/bg_color=Color(0, 0, 0, 1)
+boot_splash/show_image=false
 
 [display]
 

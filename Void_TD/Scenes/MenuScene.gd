@@ -20,7 +20,7 @@ const _PALETTE: Array = [
 	Color(1.0,  0.2,  0.85), # Pink
 ]
 
-const _TOWER_ICON_PATHS: Array = [
+const _TOWER_BASE_PATHS: Array = [
 	"res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_turret.png",
 	"res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon.png",
 	"res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/missile_launcher_base.png",
@@ -28,6 +28,16 @@ const _TOWER_ICON_PATHS: Array = [
 	"res://Assets/towers/kenney_sci-fi-rts/PNG/Default size/Environment/scifiEnvironment_04.png",
 	"res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/flak_cannon/flak_turret.png",
 ]
+const _TOWER_BARREL_PATHS: Dictionary = {
+	0: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_barrel.png",
+	1: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon_barrel.png",
+	2: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/autocannon/autocannon_barrel.png",
+	3: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/mecha_soldier_base.png",
+	5: "res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/flak_cannon/flak_barrel.png",
+}
+const _ICON_BASE_SCALE: Dictionary   = {0: 1.5, 1: 1.5, 2: 0.75, 3: 1.5, 4: 2.0, 5: 1.5}
+const _ICON_BARREL_SCALE: Dictionary = {0: 0.8, 1: 1.5, 2: 2.0, 3: 0.85, 5: 1.0}
+const _ICON_BARREL_OFF_Y: Dictionary = {0: -16.0, 1: -16.0, 2: -8.0, 3: 0.0, 5: -16.0}
 
 const _DEFAULT_COLORS: Array = [
 	Color(1.0, 1.0, 1.0),  # Laser Turret  — natural sprite (no tint)
@@ -356,13 +366,8 @@ func _build_skins_tab_content(scroll_h: float) -> void:
 			_inv_skins_tab.add_child(sep)
 
 		# Tower icon
-		var icon = TextureRect.new()
-		icon.texture = load(_TOWER_ICON_PATHS[ti])
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.size = Vector2(48, 48)
+		var icon = _make_tower_icon(ti)
 		icon.position = Vector2(LM - 58, row_y + (ROW_H - 48) / 2.0)
-		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_inv_skins_tab.add_child(icon)
 
 		# Tower name label
@@ -644,7 +649,9 @@ func _on_redeem_response(result: int, response_code: int, _headers: PackedString
 			_codes_msg.text = "Invalid code."
 		return
 	var code := _codes_input.text.strip_edges().to_lower()
-	TowerSkins.unlock_code_local(code)
+	var reward: String = json.get("reward", "")
+	if reward != "start_wave":
+		TowerSkins.unlock_code_local(code)
 	_apply_reward(json)
 
 func _apply_reward(json: Dictionary) -> void:
@@ -731,13 +738,8 @@ func _build_towers_tab_content(scroll_h: float) -> void:
 			sep.position = Vector2(LM, row_y)
 			_inv_towers_tab.add_child(sep)
 
-		var icon = TextureRect.new()
-		icon.texture = load(_TOWER_ICON_PATHS[ti])
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.size = Vector2(48, 48)
+		var icon = _make_tower_icon(ti)
 		icon.position = Vector2(LM - 58, row_y + (ROW_H - 48) / 2.0)
-		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 		_inv_towers_tab.add_child(icon)
 
 		var name_lbl = Label.new()
@@ -1097,3 +1099,32 @@ func _on_start_campaign() -> void:
 func _on_start_endless() -> void:
 	GameMode.endless = true
 	_cleanup_and_switch("res://Scenes/GameScene.tscn")
+
+func _make_tower_icon(ti: int, icon_size: float = 48.0) -> Control:
+	var icon := _TowerIcon.new()
+	icon.base_tex = load(_TOWER_BASE_PATHS[ti])
+	icon.base_sc = _ICON_BASE_SCALE.get(ti, 1.0)
+	if _TOWER_BARREL_PATHS.has(ti):
+		icon.barrel_tex = load(_TOWER_BARREL_PATHS[ti])
+		icon.barrel_sc = _ICON_BARREL_SCALE.get(ti, 1.0)
+		icon.barrel_off_y = _ICON_BARREL_OFF_Y.get(ti, 0.0)
+	icon.size = Vector2(icon_size, icon_size)
+	icon.clip_contents = true
+	return icon
+
+class _TowerIcon extends Control:
+	var base_tex: Texture2D
+	var barrel_tex: Texture2D = null
+	var base_sc: float = 1.0
+	var barrel_sc: float = 1.0
+	var barrel_off_y: float = 0.0
+
+	func _draw() -> void:
+		var c := size / 2.0
+		if base_tex:
+			var s := base_tex.get_size() * base_sc
+			draw_texture_rect(base_tex, Rect2(c - s / 2.0, s), false)
+		if barrel_tex:
+			var s2 := barrel_tex.get_size() * barrel_sc
+			var bc := c + Vector2(0, barrel_off_y)
+			draw_texture_rect(barrel_tex, Rect2(bc - s2 / 2.0, s2), false)
