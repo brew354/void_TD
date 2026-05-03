@@ -363,7 +363,7 @@ class _VoidSkinOverlay extends Node2D:
 		for i in range(segs / 2 + 1):
 			var angle := PI / 2.0 + i * PI / float(segs / 2)
 			left.append(Vector2(cos(angle) * r, sin(angle) * r))
-		draw_colored_polygon(left, Color(0.35, 0.0, 0.6, 0.7))
+		draw_colored_polygon(left, Color(0.55, 0.0, 0.85, 0.7))
 		var right := PackedVector2Array()
 		for i in range(segs / 2 + 1):
 			var angle := -PI / 2.0 + i * PI / float(segs / 2)
@@ -373,26 +373,45 @@ class _VoidSkinOverlay extends Node2D:
 		_draw_diamond(r * 0.45, 0.0, r * 0.3)
 
 	func _draw_gem_shape() -> void:
-		var s := sprite_scale
-		# Rounded hexagon matching the gem sprite (64px at scale 2.0)
-		var rx := 26.0 / s
-		var ry := 24.0 / s
-		# Six key points of the gem silhouette
-		var top     := Vector2(0, -ry)
-		var tr      := Vector2(rx, -ry * 0.45)
-		var br      := Vector2(rx, ry * 0.35)
-		var bot     := Vector2(0, ry)
-		var bl      := Vector2(-rx, ry * 0.35)
-		var tl      := Vector2(-rx, -ry * 0.45)
-		# Left half
-		var left := PackedVector2Array([top, Vector2(0, ry), bot, bl, tl])
-		draw_colored_polygon(left, Color(0.35, 0.0, 0.6, 0.8))
-		# Right half
-		var right := PackedVector2Array([top, tl.reflect(Vector2(0, 1)), tr, br, bot, Vector2(0, ry)])
-		right = PackedVector2Array([top, tr, br, bot, Vector2(0, ry)])
+		# Pixel-traced from 64x64 sprite (center 32,32)
+		var left := PackedVector2Array([
+			Vector2(0, -14),
+			Vector2(-4, -14),
+			Vector2(-8, -12),
+			Vector2(-12, -10),
+			Vector2(-13, -8),
+			Vector2(-14, -5),
+			Vector2(-15, -2),
+			Vector2(-16, 1),
+			Vector2(-16, 6),
+			Vector2(-15, 7),
+			Vector2(-14, 8),
+			Vector2(-12, 10),
+			Vector2(-11, 11),
+			Vector2(-9, 13),
+			Vector2(0, 13),
+		])
+		draw_colored_polygon(left, Color(0.55, 0.0, 0.85, 0.8))
+		var right := PackedVector2Array([
+			Vector2(0, -14),
+			Vector2(4, -14),
+			Vector2(8, -12),
+			Vector2(12, -10),
+			Vector2(12, -8),
+			Vector2(13, -5),
+			Vector2(14, -2),
+			Vector2(15, 1),
+			Vector2(15, 6),
+			Vector2(14, 7),
+			Vector2(13, 8),
+			Vector2(11, 10),
+			Vector2(10, 11),
+			Vector2(8, 13),
+			Vector2(0, 13),
+		])
 		draw_colored_polygon(right, Color(0.0, 0.0, 0.0, 0.8))
-		_draw_crack(ry)
-		_draw_diamond(rx * 0.4, 0.0, ry * 0.28)
+		_draw_crack(14.0)
+		_draw_diamond(7.0, 0.0, 5.5)
 
 	func _draw_rect_shape() -> void:
 		var sz := 32.0 / sprite_scale
@@ -401,7 +420,7 @@ class _VoidSkinOverlay extends Node2D:
 			Vector2(-half, -half), Vector2(0, -half),
 			Vector2(0, half), Vector2(-half, half),
 		])
-		draw_colored_polygon(left_poly, Color(0.35, 0.0, 0.6, 0.6))
+		draw_colored_polygon(left_poly, Color(0.55, 0.0, 0.85, 0.6))
 		var right_poly := PackedVector2Array([
 			Vector2(0, -half), Vector2(half, -half),
 			Vector2(half, half), Vector2(0, half),
