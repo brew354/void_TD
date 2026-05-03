@@ -20,6 +20,15 @@ const _PALETTE: Array = [
 	Color(1.0,  0.2,  0.85), # Pink
 ]
 
+const _TOWER_ICON_PATHS: Array = [
+	"res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/laser_cannon/laser_cannon_turret.png",
+	"res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/plasma_cannon/plasma_cannon.png",
+	"res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/missile_launcher_base.png",
+	"res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/autocannon/autocannon2.png",
+	"res://Assets/towers/kenney_sci-fi-rts/PNG/Default size/Environment/scifiEnvironment_04.png",
+	"res://Assets/towers/felmir_turrets/Sci-Fi Turret Pack/flak_cannon/flak_turret.png",
+]
+
 const _DEFAULT_COLORS: Array = [
 	Color(1.0, 1.0, 1.0),  # Laser Turret  — natural sprite (no tint)
 	Color(1.0, 1.0, 1.0),  # Plasma Cannon — natural sprite (no tint)
@@ -107,7 +116,7 @@ func _ready() -> void:
 	add_child(sub)
 
 	var made_by = Label.new()
-	made_by.text = "made by Findog_Games"
+	made_by.text = "made by Hole in the Wall Productions"
 	made_by.position = Vector2(0, 320)
 	made_by.size = Vector2(1334, 36)
 	made_by.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -345,6 +354,16 @@ func _build_skins_tab_content(scroll_h: float) -> void:
 			sep.size = Vector2(1334, 1)
 			sep.position = Vector2(0, row_y)
 			_inv_skins_tab.add_child(sep)
+
+		# Tower icon
+		var icon = TextureRect.new()
+		icon.texture = load(_TOWER_ICON_PATHS[ti])
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.size = Vector2(48, 48)
+		icon.position = Vector2(LM - 58, row_y + (ROW_H - 48) / 2.0)
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_inv_skins_tab.add_child(icon)
 
 		# Tower name label
 		var name_lbl = Label.new()
@@ -712,6 +731,15 @@ func _build_towers_tab_content(scroll_h: float) -> void:
 			sep.position = Vector2(LM, row_y)
 			_inv_towers_tab.add_child(sep)
 
+		var icon = TextureRect.new()
+		icon.texture = load(_TOWER_ICON_PATHS[ti])
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.size = Vector2(48, 48)
+		icon.position = Vector2(LM - 58, row_y + (ROW_H - 48) / 2.0)
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		_inv_towers_tab.add_child(icon)
+
 		var name_lbl = Label.new()
 		name_lbl.text = tower_labels[ti]
 		name_lbl.position = Vector2(LM, row_y + 16)
@@ -862,11 +890,11 @@ func _build_shop_panel() -> void:
 	name_lbl.add_theme_color_override("font_color", Color(1.0, 0.9, 0.3))
 	_shop_panel.add_child(name_lbl)
 
-	# Item description
+	# Item description — below name/button row to avoid overlap
 	var desc_lbl = Label.new()
 	desc_lbl.text = "Laser Turret skin — golden rubber ducky tint"
-	desc_lbl.position = Vector2(item_x + 62, item_y + 28)
-	desc_lbl.size = Vector2(300, 20)
+	desc_lbl.position = Vector2(item_x + 62, item_y + 50)
+	desc_lbl.size = Vector2(box_w - 120, 20)
 	desc_lbl.add_theme_font_size_override("font_size", 13)
 	desc_lbl.add_theme_color_override("font_color", Color(0.7, 0.65, 0.5))
 	_shop_panel.add_child(desc_lbl)
@@ -883,13 +911,13 @@ func _build_shop_panel() -> void:
 	# Status label (shows "Owned" or "Not enough coins")
 	_shop_ducky_status = Label.new()
 	_shop_ducky_status.text = ""
-	_shop_ducky_status.position = Vector2(item_x, item_y + 60)
+	_shop_ducky_status.position = Vector2(item_x, item_y + 74)
 	_shop_ducky_status.size = Vector2(box_w - 60, 20)
 	_shop_ducky_status.add_theme_font_size_override("font_size", 14)
 	_shop_panel.add_child(_shop_ducky_status)
 
 	# ── Tesla Tower Item ──────────────────────────────────────────────────────
-	var tesla_y: float = box_y + 190
+	var tesla_y: float = box_y + 200
 
 	var tesla_swatch = ColorRect.new()
 	tesla_swatch.color = Color(0.3, 0.7, 1.0)
@@ -907,8 +935,8 @@ func _build_shop_panel() -> void:
 
 	var tesla_desc = Label.new()
 	tesla_desc.text = "AoE electric tower — burn & stun at higher levels"
-	tesla_desc.position = Vector2(item_x + 62, tesla_y + 28)
-	tesla_desc.size = Vector2(300, 20)
+	tesla_desc.position = Vector2(item_x + 62, tesla_y + 50)
+	tesla_desc.size = Vector2(box_w - 120, 20)
 	tesla_desc.add_theme_font_size_override("font_size", 13)
 	tesla_desc.add_theme_color_override("font_color", Color(0.5, 0.65, 0.7))
 	_shop_panel.add_child(tesla_desc)
@@ -923,7 +951,7 @@ func _build_shop_panel() -> void:
 
 	_shop_tesla_status = Label.new()
 	_shop_tesla_status.text = ""
-	_shop_tesla_status.position = Vector2(item_x, tesla_y + 60)
+	_shop_tesla_status.position = Vector2(item_x, tesla_y + 74)
 	_shop_tesla_status.size = Vector2(box_w - 60, 20)
 	_shop_tesla_status.add_theme_font_size_override("font_size", 14)
 	_shop_panel.add_child(_shop_tesla_status)

@@ -260,8 +260,9 @@ func _spawn_projectile(target: EnemyNode) -> void:
 	var burn_dps: float = float(s.get("burn_dps", 0.0)) if upgrade_level >= 2 else 0.0
 	var burn_dur: float = float(s.get("burn_duration", 0.0)) if upgrade_level >= 2 else 0.0
 	var stun_dur: float = float(s.get("stun_duration", 0.0)) if upgrade_level >= 3 else 0.0
+	var smite: float = float(s.get("smite_pct", 0.0)) if upgrade_level >= 2 else 0.0
 	proj.setup(target, damage, projectile_speed, splash_radius, _enemies_ref, int(tower_type),
-			slow_f, slow_d, burn_dps, burn_dur, stun_dur)
+			slow_f, slow_d, burn_dps, burn_dur, stun_dur, smite)
 	# Fire flash — briefly brighten then fade back
 	if _fire_tween:
 		_fire_tween.kill()

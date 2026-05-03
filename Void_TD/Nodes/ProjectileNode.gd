@@ -26,12 +26,14 @@ var _slow_duration: float = 0.0
 var _burn_dps: float = 0.0
 var _burn_duration: float = 0.0
 var _stun_duration: float = 0.0
+var _smite_pct: float = 0.0
 
 var _visual: _ProjectileVisual
 
 func setup(t: EnemyNode, dmg: float, spd: float, splash: float, enemies: Array, ttype: int = 0,
 		slow_factor: float = 1.0, slow_duration: float = 0.0,
-		burn_dps: float = 0.0, burn_duration: float = 0.0, stun_duration: float = 0.0) -> void:
+		burn_dps: float = 0.0, burn_duration: float = 0.0, stun_duration: float = 0.0,
+		smite_pct: float = 0.0) -> void:
 	target = t
 	damage = dmg
 	projectile_speed = spd
@@ -43,6 +45,7 @@ func setup(t: EnemyNode, dmg: float, spd: float, splash: float, enemies: Array, 
 	_burn_dps = burn_dps
 	_burn_duration = burn_duration
 	_stun_duration = stun_duration
+	_smite_pct = smite_pct
 
 	_visual = _ProjectileVisual.new()
 	_visual.tower_type = ttype
@@ -74,6 +77,8 @@ func _on_hit() -> void:
 						enemy.apply_slow(_slow_factor, _slow_duration)
 					if _burn_dps > 0.0:
 						enemy.apply_burn(_burn_dps, _burn_duration)
+					if _smite_pct > 0.0:
+						enemy.apply_smite(_smite_pct)
 					if _stun_duration > 0.0:
 						enemy.apply_stun(_stun_duration)
 	else:
@@ -83,6 +88,8 @@ func _on_hit() -> void:
 				target.apply_slow(_slow_factor, _slow_duration)
 			if _burn_dps > 0.0:
 				target.apply_burn(_burn_dps, _burn_duration)
+			if _smite_pct > 0.0:
+				target.apply_smite(_smite_pct)
 			if _stun_duration > 0.0:
 				target.apply_stun(_stun_duration)
 

@@ -272,6 +272,12 @@ func apply_burn(dps: float, duration: float) -> void:
 	_burn_timer = max(_burn_timer, duration)
 	_update_tint()
 
+func apply_smite(pct: float) -> void:
+	if is_dead:
+		return
+	var smite_dmg := max_hp * pct
+	take_damage(smite_dmg)
+
 func apply_stun(duration: float) -> void:
 	if is_dead or is_boss:
 		return

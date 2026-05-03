@@ -99,8 +99,8 @@ func _ready() -> void:
 
 func _build_hud() -> void:
 	var vp := get_viewport().get_visible_rect().size
-	# Scale up HUD on iOS (viewport taller than base 750)
-	_ui_scale = 1.35 if vp.y > 760.0 else 1.0
+	var is_mobile_platform := OS.get_name() in ["iOS", "Android"]
+	_ui_scale = 1.35 if is_mobile_platform else 1.0
 	_TOP_H = 36.0 * _ui_scale
 	_BOT_H = 36.0 * _ui_scale
 	_BTN_H = 32.0 * _ui_scale
@@ -136,7 +136,7 @@ func _build_hud() -> void:
 	add_child(_towers_label)
 
 	# ── Bottom bar(s) ────────────────────────────────────────────────────────
-	_mobile = _ui_scale > 1.0
+	_mobile = is_mobile_platform
 	var equipped := TowerSkins.get_equipped_types()
 
 	if _mobile:
@@ -167,18 +167,7 @@ func _build_hud() -> void:
 			var short_label: String = s["label"].split(" ")[0]
 			var btn = _make_button(short_label, Vector2(bx, tw_btn_y), Vector2(tw_btn_w, _BTN_H))
 			btn.add_theme_font_size_override("font_size", btn_fs)
-			var captured_type = t
-			var captured_idx = i
-			btn.pressed.connect(func():
-				if _selected_tower_idx == captured_idx:
-					_selected_tower_idx = -1
-					tower_deselected.emit()
-					clear_selected_tower()
-				else:
-					_selected_tower_idx = captured_idx
-					tower_selected.emit(captured_type)
-					set_selected_tower(captured_type)
-			)
+			btn.pressed.connect(_on_tower_btn_pressed.bind(i, t))
 			add_child(btn)
 			_tower_btns.append(btn)
 			_tower_btn_types.append(t)
@@ -217,25 +206,18 @@ func _build_hud() -> void:
 
 		var btn_y: float = _BOT_Y + (_BOT_H - _BTN_H) / 2.0
 
+		var ctrl_space: float = 350.0
+		var avail_w: float = vp.x - ctrl_space
+		var tw_btn_w_d: float = (avail_w - _BTN_GAP * float(equipped.size() + 1)) / float(equipped.size())
+
 		for i in equipped.size():
 			var ti: int = equipped[i]
 			var t = _TOWER_TYPES[ti]
 			var s = TowerDefinition.stats(t)
-			var bx: float = _BTN_GAP + i * (_BTN_W + _BTN_GAP)
-			var btn = _make_button(s["label"], Vector2(bx, btn_y), Vector2(_BTN_W, _BTN_H))
+			var bx: float = _BTN_GAP + i * (tw_btn_w_d + _BTN_GAP)
+			var btn = _make_button(s["label"], Vector2(bx, btn_y), Vector2(tw_btn_w_d, _BTN_H))
 			btn.add_theme_font_size_override("font_size", btn_fs)
-			var captured_type = t
-			var captured_idx = i
-			btn.pressed.connect(func():
-				if _selected_tower_idx == captured_idx:
-					_selected_tower_idx = -1
-					tower_deselected.emit()
-					clear_selected_tower()
-				else:
-					_selected_tower_idx = captured_idx
-					tower_selected.emit(captured_type)
-					set_selected_tower(captured_type)
-			)
+			btn.pressed.connect(_on_tower_btn_pressed.bind(i, t))
 			add_child(btn)
 			_tower_btns.append(btn)
 			_tower_btn_types.append(t)
@@ -408,6 +390,8 @@ func _make_button(text: String, pos: Vector2, sz: Vector2 = Vector2(120, 28)) ->
 	btn.text = text
 	btn.position = pos
 	btn.size = sz
+	btn.clip_text = true
+	btn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	btn.add_theme_font_size_override("font_size", int(14 * _ui_scale))
 	return btn
 
@@ -471,6 +455,16 @@ func set_paused(paused: bool) -> void:
 
 func set_start_wave_enabled(enabled: bool) -> void:
 	_start_wave_btn.disabled = not enabled
+
+func _on_tower_btn_pressed(idx: int, type: TowerDefinition.TowerType) -> void:
+	if _selected_tower_idx == idx:
+		_selected_tower_idx = -1
+		tower_deselected.emit()
+		clear_selected_tower()
+	else:
+		_selected_tower_idx = idx
+		tower_selected.emit(type)
+		set_selected_tower(type)
 
 func set_selected_tower(type: TowerDefinition.TowerType) -> void:
 	for i in _tower_btns.size():

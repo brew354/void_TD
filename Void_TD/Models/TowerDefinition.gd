@@ -23,9 +23,10 @@ static func stats(type: TowerType) -> Dictionary:
 					 "splash_radius": 0.0, "projectile_speed": 0.0, "label": "Void Stunner",
 					 "slow_factor": 0.40, "slow_duration": 2.0 }
 		TowerType.TESLA:
-			return { "cost": 200, "damage": 45, "range": 180.0, "fire_rate": 1.8,
-					 "splash_radius": 50.0, "projectile_speed": 500.0, "label": "Tesla Tower",
-					 "burn_dps": 15.0, "burn_duration": 2.0, "stun_duration": 1.0 }
+			return { "cost": 200, "damage": 60, "range": 200.0, "fire_rate": 1.5,
+					 "splash_radius": 60.0, "projectile_speed": 550.0, "label": "Tesla Tower",
+					 "burn_dps": 20.0, "burn_duration": 2.5, "stun_duration": 1.2,
+					 "smite_pct": 0.08 }
 	return {}
 
 ## Returns the maximum number of this tower that can be placed. 0 = unlimited.
