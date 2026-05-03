@@ -119,6 +119,13 @@ func setup(type: TowerDefinition.TowerType, enemies: Array, proj_layer: Node2D) 
 		var ducky = _DuckyOverlay.new()
 		_base_sprite.add_child(ducky)
 
+	# Void skin overlay — crack with split purple/black and diamond
+	if TowerSkins.named_skins.get(ti, "") == "void":
+		var void_ov = _VoidSkinOverlay.new()
+		void_ov.sprite_scale = _BASE_SCALE[ti]
+		void_ov.tower_type = type
+		_base_sprite.add_child(void_ov)
+
 	# Level label (bottom-right, hidden at L1)
 	_level_label = Label.new()
 	_level_label.add_theme_font_size_override("font_size", 10)
@@ -315,8 +322,8 @@ class _FreezePulseRing extends Node2D:
 		else:
 			col_outer = Color(0.4, 0.85, 1.0, alpha)
 			col_inner = Color(0.8, 0.96, 1.0, alpha * 0.5)
-		draw_arc(Vector2.ZERO, r, 0, TAU, 48, col_outer, 3.0)
-		draw_arc(Vector2.ZERO, r * 0.75, 0, TAU, 32, col_inner, 1.5)
+		draw_arc(Vector2.ZERO, r, 0, TAU, 24, col_outer, 3.0)
+		draw_arc(Vector2.ZERO, r * 0.75, 0, TAU, 16, col_inner, 1.5)
 
 ## Ducky face overlay — draws eyes and beak on top of the tower base sprite
 class _DuckyOverlay extends Node2D:
@@ -331,3 +338,97 @@ class _DuckyOverlay extends Node2D:
 			Vector2(0.0, 6.0),
 		])
 		draw_colored_polygon(beak, Color(1.0, 0.55, 0.0))
+
+
+class _VoidSkinOverlay extends Node2D:
+	var sprite_scale: float = 1.0
+	var tower_type: TowerDefinition.TowerType = TowerDefinition.TowerType.LASER
+
+	func _ready() -> void:
+		set_process(false)
+
+	func _draw() -> void:
+		match tower_type:
+			TowerDefinition.TowerType.LASER:
+				_draw_circle_shape()
+			TowerDefinition.TowerType.FREEZE:
+				_draw_gem_shape()
+			_:
+				_draw_rect_shape()
+
+	func _draw_circle_shape() -> void:
+		var r := 14.0 / sprite_scale
+		var segs := 24
+		var left := PackedVector2Array()
+		for i in range(segs / 2 + 1):
+			var angle := PI / 2.0 + i * PI / float(segs / 2)
+			left.append(Vector2(cos(angle) * r, sin(angle) * r))
+		draw_colored_polygon(left, Color(0.35, 0.0, 0.6, 0.7))
+		var right := PackedVector2Array()
+		for i in range(segs / 2 + 1):
+			var angle := -PI / 2.0 + i * PI / float(segs / 2)
+			right.append(Vector2(cos(angle) * r, sin(angle) * r))
+		draw_colored_polygon(right, Color(0.0, 0.0, 0.0, 0.7))
+		_draw_crack(r)
+		_draw_diamond(r * 0.45, 0.0, r * 0.3)
+
+	func _draw_gem_shape() -> void:
+		var s := sprite_scale
+		# Rounded hexagon matching the gem sprite (64px at scale 2.0)
+		var rx := 26.0 / s
+		var ry := 24.0 / s
+		# Six key points of the gem silhouette
+		var top     := Vector2(0, -ry)
+		var tr      := Vector2(rx, -ry * 0.45)
+		var br      := Vector2(rx, ry * 0.35)
+		var bot     := Vector2(0, ry)
+		var bl      := Vector2(-rx, ry * 0.35)
+		var tl      := Vector2(-rx, -ry * 0.45)
+		# Left half
+		var left := PackedVector2Array([top, Vector2(0, ry), bot, bl, tl])
+		draw_colored_polygon(left, Color(0.35, 0.0, 0.6, 0.8))
+		# Right half
+		var right := PackedVector2Array([top, tl.reflect(Vector2(0, 1)), tr, br, bot, Vector2(0, ry)])
+		right = PackedVector2Array([top, tr, br, bot, Vector2(0, ry)])
+		draw_colored_polygon(right, Color(0.0, 0.0, 0.0, 0.8))
+		_draw_crack(ry)
+		_draw_diamond(rx * 0.4, 0.0, ry * 0.28)
+
+	func _draw_rect_shape() -> void:
+		var sz := 32.0 / sprite_scale
+		var half := sz / 2.0
+		var left_poly := PackedVector2Array([
+			Vector2(-half, -half), Vector2(0, -half),
+			Vector2(0, half), Vector2(-half, half),
+		])
+		draw_colored_polygon(left_poly, Color(0.35, 0.0, 0.6, 0.6))
+		var right_poly := PackedVector2Array([
+			Vector2(0, -half), Vector2(half, -half),
+			Vector2(half, half), Vector2(0, half),
+		])
+		draw_colored_polygon(right_poly, Color(0.0, 0.0, 0.0, 0.6))
+		_draw_crack(half)
+		_draw_diamond(half * 0.5, 0.0, half * 0.35)
+
+	func _draw_crack(half: float) -> void:
+		var s := sprite_scale
+		var crack_pts := PackedVector2Array([
+			Vector2(0, -half),
+			Vector2(-2.0 / s, -half * 0.6),
+			Vector2(1.5 / s, -half * 0.25),
+			Vector2(-1.0 / s, half * 0.1),
+			Vector2(2.0 / s, half * 0.45),
+			Vector2(-1.5 / s, half * 0.7),
+			Vector2(0, half),
+		])
+		draw_polyline(crack_pts, Color(0.7, 0.2, 1.0, 0.9), 1.5 / s, true)
+
+	func _draw_diamond(cx: float, cy: float, d_sz: float) -> void:
+		var diamond := PackedVector2Array([
+			Vector2(cx, cy - d_sz),
+			Vector2(cx + d_sz, cy),
+			Vector2(cx, cy + d_sz),
+			Vector2(cx - d_sz, cy),
+		])
+		draw_colored_polygon(diamond, Color(0.5, 0.0, 0.85, 0.85))
+		draw_polyline(diamond + PackedVector2Array([diamond[0]]), Color(0.75, 0.3, 1.0), 1.0 / sprite_scale, true)
