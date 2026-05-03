@@ -23,7 +23,7 @@ window/size/viewport_width=1334
 window/size/viewport_height=750
 window/size/resizable=false
 window/stretch/mode="canvas_items"
-window/stretch/aspect="expand"
+window/stretch/aspect="keep"
 window/handheld/orientation="landscape"
 
 [input_devices]
