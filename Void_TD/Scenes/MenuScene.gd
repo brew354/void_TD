@@ -69,6 +69,7 @@ var _shop_panel: Node2D = null
 var _shop_coins_lbl: Label = null
 var _tower_equip_btns: Array = []     # Array[Button] one per tower type
 var _loadout_count_lbl: Label = null
+var _help_panel: Node2D = null
 
 # ── Ambient music synthesis ───────────────────────────────────────────────────
 const _MIX_RATE   := 22050.0
@@ -176,33 +177,46 @@ func _ready() -> void:
 	lbl_e.modulate.a = 0.0
 	add_child(lbl_e)
 
-	# Inventory / Shop / Codes buttons — side by side
+	# Inventory / Shop / Codes / Help buttons — side by side
+	var _mb_w: float = 130.0
+	var _mb_gap: float = 12.0
+	var _mb_x0: float = (1334.0 - _mb_w * 4 - _mb_gap * 3) / 2.0
+
 	var btn_inv = Button.new()
 	btn_inv.text = "INVENTORY"
-	btn_inv.size = Vector2(140, 44)
-	btn_inv.position = Vector2(1334 / 2.0 - 225, 528)
-	btn_inv.add_theme_font_size_override("font_size", 20)
+	btn_inv.size = Vector2(_mb_w, 44)
+	btn_inv.position = Vector2(_mb_x0, 528)
+	btn_inv.add_theme_font_size_override("font_size", 18)
 	btn_inv.modulate.a = 0.0
 	btn_inv.pressed.connect(_on_inventory_btn)
 	add_child(btn_inv)
 
 	var btn_shop = Button.new()
 	btn_shop.text = "SHOP"
-	btn_shop.size = Vector2(140, 44)
-	btn_shop.position = Vector2(1334 / 2.0 - 70, 528)
-	btn_shop.add_theme_font_size_override("font_size", 20)
+	btn_shop.size = Vector2(_mb_w, 44)
+	btn_shop.position = Vector2(_mb_x0 + _mb_w + _mb_gap, 528)
+	btn_shop.add_theme_font_size_override("font_size", 18)
 	btn_shop.modulate.a = 0.0
 	btn_shop.pressed.connect(_on_shop_btn)
 	add_child(btn_shop)
 
 	var btn_codes = Button.new()
 	btn_codes.text = "CODES"
-	btn_codes.size = Vector2(140, 44)
-	btn_codes.position = Vector2(1334 / 2.0 + 85, 528)
-	btn_codes.add_theme_font_size_override("font_size", 20)
+	btn_codes.size = Vector2(_mb_w, 44)
+	btn_codes.position = Vector2(_mb_x0 + (_mb_w + _mb_gap) * 2, 528)
+	btn_codes.add_theme_font_size_override("font_size", 18)
 	btn_codes.modulate.a = 0.0
 	btn_codes.pressed.connect(_on_codes_btn)
 	add_child(btn_codes)
+
+	var btn_help = Button.new()
+	btn_help.text = "HOW TO PLAY"
+	btn_help.size = Vector2(_mb_w, 44)
+	btn_help.position = Vector2(_mb_x0 + (_mb_w + _mb_gap) * 3, 528)
+	btn_help.add_theme_font_size_override("font_size", 16)
+	btn_help.modulate.a = 0.0
+	btn_help.pressed.connect(_on_help_btn)
+	add_child(btn_help)
 
 	# High score display
 	var cfg = ConfigFile.new()
@@ -220,6 +234,7 @@ func _ready() -> void:
 	tween.tween_property(btn_inv,      "modulate:a", 1.0, 0.8).set_delay(2.0)
 	tween.tween_property(btn_shop,     "modulate:a", 1.0, 0.8).set_delay(2.0)
 	tween.tween_property(btn_codes,    "modulate:a", 1.0, 0.8).set_delay(2.0)
+	tween.tween_property(btn_help,     "modulate:a", 1.0, 0.8).set_delay(2.0)
 
 	if hs > 0:
 		var hs_lbl = Label.new()
@@ -236,6 +251,7 @@ func _ready() -> void:
 	_build_inventory_panel()
 	_build_shop_panel()
 	_build_codes_panel()
+	_build_help_panel()
 	_start_ambient_music()
 
 func _build_inventory_panel() -> void:
@@ -1091,6 +1107,106 @@ func _cleanup_and_switch(scene_path: String) -> void:
 	if _http_request:
 		_http_request.cancel_request()
 	get_tree().change_scene_to_file.call_deferred(scene_path)
+
+func _on_help_btn() -> void:
+	_help_panel.visible = true
+
+func _build_help_panel() -> void:
+	_help_panel = Node2D.new()
+	_help_panel.visible = false
+	add_child(_help_panel)
+
+	var vp := get_viewport_rect().size
+
+	var overlay = ColorRect.new()
+	overlay.color = Color(0.0, 0.0, 0.0, 0.75)
+	overlay.size = vp
+	_help_panel.add_child(overlay)
+
+	var box_w: float = 1060.0
+	var box_h: float = 580.0
+	var box_x: float = (vp.x - box_w) / 2.0
+	var box_y: float = (vp.y - box_h) / 2.0
+
+	var border = ColorRect.new()
+	border.color = Color(0.4, 0.0, 0.7)
+	border.size = Vector2(box_w + 4, box_h + 4)
+	border.position = Vector2(box_x - 2, box_y - 2)
+	_help_panel.add_child(border)
+
+	var box = ColorRect.new()
+	box.color = Color(0.04, 0.0, 0.1)
+	box.size = Vector2(box_w, box_h)
+	box.position = Vector2(box_x, box_y)
+	_help_panel.add_child(box)
+
+	var hdr = ColorRect.new()
+	hdr.color = Color(0.15, 0.0, 0.26)
+	hdr.size = Vector2(box_w, 48)
+	hdr.position = Vector2(box_x, box_y)
+	_help_panel.add_child(hdr)
+
+	var title_lbl = Label.new()
+	title_lbl.text = "HOW TO PLAY"
+	title_lbl.position = Vector2(box_x, box_y)
+	title_lbl.size = Vector2(box_w, 48)
+	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title_lbl.add_theme_font_size_override("font_size", 26)
+	title_lbl.add_theme_color_override("font_color", Color(0.8, 0.5, 1.0))
+	_help_panel.add_child(title_lbl)
+
+	var close_btn = Button.new()
+	close_btn.text = "X"
+	close_btn.size = Vector2(40, 40)
+	close_btn.position = Vector2(box_x + box_w - 46, box_y + 4)
+	close_btn.add_theme_font_size_override("font_size", 18)
+	close_btn.pressed.connect(func(): _help_panel.visible = false)
+	_help_panel.add_child(close_btn)
+
+	var col_w: float = 480.0
+	var left_x: float = box_x + 30.0
+	var right_x: float = box_x + box_w / 2.0 + 20.0
+	var cy: float = box_y + 62.0
+
+	var divider = ColorRect.new()
+	divider.color = Color(0.25, 0.0, 0.4, 0.5)
+	divider.size = Vector2(1, box_h - 70)
+	divider.position = Vector2(box_x + box_w / 2.0, cy - 4)
+	_help_panel.add_child(divider)
+
+	_help_section(left_x, cy, col_w, "GOAL",
+		"Defend your base from waves of Void entities.\nIf they reach the base, you lose lives.\nLose all lives and the base falls.")
+
+	_help_section(left_x, cy + 95, col_w, "CONTROLS",
+		"• Tap a tower button, then tap a tile to place it\n• Tap a placed tower to upgrade or sell it\n• Hit REPEL (the glowing button) to send the next wave")
+
+	_help_section(left_x, cy + 235, col_w, "MODES",
+		"• Campaign — 20 waves, defeat the final Void boss\n• Endless — survive as long as you can, waves scale forever")
+
+	_help_section(right_x, cy, col_w, "TOWERS",
+		"• Each tower costs energy (shown on button)\n• Some towers have placement limits\n• Upgrade towers to L3 for more damage + range\n• Sell towers for 50% energy refund")
+
+	_help_section(right_x, cy + 135, col_w, "TIPS",
+		"• Place towers along the path for maximum coverage\n• Cannon and Mecha deal splash damage\n• Save energy for upgrades, not just more towers\n• Upgrade your base to reduce life loss per hit\n• Shielded enemies go immune periodically")
+
+func _help_section(x: float, y: float, w: float, header: String, body: String) -> void:
+	var hdr = Label.new()
+	hdr.text = header
+	hdr.position = Vector2(x, y)
+	hdr.size = Vector2(w, 22)
+	hdr.add_theme_font_size_override("font_size", 17)
+	hdr.add_theme_color_override("font_color", Color(0.65, 0.3, 1.0))
+	_help_panel.add_child(hdr)
+
+	var lbl = Label.new()
+	lbl.text = body
+	lbl.position = Vector2(x, y + 24)
+	lbl.size = Vector2(w - 20, 200)
+	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_size_override("font_size", 15)
+	lbl.add_theme_color_override("font_color", Color(0.8, 0.75, 0.9))
+	_help_panel.add_child(lbl)
 
 func _on_start_campaign() -> void:
 	GameMode.endless = false

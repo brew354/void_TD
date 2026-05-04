@@ -49,6 +49,7 @@ var _fast_mode: bool = false
 var _last_credits: int = 0
 var _tower_counts: Dictionary = {}
 var _lives_pulse_tween: Tween = null
+var _repel_pulse_tween: Tween = null
 var _damage_flash: ColorRect
 var _upgrade_panel: ColorRect
 var _panel_title: Label
@@ -140,8 +141,12 @@ func _build_hud() -> void:
 	var equipped := TowerSkins.get_equipped_types()
 
 	if _mobile:
-		# Two rows: tower row above, controls row below
-		var tower_row_y: float = _BOT_Y - _BOT_H
+		# Two rows + bottom safe zone for phone cases / edge gestures
+		var bot_safe: float = 20.0
+		var ctrl_h: float = 58.0
+		var ctrl_btn_h: float = 48.0
+		var ctrl_row_y: float = vp.y - ctrl_h - bot_safe
+		var tower_row_y: float = ctrl_row_y - _BOT_H
 		_BOT_Y = tower_row_y
 
 		var tower_bg = ColorRect.new()
@@ -152,8 +157,8 @@ func _build_hud() -> void:
 
 		var ctrl_bg = ColorRect.new()
 		ctrl_bg.color = Color(0, 0, 0, 0.72)
-		ctrl_bg.size = Vector2(vp.x, _BOT_H)
-		ctrl_bg.position = Vector2(0, tower_row_y + _BOT_H)
+		ctrl_bg.size = Vector2(vp.x, ctrl_h + bot_safe)
+		ctrl_bg.position = Vector2(0, ctrl_row_y)
 		add_child(ctrl_bg)
 
 		# Tower buttons — evenly spaced across full width
@@ -172,30 +177,32 @@ func _build_hud() -> void:
 			_tower_btns.append(btn)
 			_tower_btn_types.append(t)
 
-		# Controls row
-		var ctrl_y: float = tower_row_y + _BOT_H + (_BOT_H - _BTN_H) / 2.0
+		# Controls row — evenly spaced, larger buttons, lifted from bottom edge
+		var ctrl_btn_y: float = ctrl_row_y + (ctrl_h - ctrl_btn_h) / 2.0
+		var ctrl_count: int = 3
+		var ctrl_btn_w: float = (vp.x - _BTN_GAP * float(ctrl_count + 1)) / float(ctrl_count)
+		var ctrl_fs: int = int(15 * _ui_scale)
 
-		_start_wave_btn = _make_button("REPEL", Vector2(vp.x - _BTN_GAP - 140, ctrl_y), Vector2(140, _BTN_H))
-		_start_wave_btn.add_theme_font_size_override("font_size", int(13 * _ui_scale))
-		_start_wave_btn.pressed.connect(func(): start_wave_pressed.emit())
-		add_child(_start_wave_btn)
+		_speed_btn = _make_button("Speed: 1x", Vector2(_BTN_GAP, ctrl_btn_y), Vector2(ctrl_btn_w, ctrl_btn_h))
+		_speed_btn.add_theme_font_size_override("font_size", ctrl_fs)
+		_speed_btn.pressed.connect(_on_speed_btn_pressed)
+		add_child(_speed_btn)
 
-		_pause_btn = _make_button("Pause", Vector2(vp.x - _BTN_GAP - 140 - _BTN_GAP - 76, ctrl_y), Vector2(76, _BTN_H))
-		_pause_btn.add_theme_font_size_override("font_size", btn_fs)
-		_pause_btn.pressed.connect(func(): pause_pressed.emit())
-		add_child(_pause_btn)
-
-		var speed_x: float = vp.x - _BTN_GAP - 140 - _BTN_GAP - 76 - _BTN_GAP - 88
-		_menu_btn = _make_button("Menu", Vector2(speed_x, ctrl_y), Vector2(88, _BTN_H))
-		_menu_btn.add_theme_font_size_override("font_size", btn_fs)
+		_menu_btn = _make_button("Menu", Vector2(_BTN_GAP, ctrl_btn_y), Vector2(ctrl_btn_w, ctrl_btn_h))
+		_menu_btn.add_theme_font_size_override("font_size", ctrl_fs)
 		_menu_btn.pressed.connect(func(): menu_pressed.emit())
 		_menu_btn.visible = false
 		add_child(_menu_btn)
 
-		_speed_btn = _make_button("Speed: 1x", Vector2(speed_x, ctrl_y), Vector2(88, _BTN_H))
-		_speed_btn.add_theme_font_size_override("font_size", btn_fs)
-		_speed_btn.pressed.connect(_on_speed_btn_pressed)
-		add_child(_speed_btn)
+		_pause_btn = _make_button("Pause", Vector2(_BTN_GAP * 2 + ctrl_btn_w, ctrl_btn_y), Vector2(ctrl_btn_w, ctrl_btn_h))
+		_pause_btn.add_theme_font_size_override("font_size", ctrl_fs)
+		_pause_btn.pressed.connect(func(): pause_pressed.emit())
+		add_child(_pause_btn)
+
+		_start_wave_btn = _make_button("REPEL", Vector2(_BTN_GAP * 3 + ctrl_btn_w * 2, ctrl_btn_y), Vector2(ctrl_btn_w, ctrl_btn_h))
+		_start_wave_btn.add_theme_font_size_override("font_size", ctrl_fs)
+		_start_wave_btn.pressed.connect(func(): start_wave_pressed.emit())
+		add_child(_start_wave_btn)
 	else:
 		# Single-row desktop layout
 		var bot_bg = ColorRect.new()
@@ -243,6 +250,7 @@ func _build_hud() -> void:
 		_speed_btn.pressed.connect(_on_speed_btn_pressed)
 		add_child(_speed_btn)
 
+	_style_repel_button()
 	_build_upgrade_panel()
 	_build_boss_bar()
 	_build_wave_preview()
@@ -395,6 +403,45 @@ func _make_button(text: String, pos: Vector2, sz: Vector2 = Vector2(120, 28)) ->
 	btn.add_theme_font_size_override("font_size", int(14 * _ui_scale))
 	return btn
 
+func _style_repel_button() -> void:
+	var normal_style = StyleBoxFlat.new()
+	normal_style.bg_color = Color(0.35, 0.0, 0.6)
+	normal_style.border_color = Color(0.65, 0.2, 1.0)
+	normal_style.set_border_width_all(3)
+	normal_style.set_corner_radius_all(4)
+	_start_wave_btn.add_theme_stylebox_override("normal", normal_style)
+	var hover_style = normal_style.duplicate()
+	hover_style.bg_color = Color(0.45, 0.05, 0.75)
+	hover_style.border_color = Color(0.8, 0.4, 1.0)
+	_start_wave_btn.add_theme_stylebox_override("hover", hover_style)
+	var pressed_style = normal_style.duplicate()
+	pressed_style.bg_color = Color(0.25, 0.0, 0.45)
+	_start_wave_btn.add_theme_stylebox_override("pressed", pressed_style)
+	var disabled_style = StyleBoxFlat.new()
+	disabled_style.bg_color = Color(0.12, 0.05, 0.2, 0.7)
+	disabled_style.border_color = Color(0.3, 0.15, 0.45, 0.5)
+	disabled_style.set_border_width_all(2)
+	disabled_style.set_corner_radius_all(4)
+	_start_wave_btn.add_theme_stylebox_override("disabled", disabled_style)
+	_start_wave_btn.add_theme_color_override("font_color", Color.WHITE)
+	_start_wave_btn.add_theme_color_override("font_disabled_color", Color(0.5, 0.4, 0.6))
+	_start_repel_pulse()
+
+func _start_repel_pulse() -> void:
+	_stop_repel_pulse()
+	_start_wave_btn.modulate = Color(1, 1, 1, 1)
+	_repel_pulse_tween = create_tween().set_loops()
+	_repel_pulse_tween.tween_property(_start_wave_btn, "modulate",
+		Color(1.35, 1.2, 1.5), 0.7).set_trans(Tween.TRANS_SINE)
+	_repel_pulse_tween.tween_property(_start_wave_btn, "modulate",
+		Color(1.0, 1.0, 1.0), 0.7).set_trans(Tween.TRANS_SINE)
+
+func _stop_repel_pulse() -> void:
+	if _repel_pulse_tween != null:
+		_repel_pulse_tween.kill()
+		_repel_pulse_tween = null
+	_start_wave_btn.modulate = Color(1, 1, 1, 1)
+
 func update_lives(lives: int) -> void:
 	_lives_label.text = "Lives: %d" % lives
 	if lives <= 2:
@@ -455,6 +502,10 @@ func set_paused(paused: bool) -> void:
 
 func set_start_wave_enabled(enabled: bool) -> void:
 	_start_wave_btn.disabled = not enabled
+	if enabled:
+		_start_repel_pulse()
+	else:
+		_stop_repel_pulse()
 
 func _on_tower_btn_pressed(idx: int, type: TowerDefinition.TowerType) -> void:
 	if _selected_tower_idx == idx:
